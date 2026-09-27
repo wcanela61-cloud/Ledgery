@@ -1080,7 +1080,7 @@ tbody tr:hover { background: var(--bg); }
       <div class="panel">
         <div class="panel-head"><h3>Data</h3><span class="page-sub" style="margin:0">Items and sales are saved in this browser</span></div>
         <div class="panel-body">
-          <button type="button" class="btn" id="reset-data-btn">Reset to sample data</button>
+          <button type="button" class="btn" id="reset-data-btn">Erase all data</button>
         </div>
       </div>
       <div class="panel"><div class="panel-body"><p class="empty-note">Account and currency settings will live here.</p></div></div>
@@ -1188,56 +1188,17 @@ let nextSaleId = 1;
 
 function money(dollars) { return Math.round(dollars * 100); }
 
-const items = [
-  { id: 1, item_name: 'Black tracksuit', category: 'Outerwear', size: 'M', color: 'Black', condition: 'Good', purchase_cost_cents: money(55), purchase_date: '2026-08-02', supplier: '', storage_location: 'Bin 2', status: 'sold', notes: '' },
-  { id: 2, item_name: 'Levi\'s 501 jeans', category: 'Denim', size: '32x32', color: 'Blue', condition: 'Like new', purchase_cost_cents: money(22), purchase_date: '2026-07-14', supplier: 'Thrift haul', storage_location: 'Rack A', status: 'sold', notes: '' },
-  { id: 3, item_name: 'Nike Air Max 90', category: 'Footwear', size: '10', color: 'White/Grey', condition: 'Good', purchase_cost_cents: money(38), purchase_date: '2026-06-20', supplier: '', storage_location: 'Shelf 1', status: 'sold', notes: '' },
-  { id: 4, item_name: 'Vintage Carhartt jacket', category: 'Outerwear', size: 'L', color: 'Brown', condition: 'Fair', purchase_cost_cents: null, purchase_date: '2026-05-30', supplier: 'Estate sale', storage_location: 'Rack B', status: 'sold', notes: 'Cost unknown — bundled lot' },
-  { id: 5, item_name: 'Patagonia fleece', category: 'Outerwear', size: 'S', color: 'Green', condition: 'Like new', purchase_cost_cents: money(30), purchase_date: '2026-04-11', supplier: '', storage_location: 'Bin 4', status: 'unsold', notes: '' },
-  { id: 6, item_name: 'Adidas Samba', category: 'Footwear', size: '9', color: 'Black/White', condition: 'New with tags', purchase_cost_cents: money(48), purchase_date: '2026-08-15', supplier: '', storage_location: 'Shelf 2', status: 'listed', notes: '' },
-  { id: 7, item_name: 'Champion hoodie', category: 'Tops', size: 'L', color: 'Grey', condition: 'Good', purchase_cost_cents: money(15), purchase_date: '2026-03-01', supplier: '', storage_location: 'Bin 1', status: 'unsold', notes: '' },
-  { id: 8, item_name: 'Wrangler denim jacket', category: 'Outerwear', size: 'M', color: 'Light wash', condition: 'Fair', purchase_cost_cents: money(12), purchase_date: '2026-02-18', supplier: '', storage_location: 'Rack B', status: 'unsold', notes: '' },
-  { id: 9, item_name: 'North Face puffer', category: 'Outerwear', size: 'L', color: 'Black', condition: 'Like new', purchase_cost_cents: money(62), purchase_date: '2026-08-05', supplier: '', storage_location: 'Rack C', status: 'sold', notes: '' },
-  { id: 10, item_name: 'Doc Martens 1460', category: 'Footwear', size: '8', color: 'Cherry Red', condition: 'Good', purchase_cost_cents: money(45), purchase_date: '2026-08-10', supplier: '', storage_location: 'Shelf 3', status: 'sold', notes: '' },
-  { id: 11, item_name: 'Vintage band tee', category: 'Tops', size: 'M', color: 'Black', condition: 'Fair', purchase_cost_cents: money(8), purchase_date: '2026-08-18', supplier: 'Flea market', storage_location: 'Bin 3', status: 'sold', notes: '' },
-  { id: 12, item_name: 'Arc\'teryx shell jacket', category: 'Outerwear', size: 'M', color: 'Navy', condition: 'Like new', purchase_cost_cents: money(95), purchase_date: '2026-08-22', supplier: '', storage_location: 'Rack C', status: 'sold', notes: '' },
-  { id: 13, item_name: 'Ralph Lauren polo', category: 'Tops', size: 'L', color: 'Navy', condition: 'Good', purchase_cost_cents: money(14), purchase_date: '2026-08-28', supplier: '', storage_location: 'Bin 1', status: 'sold', notes: '' },
-  { id: 14, item_name: 'New Balance 550', category: 'Footwear', size: '9.5', color: 'White/Green', condition: 'New with tags', purchase_cost_cents: money(52), purchase_date: '2026-09-01', supplier: '', storage_location: 'Shelf 2', status: 'sold', notes: '' },
-  { id: 15, item_name: 'Carhartt WIP beanie', category: 'Accessories', size: 'One size', color: 'Black', condition: 'New with tags', purchase_cost_cents: money(6), purchase_date: '2026-09-08', supplier: '', storage_location: 'Bin 5', status: 'sold', notes: '' },
-  { id: 16, item_name: 'Stussy graphic hoodie', category: 'Tops', size: 'L', color: 'Cream', condition: 'Good', purchase_cost_cents: money(28), purchase_date: '2026-09-12', supplier: '', storage_location: 'Bin 2', status: 'listed', notes: '' },
-  { id: 17, item_name: 'Oakley sunglasses', category: 'Accessories', size: 'One size', color: 'Black', condition: 'Good', purchase_cost_cents: money(9), purchase_date: '2026-09-02', supplier: '', storage_location: 'Bin 5', status: 'sold', notes: '' },
-  { id: 18, item_name: 'Nike Tech Fleece hoodie', category: 'Tops', size: 'M', color: 'Grey', condition: 'Like new', purchase_cost_cents: money(30), purchase_date: '2026-09-04', supplier: '', storage_location: 'Bin 2', status: 'sold', notes: '' },
-  { id: 19, item_name: 'Timberland 6-inch boots', category: 'Footwear', size: '10', color: 'Wheat', condition: 'Good', purchase_cost_cents: money(25), purchase_date: '2026-09-06', supplier: '', storage_location: 'Shelf 1', status: 'sold', notes: '' },
-];
-nextItemId = items.length + 1;
-
-const sales = [
-  { id: 1, item_id: 3, platform: 'Grailed', sale_price_cents: money(120), platform_fees_cents: money(9), shipping_cost_cents: money(12), other_costs_cents: money(0), order_number: 'GR-55021', sale_date: '2026-08-06', status: 'completed', notes: '' },
-  { id: 2, item_id: 2, platform: 'eBay', sale_price_cents: money(48), platform_fees_cents: money(5.8), shipping_cost_cents: money(5.5), other_costs_cents: null, order_number: 'EB-12045', sale_date: '2026-08-09', status: 'completed', notes: '' },
-  { id: 3, item_id: 9, platform: 'Depop', sale_price_cents: money(98), platform_fees_cents: money(5), shipping_cost_cents: money(9), other_costs_cents: money(0), order_number: 'DP-88055', sale_date: '2026-08-12', status: 'completed', notes: '' },
-  { id: 4, item_id: 10, platform: 'Poshmark', sale_price_cents: money(72), platform_fees_cents: money(7.2), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'PM-30801', sale_date: '2026-08-16', status: 'completed', notes: '' },
-  { id: 5, item_id: 4, platform: 'Poshmark', sale_price_cents: money(65), platform_fees_cents: money(6.5), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'PM-30987', sale_date: '2026-08-19', status: 'completed', notes: '' },
-  { id: 6, item_id: 11, platform: 'Depop', sale_price_cents: money(32), platform_fees_cents: money(1.9), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'DP-88109', sale_date: '2026-08-23', status: 'completed', notes: '' },
-  { id: 7, item_id: 1, platform: 'Depop', sale_price_cents: money(85), platform_fees_cents: money(4.5), shipping_cost_cents: money(6), other_costs_cents: money(0), order_number: 'DP-88213', sale_date: '2026-08-27', status: 'completed', notes: '' },
-  { id: 8, item_id: 12, platform: 'Grailed', sale_price_cents: money(175), platform_fees_cents: money(13), shipping_cost_cents: money(14), other_costs_cents: money(0), order_number: 'GR-55190', sale_date: '2026-08-30', status: 'completed', notes: '' },
-  { id: 9, item_id: 13, platform: 'eBay', sale_price_cents: money(29), platform_fees_cents: money(3.5), shipping_cost_cents: money(5.5), other_costs_cents: money(0), order_number: 'EB-12210', sale_date: '2026-09-03', status: 'completed', notes: '' },
-  { id: 10, item_id: 14, platform: 'Depop', sale_price_cents: money(110), platform_fees_cents: money(6), shipping_cost_cents: money(9), other_costs_cents: money(0), order_number: 'DP-88350', sale_date: '2026-09-07', status: 'completed', notes: '' },
-  { id: 11, item_id: 15, platform: 'Poshmark', sale_price_cents: money(22), platform_fees_cents: money(2.2), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31090', sale_date: '2026-09-11', status: 'completed', notes: '' },
-  { id: 12, item_id: 17, platform: 'Poshmark', sale_price_cents: money(24), platform_fees_cents: money(2.4), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31091', sale_date: '2026-09-14', status: 'completed', notes: '' },
-  { id: 13, item_id: 18, platform: 'Depop', sale_price_cents: money(90), platform_fees_cents: money(4.8), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'DP-88410', sale_date: '2026-09-16', status: 'completed', notes: '' },
-  { id: 14, item_id: 19, platform: 'Grailed', sale_price_cents: money(68), platform_fees_cents: money(6.8), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'GR-55240', sale_date: '2026-09-18', status: 'completed', notes: '' },
-];
-nextSaleId = sales.length + 1;
+// Everyone starts with an empty ledger; items and sales are added in the app.
+const items = [];
+const sales = [];
 
 /* =========================================================
    PERSISTENCE
    Items and sales are saved to localStorage after every
-   change (renderAll) and restored on load. The sample data
-   above is only used the first time, or after a reset.
+   change (renderAll) and restored on load.
    ========================================================= */
-const DATA_STORAGE_KEY = 'ledgerly-data';
-const SAMPLE_ITEMS = JSON.parse(JSON.stringify(items));
-const SAMPLE_SALES = JSON.parse(JSON.stringify(sales));
+// v2: a new key so browsers that saved the old sample data start empty.
+const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
 function replaceData(newItems, newSales) {
   items.splice(0, items.length, ...newItems);
@@ -1262,7 +1223,7 @@ function saveData() {
 }
 
 function resetData() {
-  replaceData(JSON.parse(JSON.stringify(SAMPLE_ITEMS)), JSON.parse(JSON.stringify(SAMPLE_SALES)));
+  replaceData([], []);
   try { localStorage.removeItem(DATA_STORAGE_KEY); } catch (e) {}
 }
 
@@ -1479,8 +1440,9 @@ function renderInventoryDonut() {
   document.getElementById('inventory-donut').innerHTML = `
     <div class="donut-wrap">
       <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="16"></circle>
         ${segments}
-        <text x="60" y="57" text-anchor="middle" class="donut-center-value" fill="var(--ink)">${total}</text>
+        <text x="60" y="57" text-anchor="middle" class="donut-center-value" fill="var(--ink)">${items.length}</text>
         <text x="60" y="72" text-anchor="middle" class="donut-center-label" fill="var(--ink-faint)">items</text>
       </svg>
       <div class="donut-legend">
@@ -2456,7 +2418,7 @@ renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
 document.getElementById('reset-data-btn').addEventListener('click', () => {
-  if (!confirm('Replace all your items and sales with the sample data? This cannot be undone.')) return;
+  if (!confirm('Erase all your items and sales? This cannot be undone.')) return;
   resetData();
   renderAll();
 });

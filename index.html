@@ -373,7 +373,34 @@ tr { transition: background-color 150ms ease; }
 .range-slider::-moz-range-thumb { transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 .range-slider:hover::-moz-range-thumb, .range-slider:active::-moz-range-thumb { transform: scale(1.15); }
 
+/* "Add item" moment: ripple + spinning plus on the button, the form's
+   sections cascading in, a soft close, and the new row sliding in. */
+.btn[data-open] { position: relative; overflow: hidden; }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: rgba(255, 255, 255, 0.45); transform: scale(0);
+  animation: ripple 600ms ease-out forwards;
+}
+.btn:not(.btn-primary) .ripple { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+@keyframes ripple { to { transform: scale(2.8); opacity: 0; } }
+.plus-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.btn.pressed .plus-icon { transform: rotate(90deg); }
+.modal.stagger .form-section, .modal.stagger .modal-actions { animation: section-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.modal.stagger .form-section:nth-of-type(1) { animation-delay: 70ms; }
+.modal.stagger .form-section:nth-of-type(2) { animation-delay: 130ms; }
+.modal.stagger .form-section:nth-of-type(3) { animation-delay: 190ms; }
+.modal.stagger .form-section:nth-of-type(4) { animation-delay: 250ms; }
+.modal.stagger .modal-actions { animation-delay: 310ms; }
+@keyframes section-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.overlay.closing { animation: overlay-out 170ms ease forwards; }
+@keyframes overlay-out { to { opacity: 0; } }
+tr.row-new { animation: row-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+tr.row-new td { animation: row-flash 1.8s ease-out; }
+@keyframes row-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes row-flash { 0%, 35% { background: color-mix(in srgb, var(--accent) 16%, transparent); } 100% { background: transparent; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .ripple, .modal.stagger .form-section, .modal.stagger .modal-actions, .overlay.closing, tr.row-new, tr.row-new td,
   .vibe-card.selected, .view.active, .stat-tile, .panel,
   .table-wrap, .overlay.open, .preview-card.open {
     animation: none !important;
@@ -1025,6 +1052,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
     box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 10px;
   }
   .table-wrap tbody tr:hover { background: var(--surface); }
+  .table-wrap tbody tr.row-new { box-shadow: 0 0 0 1px var(--accent), 0 0 24px -6px var(--accent); transition: box-shadow 1.6s ease; }
   .table-wrap td { border: none; padding: 0; white-space: normal; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
   .table-wrap td::before { content: attr(data-label); font-size: 0.6562rem; color: var(--ink-faint); font-family: var(--font-sans); }
   .table-wrap td.cell-title { grid-column: 1 / -1; }
@@ -1104,7 +1132,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
           <p class="welcome-sub">Track what you buy, what you sell, and what you actually make. Everything is saved in this browser.</p>
           <ol class="welcome-steps">
             <li><strong>Add something you bought.</strong> Put in what you paid, so profit can be worked out when it sells.
-              <div><button type="button" class="btn btn-sm btn-primary" data-open="add-item">Add your first item</button>
+              <div><button type="button" class="btn btn-sm btn-primary" data-open="add-item"><svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add your first item</button>
               <button type="button" class="btn btn-sm" data-open="add-bundle">Add a bundle</button></div></li>
             <li><strong>Record a sale.</strong> Fees are estimated for you. You can also add a new item right in the sale form.
               <div><button type="button" class="btn btn-sm" data-open="record-sale">Record a sale</button></div></li>
@@ -1156,7 +1184,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
         </div>
         <div class="header-actions">
           <button class="btn" data-open="add-bundle">Add bundle</button>
-          <button class="btn btn-primary" data-open="add-item">Add item</button>
+          <button class="btn btn-primary" data-open="add-item"><svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
         </div>
       </div>
       <div class="toolbar">
@@ -2199,7 +2227,7 @@ function renderInventory() {
   document.getElementById('inv-count').textContent = rows.length;
   const emptyMsg = items.length ? 'No items match your filters.' : 'No items yet. Use "Add item" or "Add bundle" to add what you bought.';
 
-  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr>
+  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr data-item-id="${item.id}"${highlightItemIds.has(item.id) ? ' class="row-new"' : ''}>
       <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${[item.brand, item.category, item.size].filter(Boolean).map(esc).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${sale ? esc(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
@@ -2211,6 +2239,9 @@ function renderInventory() {
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
     </tr>`).join('') : `<tr><td colspan="9" class="empty-note">${emptyMsg}</td></tr>`;
 }
+
+// Items just added: their rows slide in with a glow on the next render.
+let highlightItemIds = new Set();
 
 function itemThumb(item) {
   const src = (item.photo_ids || []).map(id => photoCache.get(id)).find(Boolean);
@@ -2282,8 +2313,16 @@ function renderSales() {
 function openOverlay(id, originEl) {
   const overlay = document.getElementById(id);
   const modal = overlay.querySelector('.modal');
+  if (modal) modal.getAnimations().forEach(a => a.cancel()); // stop a close still in progress
+  overlay.classList.remove('closing');
   overlay.classList.add('open');
   if (!modal) return;
+  // Sections of the item form cascade in one after another.
+  if (modal.querySelector('.form-section')) {
+    modal.classList.remove('stagger');
+    void modal.offsetWidth; // restart the CSS animation
+    modal.classList.add('stagger');
+  }
 
   let originX = '50%', originY = '50%';
   if (originEl) {
@@ -2314,7 +2353,20 @@ function openOverlay(id, originEl) {
     );
   }
 }
-function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+const prefersReducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Close with a short fade/shrink. Reopening mid-close cancels it (openOverlay).
+function closeOverlay(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay.classList.contains('open') || overlay.classList.contains('closing')) return;
+  const modal = overlay.querySelector('.modal');
+  if (prefersReducedMotion() || !modal || !modal.animate) { overlay.classList.remove('open'); return; }
+  overlay.classList.add('closing');
+  modal.animate(
+    [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.96) translateY(8px)' }],
+    { duration: 170, easing: 'cubic-bezier(0.4, 0, 1, 1)' }
+  ).finished.then(() => overlay.classList.remove('open', 'closing'), () => {});
+}
 
 // Photos currently in the Add/Edit item form: [{ id, data }]
 let formPhotos = [];
@@ -2412,18 +2464,27 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     photo_ids: formPhotos.map(ph => ph.id),
     notes: fd.get('notes') || '',
   };
+  const before = existing ? null : snapshotData();
+  const addedIds = [];
   if (existing) {
     // Update in place — same object reference, so any sale still
     // pointing at this item.id automatically sees the new details.
     Object.assign(existing, fields, { purchase_cost_cents: costs[0] });
   } else {
     // Quantity N creates N separate items (each can sell on its own).
-    costs.forEach(cost => items.push(normalizeItem(Object.assign({ id: nextItemId++ }, fields, { purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }))));
+    costs.forEach(cost => {
+      const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }));
+      items.push(item);
+      addedIds.push(item.id);
+    });
   }
   form.reset();
   formPhotos = [];
   closeOverlay('overlay-add-item');
+  highlightItemIds = new Set(addedIds);
   renderAll();
+  highlightItemIds = new Set();
+  if (!existing) showUndo(addedIds.length > 1 ? `Added ${addedIds.length} × ${fields.item_name}` : `Added ${fields.item_name}`, before);
 });
 
 /* =========================================================
@@ -3141,8 +3202,27 @@ document.querySelectorAll('.nav-item').forEach(btn => {
 updateNavPill(document.querySelector('.nav-item.active'));
 window.addEventListener('resize', () => updateNavPill(document.querySelector('.nav-item.active')));
 
+// Ripple from the tap point, and the + icon turns a quarter.
+function playButtonPress(btn, e) {
+  if (prefersReducedMotion()) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  const x = e && e.clientX ? e.clientX - rect.left : rect.width / 2;
+  const y = e && e.clientY ? e.clientY - rect.top : rect.height / 2;
+  ripple.style.left = (x - size / 2) + 'px';
+  ripple.style.top = (y - size / 2) + 'px';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove());
+  btn.classList.add('pressed');
+  setTimeout(() => btn.classList.remove('pressed'), 450);
+}
+
 document.querySelectorAll('[data-open]').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', e => {
+    playButtonPress(btn, e);
     const target = btn.dataset.open;
     if (target === 'record-sale') { resetRecordSaleFormForCreate(); updateSaleCalc(); }
     if (target === 'add-item') { resetAddItemFormForCreate(); }
@@ -3151,14 +3231,14 @@ document.querySelectorAll('[data-open]').forEach(btn => {
   });
 });
 document.querySelectorAll('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => btn.closest('.overlay').classList.remove('open'));
+  btn.addEventListener('click', () => closeOverlay(btn.closest('.overlay').id));
 });
 document.querySelectorAll('.overlay').forEach(ov => {
-  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+  ov.addEventListener('click', e => { if (e.target === ov) closeOverlay(ov.id); });
 });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => ov.classList.remove('open'));
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => closeOverlay(ov.id));
 });
 
 document.getElementById('inv-search').addEventListener('input', renderInventory);

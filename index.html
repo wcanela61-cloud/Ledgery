@@ -1633,8 +1633,8 @@ td .empty-state { white-space: normal; }
         </div>
         <div class="field"><label>Sale price *</label><input required name="sale_price" type="number" step="0.01" min="0"></div>
         <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"><span class="field-hint" id="rs-fee-hint"></span></div>
-        <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
-        <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
+        <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="0.00 (blank if buyer paid)"></div>
+        <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="0.00"></div>
         <div class="field"><label>Order number</label><input name="order_number"></div>
         <div class="field"><label>Sale date *</label><input required name="sale_date" type="date"></div>
         <div class="field"><label>Status</label>
@@ -1918,12 +1918,14 @@ const PLATFORMS = ['Depop', 'Vinted', 'eBay', 'Grailed', 'Poshmark', 'Facebook M
    ========================================================= */
 function calcProfit(sale, item) {
   const purchaseCost = item ? item.purchase_cost_cents : null;
-  const fields = [purchaseCost, sale.platform_fees_cents, sale.shipping_cost_cents, sale.other_costs_cents];
+  // Shipping and other costs are often nothing (buyer pays shipping), so blank counts as $0.
+  // Purchase cost and platform fees are always needed for a real profit.
+  const fields = [purchaseCost, sale.platform_fees_cents];
   const isComplete = fields.every(f => f !== null && f !== undefined && !Number.isNaN(f));
   if (!isComplete) {
     return { isComplete: false, netProfitCents: null, marginBps: null };
   }
-  const netProfitCents = sale.sale_price_cents - purchaseCost - sale.platform_fees_cents - sale.shipping_cost_cents - sale.other_costs_cents;
+  const netProfitCents = sale.sale_price_cents - purchaseCost - sale.platform_fees_cents - (sale.shipping_cost_cents || 0) - (sale.other_costs_cents || 0);
   const marginBps = sale.sale_price_cents !== 0 ? Math.round((netProfitCents * 10000) / sale.sale_price_cents) : null;
   return { isComplete: true, netProfitCents, marginBps };
 }
@@ -2684,8 +2686,8 @@ function renderSales() {
 
   let rows = sales.map(s => {
     const item = itemById(s.item_id);
-    const costsKnown = [s.platform_fees_cents, s.shipping_cost_cents, s.other_costs_cents].every(c => c !== null);
-    return { s, item, r: calcProfit(s, item), costs: costsKnown ? s.platform_fees_cents + s.shipping_cost_cents + s.other_costs_cents : null };
+    const costs = s.platform_fees_cents === null ? null : s.platform_fees_cents + (s.shipping_cost_cents || 0) + (s.other_costs_cents || 0);
+    return { s, item, r: calcProfit(s, item), costs };
   }).filter(({ s, item }) => {
     if (search) {
       const haystack = [item ? item.item_name : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
@@ -3076,13 +3078,14 @@ function updateSaleCalc() {
   const draftSale = {
     sale_price_cents: salePrice === '' ? 0 : money(parseFloat(salePrice)),
     platform_fees_cents: fees === '' ? null : money(parseFloat(fees)),
-    shipping_cost_cents: shipping === '' ? null : money(parseFloat(shipping)),
-    other_costs_cents: other === '' ? null : money(parseFloat(other)),
+    shipping_cost_cents: shipping === '' ? 0 : money(parseFloat(shipping)),
+    other_costs_cents: other === '' ? 0 : money(parseFloat(other)),
   };
   const r = calcProfit(draftSale, item);
   const box = document.getElementById('rs-calc-box');
   box.classList.toggle('incomplete', !r.isComplete);
-  document.getElementById('rs-profit').innerHTML = r.isComplete ? fmtCents(r.netProfitCents) : 'Incomplete — missing cost data';
+  const missing = [(!item || item.purchase_cost_cents === null) && 'purchase cost', draftSale.platform_fees_cents === null && 'platform fees'].filter(Boolean);
+  document.getElementById('rs-profit').innerHTML = r.isComplete ? fmtCents(r.netProfitCents) : `Needs the ${missing.join(' and ') || 'cost data'}`;
   document.getElementById('rs-margin').innerHTML = r.isComplete ? fmtBps(r.marginBps) : '&mdash;';
 }
 
@@ -3125,8 +3128,8 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     platform: fd.get('platform'),
     sale_price_cents: money(parseFloat(fd.get('sale_price'))),
     platform_fees_cents: fees === '' ? null : money(parseFloat(fees)),
-    shipping_cost_cents: shipping === '' ? null : money(parseFloat(shipping)),
-    other_costs_cents: other === '' ? null : money(parseFloat(other)),
+    shipping_cost_cents: shipping === '' ? 0 : money(parseFloat(shipping)), // blank = no shipping cost
+    other_costs_cents: other === '' ? 0 : money(parseFloat(other)),
     order_number: fd.get('order_number') || '',
     sale_date: fd.get('sale_date'),
     status: fd.get('status') || 'completed',
@@ -3324,7 +3327,7 @@ function renderSmartEntryPreview(draft, editing) {
     ['Sale price', draft.sale_price !== null ? '$' + draft.sale_price.toFixed(2) : null, 'sale_price', 'number'],
     ['Purchase cost', draft.purchase_cost !== null ? '$' + draft.purchase_cost.toFixed(2) : null, 'purchase_cost', 'number'],
     ['Platform fees', draft.fees !== null ? '$' + draft.fees.toFixed(2) + (draft.fees_estimated ? ' (estimated)' : '') : 'Not detected', 'fees', 'number'],
-    ['Shipping', draft.shipping !== null ? '$' + draft.shipping.toFixed(2) : 'Not detected', 'shipping', 'number'],
+    ['Shipping', draft.shipping !== null ? '$' + draft.shipping.toFixed(2) : '$0.00 (none mentioned)', 'shipping', 'number'],
     ['Sale date', draft.sale_date ? fmtDate(draft.sale_date).replace('&mdash;','') : null, 'sale_date', 'date'],
   ];
 
@@ -3377,12 +3380,12 @@ function syncDraftFromEditFields() {
 }
 
 function updateSmartEntryCalc(draft) {
-  const complete = draft.sale_price !== null && draft.purchase_cost !== null && draft.fees !== null && draft.shipping !== null;
+  const complete = draft.sale_price !== null && draft.purchase_cost !== null && draft.fees !== null;
   const box = document.getElementById('se-calc-box');
   box.classList.toggle('incomplete', !complete);
   if (complete) {
     const salePriceCents = money(draft.sale_price);
-    const netCents = salePriceCents - money(draft.purchase_cost) - money(draft.fees) - money(draft.shipping);
+    const netCents = salePriceCents - money(draft.purchase_cost) - money(draft.fees) - money(draft.shipping || 0);
     const marginBps = salePriceCents !== 0 ? Math.round((netCents * 10000) / salePriceCents) : null;
     document.getElementById('se-profit').innerHTML = fmtCents(netCents);
     document.getElementById('se-margin').innerHTML = fmtBps(marginBps);
@@ -3424,7 +3427,7 @@ document.getElementById('se-confirm-btn').addEventListener('click', () => {
     id: nextSaleId++, item_id: item.id, platform: currentDraft.platform,
     sale_price_cents: money(currentDraft.sale_price),
     platform_fees_cents: currentDraft.fees !== null ? money(currentDraft.fees) : null,
-    shipping_cost_cents: currentDraft.shipping !== null ? money(currentDraft.shipping) : null,
+    shipping_cost_cents: currentDraft.shipping !== null ? money(currentDraft.shipping) : 0,
     other_costs_cents: currentDraft.other !== null ? money(currentDraft.other) : money(0),
     order_number: '', sale_date: currentDraft.sale_date, status: 'completed', notes: '(via Smart Entry)',
   };

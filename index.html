@@ -859,8 +859,21 @@ tbody tr:hover { background: var(--bg); }
 .view.active { display: block; }
 
 @media (max-width: 720px) {
-  .sidebar { display: none; }
-  .main { padding: 20px 16px 48px; }
+  /* Sidebar becomes a bottom tab bar so every page stays reachable. */
+  .sidebar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    width: auto; flex-direction: row; gap: 2px; overflow-x: auto;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-right: none; border-top: 1px solid var(--border);
+  }
+  .brand, .nav-active-pill { display: none; }
+  .nav-item {
+    flex: 1 0 auto; width: auto; min-width: 54px;
+    flex-direction: column; gap: 2px; padding: 6px 4px;
+    font-size: 0.6875rem; text-align: center;
+  }
+  .nav-item.active { background: var(--accent-soft); }
+  .main { padding: 20px 16px calc(88px + env(safe-area-inset-bottom, 0px)); }
   .field-grid { grid-template-columns: 1fr; }
   .preview-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -896,7 +909,7 @@ tbody tr:hover { background: var(--bg); }
       <div class="page-header">
         <div>
           <h1 class="page-title">Dashboard</h1>
-          <div class="page-sub">Sample data — connect Supabase to see your real numbers</div>
+          <div class="page-sub">Your inventory and sales at a glance</div>
         </div>
         <button class="btn btn-primary" data-open="record-sale">Record sale</button>
       </div>
@@ -943,7 +956,7 @@ tbody tr:hover { background: var(--bg); }
         <button class="btn btn-primary" data-open="add-item">Add item</button>
       </div>
       <div class="toolbar">
-        <input type="text" id="inv-search" placeholder="Search item name">
+        <input type="text" id="inv-search" placeholder="Search name, category, size, color…">
         <select id="inv-status-filter">
           <option value="">All statuses</option>
           <option value="unsold">Unsold</option>
@@ -997,7 +1010,7 @@ tbody tr:hover { background: var(--bg); }
       </div>
 
       <div class="se-box">
-        <textarea id="se-input" placeholder="Sold black tracksuit on Depop for $85. Bought it for $55. Fees were $4.50. Shipping was $6. Sold September 21.">Sold black tracksuit on Depop for $85. Bought it for $55. Fees were $4.50. Shipping was $6. Sold September 21.</textarea>
+        <textarea id="se-input" placeholder="Sold Patagonia fleece on Depop for $65. Bought it for $30. Fees were $4. Shipping was $7. Sold September 21.">Sold Patagonia fleece on Depop for $65. Bought it for $30. Fees were $4. Shipping was $7. Sold September 21.</textarea>
         <div class="se-examples">This uses a mocked parser for the preview — swap in a real model later without touching the rest of the app.</div>
         <button class="btn btn-primary" id="se-parse-btn">Parse entry</button>
         <div class="se-flow-note">
@@ -1299,6 +1312,25 @@ function daysSince(d) {
 }
 function itemById(id) { return items.find(i => i.id === id); }
 
+// Escape user-entered text before it goes into innerHTML, so names
+// like `Jordan 4 "Bred"` or `<i>Dunk</i>` show exactly as typed.
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// Keeps an item's status in line with its sales: any completed sale
+// means sold; if it was sold and no completed sale is left, it goes
+// back to returned (if a sale was returned) or unsold.
+function syncItemStatus(itemId) {
+  const item = itemById(itemId);
+  if (!item) return;
+  const itemSales = sales.filter(s => s.item_id === itemId);
+  if (itemSales.some(s => s.status === 'completed')) item.status = 'sold';
+  else if (item.status === 'sold') item.status = itemSales.some(s => s.status === 'returned') ? 'returned' : 'unsold';
+}
+
 /* =========================================================
    DASHBOARD
    ========================================================= */
@@ -1327,36 +1359,41 @@ function renderHero(completedSales) {
   const revenueSeries = chrono.map(s => s.sale_price_cents / 100);
   const profitSeries = withProfit.map(x => (x.r.isComplete ? x.r.netProfitCents : 0) / 100);
 
-  const half = Math.floor(chrono.length / 2) || 1;
-  const sum = arr => arr.reduce((a, b) => a + b, 0);
-  const revPrev = sum(revenueSeries.slice(0, half)), revNow = sum(revenueSeries.slice(half));
-  const profPrev = sum(profitSeries.slice(0, half)), profNow = sum(profitSeries.slice(half));
-  const pctChange = (now, prev) => (prev === 0 ? (now > 0 ? 100 : 0) : Math.round(((now - prev) / Math.abs(prev)) * 100));
-  const revTrend = pctChange(revNow, revPrev);
-  const profTrend = pctChange(profNow, profPrev);
+  // Trend: last 30 days vs. the 30 days before that, by sale date.
+  const revOf = x => x.sale.sale_price_cents;
+  const profOf = x => (x.r.isComplete ? x.r.netProfitCents : 0);
+  const sumBetween = (fromDays, toDays, valueOf) => withProfit
+    .filter(x => { const d = daysSince(x.sale.sale_date); return d < toDays && (fromDays === null || d >= fromDays); })
+    .reduce((total, x) => total + valueOf(x), 0);
+  // No sales in the prior window means there's nothing to compare to.
+  const pctChange = (now, prev) => (prev === 0 ? null : Math.round(((now - prev) / Math.abs(prev)) * 100));
+  const revTrend = pctChange(sumBetween(null, 30, revOf), sumBetween(30, 60, revOf));
+  const profTrend = pctChange(sumBetween(null, 30, profOf), sumBetween(30, 60, profOf));
+  const trendBadge = t => (t === null ? ''
+    : `<span class="hero-trend ${t >= 0 ? 'up' : 'down'}" title="Last 30 days vs. the 30 days before">${t >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(t)}%</span>`);
 
-  const totalRevenue = sum(revenueSeries) * 100;
-  const totalProfit = sum(profitSeries) * 100;
+  const totalRevenue = withProfit.reduce((total, x) => total + revOf(x), 0);
+  const totalProfit = withProfit.reduce((total, x) => total + profOf(x), 0);
 
   document.getElementById('hero-grid').innerHTML = `
     <div class="hero-card revenue">
       <div class="hero-shape"></div>
       <div class="hero-top">
         <span class="hero-label">Total revenue</span>
-        <span class="hero-trend ${revTrend >= 0 ? 'up' : 'down'}">${revTrend >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(revTrend)}%</span>
+        ${trendBadge(revTrend)}
       </div>
       <div class="hero-value">${fmtCents(totalRevenue)}</div>
-      <div class="hero-sub">vs. prior period &middot; ${chrono.length} sales</div>
+      <div class="hero-sub">${chrono.length} sales &middot; trend is last 30 days vs. prior 30</div>
       ${buildSparkline(revenueSeries, '--accent')}
     </div>
     <div class="hero-card profit">
       <div class="hero-shape"></div>
       <div class="hero-top">
         <span class="hero-label">Net profit</span>
-        <span class="hero-trend ${profTrend >= 0 ? 'up' : 'down'}">${profTrend >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(profTrend)}%</span>
+        ${trendBadge(profTrend)}
       </div>
       <div class="hero-value">${fmtCents(totalProfit)}</div>
-      <div class="hero-sub">vs. prior period &middot; complete sales only</div>
+      <div class="hero-sub">complete sales only &middot; trend is last 30 days vs. prior 30</div>
       ${buildSparkline(profitSeries, '--success')}
     </div>
   `;
@@ -1370,25 +1407,39 @@ function renderTrendChart(completedSales) {
 
   const w = 640, h = 200, padL = 4, padR = 4, padT = 12, padB = 26;
   const revenues = chrono.map(s => s.sale_price_cents);
-  const profits = chrono.map(s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : 0; });
-  const maxVal = Math.max(...revenues, ...profits, 100);
+  // Incomplete sales have no profit — leave a gap rather than plot $0.
+  const profits = chrono.map(s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : null; });
+  const knownProfits = profits.filter(v => v !== null);
+  const maxVal = Math.max(...revenues, ...knownProfits, 100);
+  const minVal = Math.min(0, ...knownProfits); // below 0 when a sale lost money
 
   const x = i => padL + (i / (chrono.length - 1)) * (w - padL - padR);
-  const y = v => padT + (1 - v / maxVal) * (h - padT - padB);
+  const y = v => padT + ((maxVal - v) / (maxVal - minVal)) * (h - padT - padB);
 
-  const linePath = vals => vals.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  const linePath = vals => {
+    let d = '', penDown = false;
+    vals.forEach((v, i) => {
+      if (v === null) { penDown = false; return; }
+      d += (penDown ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1) + ' ';
+      penDown = true;
+    });
+    return d.trim();
+  };
   const revLine = linePath(revenues);
-  const revArea = revLine + ` L${x(chrono.length - 1).toFixed(1)},${(h - padB).toFixed(1)} L${x(0).toFixed(1)},${(h - padB).toFixed(1)} Z`;
+  const revArea = revLine + ` L${x(chrono.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
   const profLine = linePath(profits);
 
-  const gridLines = [0.25, 0.5, 0.75, 1].map(f => `<line x1="${padL}" y1="${y(maxVal * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal * f).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`).join('');
+  const gridLines = [0.25, 0.5, 0.75, 1].map(f => `<line x1="${padL}" y1="${y(maxVal * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal * f).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`).join('')
+    + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1" opacity="0.5"></line>`;
 
   const labelEvery = Math.ceil(chrono.length / 6);
   const labels = chrono.map((s, i) => i % labelEvery === 0 || i === chrono.length - 1
     ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${fmtDate(s.sale_date).replace('&mdash;', '').split(',')[0]}</text>`
     : '').join('');
 
-  const dots = chrono.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(revenues[i]).toFixed(1)}" r="2.5" fill="var(--accent)"></circle>`).join('');
+  const dots = chrono.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(revenues[i]).toFixed(1)}" r="2.5" fill="var(--accent)"></circle>`).join('')
+    + profits.map((v, i) => (v === null ? '' : `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2" fill="var(--success)"></circle>`)).join('');
+  const hasGaps = knownProfits.length < profits.length;
 
   container.innerHTML = `
     <svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
@@ -1402,6 +1453,7 @@ function renderTrendChart(completedSales) {
     <div class="trend-legend">
       <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Revenue</div>
       <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--success)"></span>Net profit</div>
+      ${hasGaps ? '<div class="trend-legend-item">Gaps = incomplete sales (missing costs)</div>' : ''}
     </div>
   `;
 }
@@ -1476,8 +1528,8 @@ function renderDashboard() {
     const r = calcProfit(s, item);
     return `<div class="row-line">
       <div>
-        <div class="row-title">${item ? item.item_name : 'Unknown item'}</div>
-        <div class="row-sub">${s.platform} &middot; ${fmtDate(s.sale_date)}</div>
+        <div class="row-title">${item ? esc(item.item_name) : 'Unknown item'}</div>
+        <div class="row-sub">${esc(s.platform)} &middot; ${fmtDate(s.sale_date)}</div>
       </div>
       <div class="row-amt ${r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
     </div>`;
@@ -1494,7 +1546,7 @@ function renderDashboard() {
   const platformEntries = Object.entries(byPlatform).sort((a, b) => b[1] - a[1]);
   document.getElementById('platform-breakdown').innerHTML = platformEntries.length ? platformEntries.map(([p, val]) => `
     <div class="bar-row">
-      <div class="bar-label">${p}</div>
+      <div class="bar-label">${esc(p)}</div>
       <div class="bar-track"><div class="bar-fill" data-target-width="${Math.max(4, (val / maxVal) * 100)}" style="width:0%"></div></div>
       <div class="bar-val">${fmtCents(val)}</div>
     </div>`).join('') : '<div class="empty-note">No complete sales yet.</div>';
@@ -1510,8 +1562,8 @@ function renderDashboard() {
   document.getElementById('aging-inventory').innerHTML = aging.length ? aging.map(i => `
     <div class="row-line">
       <div>
-        <div class="row-title">${i.item_name}</div>
-        <div class="row-sub">${i.category || 'Uncategorized'}</div>
+        <div class="row-title">${esc(i.item_name)}</div>
+        <div class="row-sub">${esc(i.category || 'Uncategorized')}</div>
       </div>
       <span class="badge badge-aging">${daysSince(i.purchase_date)}d</span>
     </div>`).join('') : '<div class="empty-note">Nothing aging past 60 days.</div>';
@@ -1521,7 +1573,7 @@ function renderDashboard() {
    INVENTORY PAGE
    ========================================================= */
 function statusBadge(status) {
-  return `<span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+  return `<span class="badge badge-${esc(status)}">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</span>`;
 }
 
 function renderInventory() {
@@ -1535,7 +1587,10 @@ function renderInventory() {
   });
 
   rows = rows.filter(({ item, sale }) => {
-    if (search && !item.item_name.toLowerCase().includes(search)) return false;
+    if (search) {
+      const haystack = [item.item_name, item.category, item.size, item.color, item.storage_location, item.supplier].join(' ').toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
     if (statusFilter && item.status !== statusFilter) return false;
     if (platformFilter && (!sale || sale.platform !== platformFilter)) return false;
     return true;
@@ -1546,10 +1601,10 @@ function renderInventory() {
   document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale }) => {
     const r = sale ? calcProfit(sale, item) : null;
     return `<tr>
-      <td><div class="item-name">${item.item_name}</div><div class="item-sub">${item.category || ''}${item.size ? ' &middot; ' + item.size : ''}</div></td>
-      <td>${sale ? sale.platform : '&mdash;'}</td>
-      <td>${item.category || '&mdash;'}</td>
-      <td>${item.size || '&mdash;'}</td>
+      <td><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${esc(item.category || '')}${item.size ? ' &middot; ' + esc(item.size) : ''}</div></td>
+      <td>${sale ? esc(sale.platform) : '&mdash;'}</td>
+      <td>${item.category ? esc(item.category) : '&mdash;'}</td>
+      <td>${item.size ? esc(item.size) : '&mdash;'}</td>
       <td class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
       <td>${statusBadge(item.status)}</td>
       <td class="num">${sale ? fmtCents(sale.sale_price_cents) : '&mdash;'}</td>
@@ -1580,14 +1635,14 @@ function renderSales() {
     const r = calcProfit(s, item);
     const costsKnown = [s.platform_fees_cents, s.shipping_cost_cents, s.other_costs_cents].every(c => c !== null);
     return `<tr>
-      <td class="item-name">${item ? item.item_name : 'Unknown'}</td>
-      <td>${s.platform}</td>
+      <td class="item-name">${item ? esc(item.item_name) : 'Unknown'}</td>
+      <td>${esc(s.platform)}</td>
       <td class="num">${fmtCents(s.sale_price_cents)}</td>
       <td class="num">${costsKnown ? fmtCents(s.platform_fees_cents + s.shipping_cost_cents + s.other_costs_cents) : '<span class="badge badge-incomplete">Partial</span>'}</td>
       <td class="num">${r.isComplete ? fmtCents(r.netProfitCents) : '&mdash;'}</td>
       <td class="num">${r.isComplete ? fmtBps(r.marginBps) : '&mdash;'}</td>
       <td>${fmtDate(s.sale_date)}</td>
-      <td style="text-transform:capitalize">${s.status}</td>
+      <td style="text-transform:capitalize">${esc(s.status)}</td>
       <td><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
       <td><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
     </tr>`;
@@ -1675,7 +1730,7 @@ function populateItemSelect(includeItemId) {
   const sel = document.getElementById('rs-item-select');
   sel.innerHTML = '<option value="">Select an item</option>' + items
     .filter(i => i.status !== 'sold' || i.id === includeItemId)
-    .map(i => `<option value="${i.id}">${i.item_name}</option>`).join('');
+    .map(i => `<option value="${i.id}">${esc(i.item_name)}</option>`).join('');
 }
 
 function updateSaleCalc() {
@@ -1721,14 +1776,20 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     status: fd.get('status') || 'completed',
     notes: fd.get('notes') || '',
   };
+  let previousItemId = null;
   if (editingId) {
     const existing = sales.find(s => s.id === parseInt(editingId, 10));
-    if (existing) Object.assign(existing, fields);
+    if (existing) {
+      previousItemId = existing.item_id;
+      Object.assign(existing, fields);
+    }
   } else {
     sales.push(Object.assign({ id: nextSaleId++ }, fields));
   }
-  const item = itemById(itemId);
-  if (item && fields.status === 'completed') item.status = 'sold';
+  // Re-check both the item this sale now points at and, if the sale
+  // was moved, the item it used to point at.
+  syncItemStatus(itemId);
+  if (previousItemId !== null && previousItemId !== itemId) syncItemStatus(previousItemId);
   e.target.reset();
   closeOverlay('overlay-record-sale');
   renderAll();
@@ -1809,7 +1870,9 @@ function mockParseSmartEntry(text) {
   if (dateMatch) {
     const year = dateMatch[3] || new Date().getFullYear();
     const parsed = new Date(`${dateMatch[2]}, ${year}`);
-    if (!isNaN(parsed)) saleDate = parsed.toISOString().slice(0, 10);
+    // Build YYYY-MM-DD from local parts — toISOString() converts to UTC,
+    // which shifts the date back a day in timezones ahead of UTC.
+    if (!isNaN(parsed)) saleDate = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
   }
 
   const nameMatch = text.match(/sold\s+(?:an?\s+|the\s+)?(.+?)\s+(?:on|for)\s/i);
@@ -1862,7 +1925,7 @@ function renderSmartEntryPreview(draft, editing) {
     document.getElementById('se-preview-fields').innerHTML = `
       <div class="preview-grid">
         ${fieldDefs.map(([label, val]) => `
-          <div class="preview-row"><span class="k">${label}</span><span class="v">${val !== null ? val : '<span class="badge badge-incomplete">Missing</span>'}</span></div>
+          <div class="preview-row"><span class="k">${label}</span><span class="v">${val !== null ? esc(val) : '<span class="badge badge-incomplete">Missing</span>'}</span></div>
         `).join('')}
       </div>
       ${draft.missing.length ? `<div class="preview-flag">Missing: ${draft.missing.join(', ')} — fill these in before saving.</div>` : ''}
@@ -1870,9 +1933,9 @@ function renderSmartEntryPreview(draft, editing) {
   } else {
     document.getElementById('se-preview-fields').innerHTML = `
       <div class="field-grid" id="se-edit-fields">
-        <div class="field"><label>Item</label><input id="ef-item_name" value="${draft.item_name || ''}"></div>
+        <div class="field"><label>Item</label><input id="ef-item_name" value="${esc(draft.item_name || '')}"></div>
         <div class="field"><label>Platform</label>
-          <select id="ef-platform"><option value="">Select</option>${PLATFORMS.map(p => `<option ${p===draft.platform?'selected':''}>${p}</option>`).join('')}</select>
+          <select id="ef-platform"><option value="">Select</option>${PLATFORMS.map(p => `<option ${p===draft.platform?'selected':''}>${esc(p)}</option>`).join('')}</select>
         </div>
         <div class="field"><label>Sale price</label><input id="ef-sale_price" type="number" step="0.01" value="${draft.sale_price ?? ''}"></div>
         <div class="field"><label>Purchase cost</label><input id="ef-purchase_cost" type="number" step="0.01" value="${draft.purchase_cost ?? ''}"></div>
@@ -1932,6 +1995,14 @@ document.getElementById('se-confirm-btn').addEventListener('click', () => {
   }
   // App-controlled save path: same insert logic a manual form would use.
   let item = items.find(i => i.item_name.toLowerCase() === currentDraft.item_name.toLowerCase());
+  if (item && item.status === 'sold') {
+    alert(`"${item.item_name}" is already marked as sold. Edit its existing sale on the Sales page, or use a different item name.`);
+    return;
+  }
+  if (item && item.purchase_cost_cents === null && currentDraft.purchase_cost !== null) {
+    // Existing item with an unknown cost: fill it in from the entry.
+    item.purchase_cost_cents = money(currentDraft.purchase_cost);
+  }
   if (!item) {
     item = {
       id: nextItemId++, item_name: currentDraft.item_name, category: '', size: '', color: '',
@@ -1949,7 +2020,7 @@ document.getElementById('se-confirm-btn').addEventListener('click', () => {
     order_number: '', sale_date: currentDraft.sale_date, status: 'completed', notes: '(via Smart Entry)',
   };
   sales.push(newSale);
-  item.status = 'sold';
+  syncItemStatus(item.id);
   document.getElementById('se-preview').classList.remove('open');
   document.getElementById('se-input').value = '';
   currentDraft = null;
@@ -2148,12 +2219,12 @@ function setVibe(vibe) {
   renderColorControls();
 }
 
-function setColorOverride(key, value) {
+function setColorOverride(key, value, rerender) {
   const settings = getThemeSettings();
   settings.colorOverrides[key] = value;
   saveThemeSettings(settings);
   applyTheme(settings);
-  renderColorControls();
+  if (rerender !== false) renderColorControls();
 }
 
 function resetColorOverrides() {
@@ -2209,10 +2280,15 @@ function renderColorControls() {
     </div>
   `;
   ['bg', 'accent', 'fg'].forEach(key => {
-    document.getElementById('cc-' + key).addEventListener('input', (e) => {
+    const input = document.getElementById('cc-' + key);
+    // While dragging, only apply the color — rebuilding the controls
+    // would replace this input and close the picker. Re-render once
+    // the picker is closed ('change') to show the reset link.
+    input.addEventListener('input', (e) => {
       document.getElementById('cc-' + key + '-val').textContent = e.target.value.toUpperCase();
-      setColorOverride(key, e.target.value);
+      setColorOverride(key, e.target.value, false);
     });
+    input.addEventListener('change', () => renderColorControls());
   });
   const resetBtn = document.getElementById('reset-color-overrides');
   if (resetBtn) resetBtn.addEventListener('click', resetColorOverrides);
@@ -2254,6 +2330,10 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 });
 document.querySelectorAll('.overlay').forEach(ov => {
   ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => ov.classList.remove('open'));
 });
 
 document.getElementById('inv-search').addEventListener('input', renderInventory);
@@ -2306,8 +2386,11 @@ let pendingDelete = null;
 
 function askDeleteItem(item, originEl) {
   pendingDelete = { kind: 'item', id: item.id };
+  const saleCount = sales.filter(s => s.item_id === item.id).length;
   document.getElementById('confirm-delete-title').textContent = 'Delete item?';
-  document.getElementById('confirm-delete-item-name').textContent = item.item_name;
+  document.getElementById('confirm-delete-item-name').textContent = saleCount
+    ? `${item.item_name} and its ${saleCount} sale${saleCount === 1 ? '' : 's'}`
+    : item.item_name;
   openOverlay('overlay-confirm-delete', originEl);
 }
 
@@ -2316,18 +2399,18 @@ document.getElementById('confirm-delete-btn').addEventListener('click', () => {
   if (pendingDelete.kind === 'item') {
     const idx = items.findIndex(i => i.id === pendingDelete.id);
     if (idx !== -1) items.splice(idx, 1);
+    // Remove its sales too, so none are left pointing at a missing item.
+    for (let i = sales.length - 1; i >= 0; i--) {
+      if (sales[i].item_id === pendingDelete.id) sales.splice(i, 1);
+    }
   } else if (pendingDelete.kind === 'sale') {
     const sale = saleById(pendingDelete.id);
     const idx = sales.findIndex(s => s.id === pendingDelete.id);
     if (idx !== -1) sales.splice(idx, 1);
-    // If that was the only sale referencing this item, it's no longer
-    // actually sold — put it back into unsold so it shows up in
-    // inventory searches and the Record Sale item picker again.
-    if (sale) {
-      const item = itemById(sale.item_id);
-      const stillReferenced = sales.some(s => s.item_id === sale.item_id);
-      if (item && !stillReferenced && item.status === 'sold') item.status = 'unsold';
-    }
+    // If no completed sale is left for this item, it's no longer
+    // actually sold — put it back so it shows up in the Record Sale
+    // item picker again.
+    if (sale) syncItemStatus(sale.item_id);
   }
   pendingDelete = null;
   closeOverlay('overlay-confirm-delete');

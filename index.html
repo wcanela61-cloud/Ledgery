@@ -802,7 +802,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .vibe-name { font-family: var(--font-display); font-size: 0.875rem; font-weight: 600; }
 .vibe-desc { font-size: 0.7188rem; line-height: 1.35; color: var(--ink-muted); }
 .vibe-check { position: absolute; top: 114px; right: 12px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); opacity: 0; transform: scale(.6); transition: opacity 160ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
-.vibe-check svg, .accent-chip svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.vibe-check svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .vibe-card.selected .vibe-check { opacity: 1; transform: scale(1); }
 /* The little app drawn in each vibe's own colors */
 .vibe-preview { --pv-font: var(--font-sans); display: flex; height: 96px; border-radius: calc(var(--radius-lg) - 4px); overflow: hidden; background: var(--pv-bg); border: 1px solid var(--pv-border); font-family: var(--pv-font); }
@@ -828,16 +828,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .customized-tag { display: inline-block; margin-top: 3px; font-size: 0.75rem; color: var(--accent-text); font-weight: 500; }
 .reset-link { background: none; border: none; color: var(--ink-muted); text-decoration: underline; font-size: 0.7188rem; cursor: pointer; padding: 0; }
 .studio-sub { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); margin: 16px 0 10px; }
-.accent-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.accent-chip { width: 34px; height: 34px; border-radius: 50%; border: none; padding: 0; cursor: pointer; display: grid; place-items: center; color: #fff;
-  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--chip) 65%, white), var(--chip) 60%, color-mix(in srgb, var(--chip) 80%, black));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 2px 6px -2px rgba(0,0,0,.4); transition: transform 160ms ease, box-shadow 160ms ease; }
-.accent-chip svg { opacity: 0; transform: scale(.5); transition: opacity 140ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1); filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
-.accent-chip:hover { transform: translateY(-2px) scale(1.06); }
-.accent-chip.selected { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--chip), 0 6px 14px -6px var(--chip); }
-.accent-chip.selected svg { opacity: 1; transform: scale(1); }
-.accent-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
-.palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.palette-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .palette-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); color: var(--ink); cursor: pointer; text-align: left; font: inherit; transition: border-color 160ms ease, box-shadow 160ms ease; }
 .palette-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .palette-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -847,6 +838,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .palette-swatch i:nth-child(2) { left: 7px; top: 16px; width: 12px; height: 3px; border-radius: 2px; background: var(--p-fg); opacity: .45; }
 .palette-swatch i:nth-child(3) { right: 6px; bottom: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--p-accent); }
 .palette-name { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; }
+.palette-sub { display: block; font-size: 0.6875rem; font-weight: 500; color: var(--ink-muted); margin-top: 2px; }
 .finetune { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 .finetune-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .color-tile { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); overflow: hidden; }
@@ -4447,11 +4439,7 @@ const VIBE_PRESETS = [
   { id: 'terminal', name: 'Terminal', desc: 'Monospace and compact, for data nerds.', mono: true, p: { bg: '#0D0F0C', surface: '#12140F', border: '#232A20', ink: '#D8E8D0', muted: '#8CA283', accent: '#7FDB6E', soft: '#1B2818' } },
   { id: 'paper', name: 'Paper', desc: 'Warm cream pages and bronze ink.', p: { bg: '#F6F1E7', surface: '#FBF8F1', border: '#E4DAC5', ink: '#2B2620', muted: '#6B6155', accent: '#8A6D3B', soft: '#EFE6D2' } },
 ];
-// One-tap accent colors and full palettes for Settings → Appearance.
-const ACCENT_CHOICES = [
-  ['Emerald', '#4FAE84'], ['Jade', '#1F9E89'], ['Ocean', '#3B82F6'], ['Indigo', '#6366F1'], ['Violet', '#8B5CF6'],
-  ['Rose', '#E0457B'], ['Coral', '#F06A4F'], ['Amber', '#E0A43A'], ['Gold', '#C9A24A'], ['Graphite', '#7C8594'],
-];
+// One-tap palettes for Settings → Appearance (background, accent, text).
 const SIGNATURE_PALETTES = [
   { name: 'Obsidian Gold', bg: '#0E0E10', accent: '#D4AF37', fg: '#F3EFE6' },
   { name: 'Deep Ocean', bg: '#0B1622', accent: '#38BDF8', fg: '#E6F1F8' },
@@ -4765,16 +4753,14 @@ function renderColorControls() {
     <div class="color-studio">
       <div class="custom-color-header">
         <div><div class="appear-label" style="margin:0">Colors</div>${overridden ? `<span class="customized-tag">${activePalette ? esc(activePalette.name) : 'Custom colors'} on ${esc(VIBE_PRESETS.find(v => v.id === settings.vibe).name)}</span>` : ''}</div>
-        ${overridden ? '<button type="button" class="btn btn-sm" id="reset-color-overrides">Reset to vibe colors</button>' : ''}
       </div>
 
-      <div class="studio-sub" id="accent-label">Accent</div>
-      <div class="accent-chips" role="group" aria-labelledby="accent-label">
-        ${ACCENT_CHOICES.map(([name, hex]) => `<button type="button" class="accent-chip ${sameHex(eff.accent, hex) ? 'selected' : ''}" data-accent="${hex}" style="--chip:${hex}" aria-label="${name}" aria-pressed="${sameHex(eff.accent, hex)}" title="${name}">${CHECK_SVG}</button>`).join('')}
-      </div>
-
-      <div class="studio-sub" id="palette-label">Signature palettes</div>
+      <div class="studio-sub" id="palette-label">Palettes</div>
       <div class="palette-grid" role="group" aria-labelledby="palette-label">
+        <button type="button" class="palette-card ${overridden ? '' : 'selected'}" data-palette="default" aria-pressed="${!overridden}">
+          ${(() => { const vb = VIBE_BASE_COLORS[settings.vibe]; return `<span class="palette-swatch" style="--p-bg:${vb.bg};--p-accent:${vb.accent};--p-fg:${vb.fg}" aria-hidden="true"><i></i><i></i><i></i></span>`; })()}
+          <span class="palette-name">${esc(VIBE_PRESETS.find(v => v.id === settings.vibe).name)}<span class="palette-sub">Vibe default</span></span>
+        </button>
         ${SIGNATURE_PALETTES.map((pl, i) => `<button type="button" class="palette-card ${activePalette === pl ? 'selected' : ''}" data-palette="${i}" aria-pressed="${activePalette === pl}">
           <span class="palette-swatch" style="--p-bg:${pl.bg};--p-accent:${pl.accent};--p-fg:${pl.fg}" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="palette-name">${pl.name}</span>
@@ -4804,8 +4790,10 @@ function renderColorControls() {
     const bg = effectiveColors().bg;
     setColorOverride('fg', contrastRatio('#16181c', bg) >= contrastRatio('#f4f5f2', bg) ? '#16181c' : '#f4f5f2');
   };
-  container.querySelectorAll('[data-accent]').forEach(btn => btn.addEventListener('click', () => setColorOverride('accent', btn.dataset.accent)));
-  container.querySelectorAll('[data-palette]').forEach(btn => btn.addEventListener('click', () => applyPalette(SIGNATURE_PALETTES[+btn.dataset.palette])));
+  container.querySelectorAll('[data-palette]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.palette === 'default') resetColorOverrides();
+    else applyPalette(SIGNATURE_PALETTES[+btn.dataset.palette]);
+  }));
   ['bg', 'accent', 'fg'].forEach(key => {
     const input = document.getElementById('cc-' + key);
     const hex = document.getElementById('cc-' + key + '-hex');
@@ -4828,8 +4816,6 @@ function renderColorControls() {
     hex.addEventListener('change', commitHex);
     hex.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commitHex(); } });
   });
-  const resetBtn = document.getElementById('reset-color-overrides');
-  if (resetBtn) resetBtn.addEventListener('click', resetColorOverrides);
 }
 
 /* =========================================================

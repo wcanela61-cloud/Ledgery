@@ -27,14 +27,23 @@ Out of the box, data is saved only in the browser. To let people **create an acc
    const LEDGERY_SUPABASE = {
      url: 'https://YOUR-PROJECT.supabase.co',
      anonKey: 'eyJ...your anon public key...',
+     requireSignIn: true,                       // false = sign-in is optional
+     providers: { google: true, apple: false }, // "Continue with …" buttons
    };
    ```
    The anon key is designed to be public; never paste the `service_role` key.
 4. **Host Ledgery on a website** (for example GitHub Pages: repo **Settings → Pages → Deploy from branch**). Accounts need a real web address; they don't work from a file opened on your computer or inside the Claude preview.
 5. **Tell Supabase your address:** **Authentication → URL Configuration**: set **Site URL** to your Ledgery address (e.g. `https://you.github.io/Ledgery/`) and add it under **Redirect URLs**. This is where email confirmation and password-reset links send people.
 
+6. **Turn on "Continue with Google"** (optional; set `google: false` to hide the button):
+   1. In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → OAuth consent screen**: set it up as **External**, with your app name and email.
+   2. **Credentials → Create credentials → OAuth client ID → Web application.** Under **Authorized redirect URIs** add `https://YOUR-PROJECT.supabase.co/auth/v1/callback` (Supabase shows this exact address on its Google page).
+   3. Copy the **Client ID** and **Client secret** into Supabase → **Authentication → Sign In / Providers → Google**, switch it on, and save.
+7. **"Continue with Apple"** (optional) needs a paid Apple Developer account: create a Services ID and key, then paste them in Supabase → **Authentication → Sign In / Providers → Apple** and set `apple: true`. If a button is shown but its provider isn't switched on, people get a friendly "use email for now" message.
+
 How it behaves:
-- Sign in / create account from the sidebar (or **Settings → Account** on phones). Email + password, with email confirmation and "Forgot password?".
+- With `requireSignIn: true`, Ledgery opens on a sign-in page and the dashboard appears once you're signed in. Sign up asks for your name and (optionally) your shop name; email sign-ups confirm their address by email; "Forgot password?" sends a reset link. If the account service can't be reached at all, Ledgery falls back to working in the browser so nobody is locked out.
+- Your name greets you on the dashboard and your shop name shows in the sidebar. Change them in **Settings → Account → Edit profile**.
 - Items, sales, platform fee rates and the monthly goal sync automatically a moment after each change, and pull down when you come back to the tab.
 - If a browser and the account both have different data (e.g. first sign-in on a computer you'd already been using), Ledgery asks which to keep instead of guessing.
 - Two devices can't silently overwrite each other: every save carries a version number, and a stale save stops and re-syncs.

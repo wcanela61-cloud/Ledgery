@@ -383,6 +383,22 @@ tr { transition: background-color 150ms ease; }
 }
 .btn:not(.btn-primary) .ripple { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 @keyframes ripple { to { transform: scale(2.8); opacity: 0; } }
+.btn[data-open] { overflow: visible; isolation: isolate; }
+.btn[data-open] .ripple-clip { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.btn.pulse::after {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: btn-pulse 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes btn-pulse { to { box-shadow: 0 0 0 16px color-mix(in srgb, var(--accent) 0%, transparent); } }
+.switch-row { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.switch-row input { position: absolute; opacity: 0; pointer-events: none; }
+.switch { flex-shrink: 0; width: 38px; height: 22px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 18%, transparent); position: relative; transition: background 200ms ease; margin-top: 1px; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.switch-row input:checked + .switch { background: var(--accent); }
+.switch-row input:checked + .switch::after { transform: translateX(16px); }
+.switch-row input:focus-visible + .switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch-text { display: flex; flex-direction: column; gap: 2px; font-size: 0.8438rem; }
 .plus-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 .btn.pressed .plus-icon { transform: rotate(90deg); }
 .modal.stagger .form-section, .modal.stagger .modal-actions { animation: section-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -399,13 +415,14 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
 @keyframes row-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 @keyframes row-flash { 0%, 35% { background: color-mix(in srgb, var(--accent) 16%, transparent); } 100% { background: transparent; } }
 
+/* Honour the device's reduce-motion setting unless the viewer switched on
+   "Always play animations" in Settings (html.motion-full). */
 @media (prefers-reduced-motion: reduce) {
-  .ripple, .modal.stagger .form-section, .modal.stagger .modal-actions, .overlay.closing, tr.row-new, tr.row-new td,
-  .vibe-card.selected, .view.active, .stat-tile, .panel,
-  .table-wrap, .overlay.open, .preview-card.open {
+  :root:not(.motion-full) :is(.ripple, .modal.stagger .form-section, .modal.stagger .modal-actions, .overlay.closing, tr.row-new, tr.row-new td,
+  .vibe-card.selected, .view.active, .stat-tile, .panel, .table-wrap, .preview-card.open, .btn.pulse::after) {
     animation: none !important;
   }
-  button, .btn, .nav-item, .vibe-card, input[type="color"], .range-slider::-webkit-slider-thumb, .range-slider::-moz-range-thumb, .nav-active-pill, .bar-fill {
+  :root:not(.motion-full) :is(button, .btn, .nav-item, .vibe-card, input[type="color"], .nav-active-pill, .bar-fill) {
     transition: none !important;
   }
 }
@@ -882,7 +899,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .foot-sub { display: block; color: var(--ink-faint); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); animation: status-pulse 2.8s ease-in-out infinite; }
 @keyframes status-pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--success) 6%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .status-dot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root:not(.motion-full) .status-dot { animation: none; } }
 
 /* ---------- Add / edit item form ---------- */
 .modal-wide { max-width: 640px; }
@@ -1311,6 +1328,11 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
           <div class="field-hint" style="margin-bottom:10px">Vibe</div>
           <div class="vibe-grid" id="vibe-grid"></div>
           <div id="custom-color-controls"></div>
+          <label class="switch-row">
+            <input type="checkbox" id="motion-full-toggle">
+            <span class="switch" aria-hidden="true"></span>
+            <span class="switch-text"><strong>Always play animations</strong><span class="field-hint" id="motion-hint"></span></span>
+          </label>
         </div>
       </div>
 
@@ -1840,14 +1862,22 @@ function fmtMoneyParts(cents) {
   return `<span class="money-whole">${whole}</span><span class="money-dec">.${dec}</span>`;
 }
 
+// Motion: follow the device's reduce-motion setting, unless the viewer
+// turned on "Always play animations" in Settings.
+const MOTION_STORAGE_KEY = 'ledgery-motion';
+let motionMode = 'auto';
+try { if (localStorage.getItem(MOTION_STORAGE_KEY) === 'full') motionMode = 'full'; } catch (e) {}
+document.documentElement.classList.toggle('motion-full', motionMode === 'full');
+const deviceReducesMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const prefersReducedMotion = () => motionMode !== 'full' && deviceReducesMotion();
+
 // Headline numbers count up: from zero when the Dashboard opens or the
 // period changes (heroShown is cleared), otherwise from the previous value.
 let heroShown = {};
 function animateMoney(el, key, target) {
   const from = heroShown[key] === undefined ? 0 : heroShown[key];
   heroShown[key] = target;
-  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduceMotion || from === target) { el.innerHTML = fmtMoneyParts(target); return; }
+  if (prefersReducedMotion() || from === target) { el.innerHTML = fmtMoneyParts(target); return; }
   el.innerHTML = fmtMoneyParts(from);
   const start = performance.now(), duration = 900;
   const step = now => {
@@ -2341,20 +2371,23 @@ function openOverlay(id, originEl) {
   // trigger, which turned out not to be reliable here. modal.animate()
   // has no such ambiguity — calling it always plays the animation,
   // every time, guaranteed.
-  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!reduceMotion && modal.animate) {
-    modal.animate(
-      [
-        { opacity: 0, transform: 'scale(0.1)' },
-        { opacity: 1, transform: 'scale(1.04)', offset: 0.55 },
-        { opacity: 1, transform: 'scale(1)' },
-      ],
-      { duration: 340, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
-    );
+  if (!modal.animate) return;
+  if (prefersReducedMotion()) {
+    // Reduced motion: still a visible pop-up, but a soft fade with no zoom or bounce.
+    modal.animate([{ opacity: 0, transform: 'scale(0.97)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+    return;
   }
+  // Springs up out of the button that opened it: grow, overshoot, settle.
+  modal.animate(
+    [
+      { opacity: 0, transform: 'scale(0.15) translateY(12px)' },
+      { opacity: 1, transform: 'scale(1.06) translateY(0)', offset: 0.55 },
+      { transform: 'scale(0.985)', offset: 0.8 },
+      { opacity: 1, transform: 'scale(1)' },
+    ],
+    { duration: 520, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+  );
 }
-const prefersReducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 // Close with a short fade/shrink. Reopening mid-close cancels it (openOverlay).
 function closeOverlay(id) {
   const overlay = document.getElementById(id);
@@ -3205,6 +3238,16 @@ window.addEventListener('resize', () => updateNavPill(document.querySelector('.n
 // Ripple from the tap point, and the + icon turns a quarter.
 function playButtonPress(btn, e) {
   if (prefersReducedMotion()) return;
+  if (btn.animate) {
+    btn.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(0.9)', offset: 0.25 }, { transform: 'scale(1.07)', offset: 0.65 }, { transform: 'scale(1)' }],
+      { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+    );
+  }
+  btn.classList.remove('pulse');
+  void btn.offsetWidth; // restart the ring animation
+  btn.classList.add('pulse');
+  setTimeout(() => btn.classList.remove('pulse'), 700);
   const rect = btn.getBoundingClientRect();
   const size = Math.max(rect.width, rect.height);
   const ripple = document.createElement('span');
@@ -3214,7 +3257,9 @@ function playButtonPress(btn, e) {
   const y = e && e.clientY ? e.clientY - rect.top : rect.height / 2;
   ripple.style.left = (x - size / 2) + 'px';
   ripple.style.top = (y - size / 2) + 'px';
-  btn.appendChild(ripple);
+  let clip = btn.querySelector('.ripple-clip');
+  if (!clip) { clip = document.createElement('span'); clip.className = 'ripple-clip'; btn.appendChild(clip); }
+  clip.appendChild(ripple);
   ripple.addEventListener('animationend', () => ripple.remove());
   btn.classList.add('pressed');
   setTimeout(() => btn.classList.remove('pressed'), 450);
@@ -3808,6 +3853,21 @@ document.getElementById('reset-data-btn').addEventListener('click', () => {
   showUndo('All data erased', before);
 });
 document.getElementById('font-scale-slider').addEventListener('input', (e) => setFontScale(parseFloat(e.target.value)));
+function renderMotionSetting() {
+  document.getElementById('motion-full-toggle').checked = motionMode === 'full';
+  document.getElementById('motion-hint').textContent = deviceReducesMotion()
+    ? (motionMode === 'full'
+      ? 'Your device asks for less motion, but animations are playing fully because this is on.'
+      : 'Your device is set to reduce motion, so animations are toned down. Turn this on to see them fully.')
+    : 'Your device allows motion, so animations already play fully.';
+}
+document.getElementById('motion-full-toggle').addEventListener('change', e => {
+  motionMode = e.target.checked ? 'full' : 'auto';
+  try { localStorage.setItem(MOTION_STORAGE_KEY, motionMode); } catch (err) {}
+  document.documentElement.classList.toggle('motion-full', motionMode === 'full');
+  renderMotionSetting();
+});
+renderMotionSetting();
 wireSortHeaders('inv-table', sortState.inv, renderInventory);
 wireSortHeaders('sales-table', sortState.sales, renderSales);
 document.getElementById('sales-search').addEventListener('input', renderSales);

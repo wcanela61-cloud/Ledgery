@@ -549,6 +549,7 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
 }
 .stat-tile.warn { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); background: color-mix(in srgb, var(--danger) 6%, var(--surface)); }
 .stat-tile.warn .stat-value { color: var(--danger-text); }
+.stat-tile.warn .stat-label { color: var(--ink-muted); }
 .stat-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-weight: 600; margin-bottom: 8px; }
 .stat-value { font-family: var(--font-display); font-size: 1.625rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2; }
 .stat-value.mono { font-family: var(--font-num); }
@@ -647,7 +648,7 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
   padding: 16px 20px 4px;
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
-.panel-head h3 { margin: 0; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+.panel-head :is(h2, h3) { margin: 0; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 .panel-body { padding: 8px 20px 16px; }
 
 .row-line {
@@ -679,12 +680,12 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
 }
 .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.9; }
 .badge-aging::before, .badge-incomplete::before { display: none; }
-.badge-aging { background: var(--danger-soft); color: var(--danger); }
-.badge-incomplete { background: var(--danger-soft); color: var(--danger); }
+.badge-aging { background: var(--danger-soft); color: var(--danger-text); }
+.badge-incomplete { background: var(--danger-soft); color: var(--danger-text); }
 
 /* ---------- Table ---------- */
 .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-.toolbar input[type="text"], .toolbar select {
+.toolbar input:is([type="text"], [type="search"]), .toolbar select {
   height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border);
@@ -693,11 +694,11 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
   color: var(--ink);
   box-shadow: var(--shadow-sm);
 }
-.toolbar input[type="text"] {
+.toolbar input:is([type="text"], [type="search"]) {
   padding-left: 36px;
   background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px center;
 }
-.toolbar input[type="text"] { min-width: 200px; flex: 1; }
+.toolbar input:is([type="text"], [type="search"]) { min-width: 200px; flex: 1; }
 .spacer { flex: 1; }
 
 .table-wrap {
@@ -781,7 +782,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .calc-box.incomplete { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
 .calc-item .calc-label { font-size: 0.7188rem; color: var(--ink-muted); margin-bottom: 3px; }
 .calc-item .calc-val { font-family: var(--font-num); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--success-text); }
-.calc-box.incomplete .calc-val { color: var(--danger); font-size: 0.8125rem; }
+.calc-box.incomplete .calc-val { color: var(--danger-text); font-size: 0.8125rem; }
 
 
 .empty-note { color: var(--ink-faint); font-size: 0.8125rem; padding: 28px 12px; text-align: center; }
@@ -954,7 +955,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 }
 .welcome-steps li div { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 .link-btn { background: none; border: none; padding: 0; color: var(--accent-text); text-decoration: underline; font-size: inherit; cursor: pointer; }
-.badge-cancelled { background: var(--bg); color: var(--ink-faint); border: 1px solid var(--border); }
+.badge-cancelled { background: var(--bg); color: var(--ink-muted); border: 1px solid var(--border); }
 .btn-danger-outline { color: var(--danger); border-color: var(--danger); }
 .btn-danger-outline:hover { background: var(--danger-soft); border-color: var(--danger); }
 .data-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1047,7 +1048,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
   .table-wrap td.empty-note { grid-column: 1 / -1; text-align: center; }
   .table-wrap tbody tr:has(td.empty-note) { display: block; }
   .header-actions { width: 100%; }
-  .toolbar input[type="text"] { min-width: 0; flex: 1 1 100%; }
+  .toolbar input:is([type="text"], [type="search"]) { min-width: 0; flex: 1 1 100%; }
   .toolbar select { flex: 1 1 0; min-width: 0; }
   .main { padding: 22px 16px calc(92px + env(safe-area-inset-bottom, 0px)); }
   .page-title { font-size: 1.375rem; }
@@ -1359,6 +1360,49 @@ td .empty-state { white-space: normal; }
 .ledger-analyze svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .ledger-cost { font-size: 0.6562rem; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: rgba(255,255,255,0.2); }
 @media (max-width: 900px) { .ledger-usage { align-items: flex-start; } }
+/* =========================================================
+   AUDIT POLISH
+   ========================================================= */
+.btn-danger { background: var(--danger); border-color: color-mix(in srgb, var(--danger) 75%, black); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 2px rgba(0,0,0,0.25); }
+.btn-danger:hover { background: color-mix(in srgb, var(--danger) 88%, black); border-color: color-mix(in srgb, var(--danger) 75%, black); }
+/* Delete × stays quiet until you point at it, so tables aren't a column of red. */
+.delete-x { color: var(--ink-faint); }
+.delete-x:hover, .delete-x:focus-visible { color: var(--danger); }
+/* A Record Sale form with nothing entered yet is neutral, not an error. */
+.calc-box.pending { background: var(--surface-2); border-color: var(--border); }
+.calc-box.pending .calc-val { color: var(--ink-muted); font-size: 0.875rem; font-weight: 500; }
+/* Vibe cards: content starts at the top so swatches and names line up. */
+.vibe-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+.vibe-swatch span { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent); }
+th[data-sort]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The table scroller contains its screen-reader-only header text (else it widens the page). */
+.table-wrap { position: relative; }
+/* Laptop widths: slightly tighter cells so Inventory and Sales fit without sideways scrolling. */
+@media (min-width: 721px) and (max-width: 1360px) {
+  #sales-table th, #sales-table td, #inv-table th, #inv-table td { padding-left: 9px; padding-right: 9px; }
+}
+.th-wrap { white-space: normal; min-width: 64px; line-height: 1.3; }
+.date-note { display: block; font-size: 0.6562rem; color: var(--ink-faint); margin-top: 1px; }
+@media (max-width: 720px) { .date-note { display: none; } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.batch-toggle { display: flex; align-items: center; gap: 4px; padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.batch-toggle:hover { color: var(--accent-text); }
+.sidebar-foot.save-failed { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.sidebar-foot.save-failed .status-dot { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); animation: none; }
+input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
+@media (max-width: 720px) {
+  .bar-label { width: 104px; }
+  .bar-val { width: auto; min-width: 58px; }
+  .stat-value { font-size: 1.375rem; overflow-wrap: anywhere; }
+  .ledger-intro { min-width: 0; }
+}
+@media (max-width: 380px) {
+  .ledger-stage { width: 96px; }
+  .ledger-analyze { white-space: normal; text-align: left; }
+  .goal-wrap { gap: 14px; }
+  .goal-ring { width: 80px; height: 80px; }
+}
+.toolbar input[type="search"] { -webkit-appearance: none; appearance: none; }
 </style>
 </head>
 <body>
@@ -1380,7 +1424,7 @@ td .empty-state { white-space: normal; }
   <nav class="sidebar">
     <div class="brand"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Ledgery</div>
     <div class="nav-active-pill" id="nav-active-pill"></div>
-    <button class="nav-item active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
+    <button class="nav-item active" data-view="dashboard" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
     <button class="nav-item" data-view="inventory"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Inventory</button>
     <button class="nav-item" data-view="sales"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Sales</button>
     <button class="nav-item" data-view="ledger"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/><path d="M13.5 6.5l4 4"/></svg>Ledger</button>
@@ -1437,33 +1481,33 @@ td .empty-state { white-space: normal; }
       <div class="panel-grid">
         <div>
           <div class="panel">
-            <div class="panel-head"><h3>Revenue &amp; profit</h3><span class="page-sub" style="margin:0">last 14 sales</span></div>
+            <div class="panel-head"><h2>Revenue &amp; profit</h2><span class="page-sub" style="margin:0">last 14 sales</span></div>
             <div class="panel-body"><div id="trend-chart"></div></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Recent sales</h3></div>
+            <div class="panel-head"><h2>Recent sales</h2></div>
             <div class="panel-body" id="recent-sales"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Platform breakdown</h3><span class="page-sub" style="margin:0">by profit</span></div>
+            <div class="panel-head"><h2>Platform breakdown</h2><span class="page-sub" style="margin:0">by profit</span></div>
             <div class="panel-body" id="platform-breakdown"></div>
           </div>
         </div>
         <div>
           <div class="panel" id="goal-panel">
-            <div class="panel-head"><h3>Monthly goal</h3><span class="page-sub" style="margin:0" id="goal-month"></span></div>
+            <div class="panel-head"><h2>Monthly goal</h2><span class="page-sub" style="margin:0" id="goal-month"></span></div>
             <div class="panel-body" id="goal-body"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Top sellers</h3><span class="page-sub" style="margin:0" id="top-period"></span></div>
+            <div class="panel-head"><h2>Top sellers</h2><span class="page-sub" style="margin:0" id="top-period"></span></div>
             <div class="panel-body" id="top-sellers"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Inventory status</h3></div>
+            <div class="panel-head"><h2>Inventory status</h2></div>
             <div class="panel-body"><div id="inventory-donut"></div></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Aging inventory</h3><span class="page-sub" style="margin:0">60+ days unsold</span></div>
+            <div class="panel-head"><h2>Aging inventory</h2><span class="page-sub" style="margin:0">60+ days unsold</span></div>
             <div class="panel-body" id="aging-inventory"></div>
           </div>
         </div>
@@ -1483,15 +1527,15 @@ td .empty-state { white-space: normal; }
         </div>
       </div>
       <div class="toolbar">
-        <input type="text" id="inv-search" placeholder="Search name, category, size, color, order…">
-        <select id="inv-status-filter">
+        <input type="search" id="inv-search" aria-label="Search inventory" placeholder="Search name, category, size, color, order…">
+        <select id="inv-status-filter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="unsold">Not listed</option>
           <option value="listed">Listed</option>
           <option value="sold">Sold</option>
           <option value="returned">Returned</option>
         </select>
-        <select id="inv-platform-filter">
+        <select id="inv-platform-filter" aria-label="Filter by platform">
           <option value="">All platforms</option>
         </select>
         <div class="view-toggle" id="inv-view-toggle" role="group" aria-label="Layout">
@@ -1505,7 +1549,7 @@ td .empty-state { white-space: normal; }
           <thead>
             <tr>
               <th data-sort="name">Item</th><th data-sort="platform">Platform</th>
-              <th data-sort="cost">Purchase cost</th><th data-sort="status">Status</th><th data-sort="price">Price</th><th data-sort="profit">Profit</th><th data-sort="date">Date</th><th></th><th></th>
+              <th data-sort="cost">Purchase cost</th><th data-sort="status">Status</th><th data-sort="price">Price</th><th data-sort="profit">Profit</th><th data-sort="date">Date</th><th><span class="sr-only">Edit</span></th><th><span class="sr-only">Delete</span></th>
             </tr>
           </thead>
           <tbody id="inv-tbody"></tbody>
@@ -1523,19 +1567,19 @@ td .empty-state { white-space: normal; }
         <button class="btn btn-primary" data-open="record-sale">Record sale</button>
       </div>
       <div class="toolbar">
-        <input type="text" id="sales-search" placeholder="Search item, platform, order number…">
-        <select id="sales-status-filter">
+        <input type="search" id="sales-search" aria-label="Search sales" placeholder="Search item, platform, order number…">
+        <select id="sales-status-filter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="completed">Completed</option>
           <option value="returned">Returned</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <select id="sales-platform-filter"><option value="">All platforms</option></select>
+        <select id="sales-platform-filter" aria-label="Filter by platform"><option value="">All platforms</option></select>
       </div>
       <div class="table-wrap">
         <table id="sales-table">
           <thead>
-            <tr><th data-sort="name">Item</th><th data-sort="platform">Platform</th><th data-sort="price">Sale price</th><th data-sort="costs">Costs</th><th data-sort="profit">Net profit</th><th data-sort="margin">Margin</th><th data-sort="date">Date</th><th data-sort="status">Status</th><th></th><th></th></tr>
+            <tr><th data-sort="name">Item</th><th data-sort="platform">Platform</th><th data-sort="price">Sale price</th><th data-sort="costs" class="th-wrap" title="Platform fees + shipping + other costs. Net profit also subtracts what you paid for the item.">Fees &amp; shipping</th><th data-sort="profit">Net profit</th><th data-sort="margin">Margin</th><th data-sort="date">Date</th><th data-sort="status">Status</th><th><span class="sr-only">Edit</span></th><th><span class="sr-only">Delete</span></th></tr>
           </thead>
           <tbody id="sales-tbody"></tbody>
         </table>
@@ -1563,7 +1607,7 @@ td .empty-state { white-space: normal; }
           <div class="ledger-log" id="ledger-log" aria-live="polite"></div>
           <div class="ledger-chips" id="ledger-chips"></div>
           <form class="ledger-input" id="ledger-form">
-            <textarea id="ledger-q" rows="1" placeholder="Ask Ledger about your business…" aria-label="Ask Ledger a question"></textarea>
+            <textarea id="ledger-q" rows="1" placeholder="Ask Ledger anything…" aria-label="Ask Ledger a question"></textarea>
             <button type="button" class="btn" id="ledger-stop" hidden>Stop</button>
             <button type="submit" class="btn btn-primary ledger-send" id="ledger-send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
           </form>
@@ -1571,22 +1615,22 @@ td .empty-state { white-space: normal; }
       </div>
     </section>
 
-    <!-- ANALYTICS (stub) -->
+    <!-- ANALYTICS -->
     <section class="view" id="view-analytics">
       <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">All-time performance across your sales and inventory</div></div></div>
       <div class="stat-grid" id="an-stats"></div>
       <div class="panel">
-        <div class="panel-head"><h3>Revenue and net profit by month</h3><span class="page-sub" style="margin:0">last 12 months</span></div>
+        <div class="panel-head"><h2>Revenue and net profit by month</h2><span class="page-sub" style="margin:0">last 12 months</span></div>
         <div class="panel-body"><div id="an-monthly"></div></div>
       </div>
       <div class="panel-grid">
         <div class="panel">
-          <div class="panel-head"><h3>By platform</h3><span class="page-sub" style="margin:0">completed sales</span></div>
-          <div class="panel-body table-scroll" id="an-platforms"></div>
+          <div class="panel-head"><h2>By platform</h2><span class="page-sub" style="margin:0">completed sales</span></div>
+          <div class="panel-body table-scroll" id="an-platforms" tabindex="0" aria-label="Results by platform"></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>By category</h3><span class="page-sub" style="margin:0">completed sales</span></div>
-          <div class="panel-body table-scroll" id="an-categories"></div>
+          <div class="panel-head"><h2>By category</h2><span class="page-sub" style="margin:0">completed sales</span></div>
+          <div class="panel-body table-scroll" id="an-categories" tabindex="0" aria-label="Results by category"></div>
         </div>
       </div>
     </section>
@@ -1596,7 +1640,7 @@ td .empty-state { white-space: normal; }
       <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Appearance, platform fees, and your data</div></div></div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Appearance</h3><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
+        <div class="panel-head"><h2>Appearance</h2><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
         <div class="panel-body">
           <div class="field-hint" style="margin-bottom:10px">Vibe</div>
           <div class="vibe-grid" id="vibe-grid"></div>
@@ -1610,26 +1654,26 @@ td .empty-state { white-space: normal; }
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Font</h3><span class="page-sub" style="margin:0">Size and family</span></div>
+        <div class="panel-head"><h2>Font</h2><span class="page-sub" style="margin:0">Size and family</span></div>
         <div class="panel-body">
           <div class="field-hint" style="margin-bottom:10px">Font size</div>
           <div class="font-size-row">
             <span class="font-a-small">A</span>
-            <input type="range" class="range-slider" id="font-scale-slider" min="0.85" max="1.25" step="0.025" value="1">
+            <input type="range" class="range-slider" id="font-scale-slider" aria-label="Font size" min="0.85" max="1.25" step="0.025" value="1">
             <span class="font-a-large">A</span>
             <span class="font-scale-val" id="font-scale-val">100%</span>
           </div>
           <div class="custom-note" style="margin-top:10px">Drag to resize all text and most spacing app-wide, similar to browser zoom. Capped in both directions so the layout can't break.</div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
             <div class="field-hint" style="margin-bottom:10px">Font family</div>
-            <select id="font-family-select" style="width:100%;max-width:280px"></select>
+            <select id="font-family-select" aria-label="Font family" style="width:100%;max-width:420px"></select>
             <div class="custom-note" style="margin-top:10px">Applies to all text in the app, including prices. (The Terminal vibe always uses monospace for numbers.)</div>
           </div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Monthly goal</h3><span class="page-sub" style="margin:0">Shown as a ring on the Dashboard</span></div>
+        <div class="panel-head"><h2>Monthly goal</h2><span class="page-sub" style="margin:0">Shown as a ring on the Dashboard</span></div>
         <div class="panel-body">
           <div class="field" style="max-width:260px"><label for="goal-input">Net profit goal per month</label><input id="goal-input" type="number" min="0" step="1" placeholder="e.g. 500"></div>
           <div class="custom-note">Leave blank to hide the goal.</div>
@@ -1637,7 +1681,7 @@ td .empty-state { white-space: normal; }
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Platform fees</h3><span class="page-sub" style="margin:0">Used to pre-fill fees when you record a sale</span></div>
+        <div class="panel-head"><h2>Platform fees</h2><span class="page-sub" style="margin:0">Used to pre-fill fees when you record a sale</span></div>
         <div class="panel-body">
           <div id="fee-rate-rows" class="fee-rows"></div>
           <div class="custom-note">Starting values are US rates as of September 2026. Platforms change fees often, so check yours and edit these. Poshmark charges a flat $2.95 on sales under $15. You can always overwrite the fee on any sale.</div>
@@ -1646,7 +1690,7 @@ td .empty-state { white-space: normal; }
       </div>
 
       <div class="panel" id="data-panel">
-        <div class="panel-head"><h3>Data &amp; backup</h3><span class="page-sub" style="margin:0" id="last-backup-note"></span></div>
+        <div class="panel-head"><h2>Data &amp; backup</h2><span class="page-sub" style="margin:0" id="last-backup-note"></span></div>
         <div class="panel-body">
           <p class="custom-note" style="margin-top:4px">Your data lives only in this browser. Clearing browser data, using a private window or switching devices will lose it, so download a backup now and then.</p>
           <div class="data-actions">
@@ -1671,8 +1715,8 @@ td .empty-state { white-space: normal; }
 
 <!-- ADD ITEM MODAL — Product / Purchase / Listing / Optional -->
 <div class="overlay" id="overlay-add-item">
-  <div class="modal modal-wide">
-    <div class="modal-head"><h3 id="add-item-modal-title">Add item</h3><button class="close-x" data-close>&times;</button></div>
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="add-item-modal-title">
+    <div class="modal-head"><h3 id="add-item-modal-title">Add item</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
     <p class="modal-sub" id="add-item-modal-sub">Profit is worked out automatically when it sells.</p>
     <form id="add-item-form">
       <input type="hidden" name="editing_id">
@@ -1691,11 +1735,11 @@ td .empty-state { white-space: normal; }
           </div>
           <div class="field"><label>Category</label>
             <select name="category_choice" id="ai-category-select"></select>
-            <input name="category_other" placeholder="e.g. Swimwear" hidden>
+            <input name="category_other" placeholder="e.g. Swimwear" aria-label="Custom category" hidden>
           </div>
           <div class="field"><label>Size</label>
             <select name="size_choice" id="ai-size-select"></select>
-            <input name="size_other" placeholder="e.g. 32x32" hidden>
+            <input name="size_other" placeholder="e.g. 32x32" aria-label="Custom size" hidden>
           </div>
           <div class="field"><label>Brand</label><input name="brand" list="brand-options" placeholder="Carhartt" autocomplete="off"></div>
           <div class="field"><label>Color</label><input name="color" placeholder="Brown"></div>
@@ -1759,8 +1803,8 @@ td .empty-state { white-space: normal; }
 
 <!-- RECORD SALE MODAL -->
 <div class="overlay" id="overlay-record-sale">
-  <div class="modal">
-    <div class="modal-head"><h3 id="record-sale-modal-title">Record sale</h3><button class="close-x" data-close>&times;</button></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="record-sale-modal-title">
+    <div class="modal-head"><h3 id="record-sale-modal-title">Record sale</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
     <p class="modal-sub" id="record-sale-modal-sub">Profit and margin are calculated by the app as you type — they're not editable fields.</p>
     <form id="record-sale-form">
       <input type="hidden" name="editing_id">
@@ -1800,8 +1844,8 @@ td .empty-state { white-space: normal; }
 
 <!-- BUNDLE MODAL — one purchase, cost split across several items -->
 <div class="overlay" id="overlay-add-bundle">
-  <div class="modal">
-    <div class="modal-head"><h3>Add bundle</h3><button class="close-x" data-close>&times;</button></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="add-bundle-title">
+    <div class="modal-head"><h3 id="add-bundle-title">Add bundle</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
     <p class="modal-sub">Bought several items together for one price? The total is split evenly across them.</p>
     <form id="bundle-form">
       <div class="field-grid">
@@ -1827,22 +1871,21 @@ td .empty-state { white-space: normal; }
 
 <!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
 <div class="overlay" id="overlay-confirm-delete">
-  <div class="modal confirm-modal">
-    <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button class="close-x" data-close>&times;</button></div>
-    <p class="confirm-body">Are you sure you want to delete <span class="confirm-item-name" id="confirm-delete-item-name"></span>? This can't be undone.</p>
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-body">
+    <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
+    <p class="confirm-body" id="confirm-delete-body">Are you sure you want to delete <span class="confirm-item-name" id="confirm-delete-item-name"></span>? You can undo this for a few seconds afterwards.</p>
     <div class="modal-actions">
       <button type="button" class="btn" data-close>Cancel</button>
-      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="background:var(--danger);border-color:var(--danger)">Delete</button>
+      <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
     </div>
   </div>
 </div>
 
 <script>
 /* =========================================================
-   MOCK DATA LAYER
-   All money stored in integer cents, mirroring the Postgres
-   schema. This is the part that gets swapped for real
-   Supabase queries later — everything else (calc, UI) stays.
+   DATA
+   All money is stored in integer cents. Items and sales live
+   in memory and are saved to localStorage (see PERSISTENCE).
    ========================================================= */
 let nextItemId = 1;
 let nextSaleId = 1;
@@ -1906,19 +1949,31 @@ function replaceData(newItems, newSales) {
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
 }
 
+// If saved data can't be read, keep a copy before anything overwrites it.
+let loadProblem = false;
 function loadData() {
+  let raw = null;
+  try { raw = localStorage.getItem(DATA_STORAGE_KEY); } catch (e) { return; }
+  if (!raw) return;
   try {
-    const raw = localStorage.getItem(DATA_STORAGE_KEY);
-    if (!raw) return;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed.items) && Array.isArray(parsed.sales)) {
-      replaceData(parsed.items, parsed.sales);
-    }
-  } catch (e) {}
+    if (!Array.isArray(parsed.items) || !Array.isArray(parsed.sales)) throw new Error('unexpected shape');
+    replaceData(parsed.items, parsed.sales);
+  } catch (e) {
+    loadProblem = true;
+    try { localStorage.setItem(DATA_STORAGE_KEY + '-unreadable-' + Date.now(), raw); } catch (err) {}
+  }
 }
 
+// False when the browser refused to store the data (full or blocked storage).
+let saveFailed = false;
 function saveData() {
-  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales })); } catch (e) {}
+  let ok = true;
+  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales })); } catch (e) { ok = false; }
+  if (!ok && !saveFailed) alert("Your changes couldn't be saved in this browser (storage may be full or blocked). Download a backup from Settings so nothing is lost.");
+  saveFailed = !ok;
+  renderSaveStatus();
+  return ok;
 }
 
 function resetData() {
@@ -2056,10 +2111,9 @@ const PLATFORMS = ['Depop', 'Vinted', 'eBay', 'Grailed', 'Poshmark', 'Facebook M
 
 /* =========================================================
    CALCULATION ENGINE
-   Mirrors the v_sale_profit SQL view exactly:
-   - is_complete only if purchase cost + all three cost
-     fields are present (not NULL)
-   - net_profit / margin are null (not zero) when incomplete
+   - complete only when the purchase cost and platform fees are
+     known; blank shipping / other costs count as $0
+   - net profit / margin are null (not zero) when incomplete
    - everything in integer cents, no floats
    ========================================================= */
 function calcProfit(sale, item) {
@@ -2282,7 +2336,7 @@ function renderHero(periodSales, prevSales) {
         ${trendBadge(revTrend)}
       </div>
       <div class="hero-value" id="hero-revenue"></div>
-      <div class="hero-sub">${chrono.length} sale${chrono.length === 1 ? '' : 's'}${hasTrend ? ' &middot; badge is ' + vsText : ''}</div>
+      <div class="hero-sub">${chrono.length} sale${chrono.length === 1 ? '' : 's'}${hasTrend && revTrend !== null ? ' &middot; ' + vsText : ''}</div>
       ${buildSparkline(chrono.map(s => s.sale_price_cents / 100), '--accent')}
     </div>
     <div class="hero-card profit">
@@ -2541,7 +2595,7 @@ function renderDashboard() {
   const now = new Date(), hour = now.getHours();
   document.getElementById('dash-eyebrow').textContent =
     `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'} · ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
-  document.querySelectorAll('#period-switch [data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === dashPeriod));
+  document.querySelectorAll('#period-switch [data-period]').forEach(b => { b.classList.toggle('active', b.dataset.period === dashPeriod); b.setAttribute('aria-pressed', b.dataset.period === dashPeriod); });
 
   let completeCount = 0, incompleteCount = 0, totalProfitCheck = 0;
   periodSales.forEach(s => {
@@ -2599,9 +2653,9 @@ function renderDashboard() {
     return `<div class="row-line">
       <div class="item-cell">${itemThumb(item)}<div>
         <div class="row-title">${item ? esc(item.item_name) : 'Unknown item'}</div>
-        <div class="row-sub top-sub">${platformChip(s.platform, true)} &middot; ${fmtDate(s.sale_date)}${s.status !== 'completed' ? ' &middot; ' + esc(s.status) : ''}</div>
+        <div class="row-sub top-sub">${platformChip(s.platform, true)} &middot; ${fmtDate(s.sale_date)}</div>
       </div></div>
-      <div class="row-amt ${r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${r.isComplete ? (r.netProfitCents > 0 ? '+' : '') + fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
+      <div class="row-amt ${s.status === 'completed' && r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${s.status !== 'completed' ? `<span class="badge badge-${esc(s.status)}">${esc(statusLabel(s.status))}</span>` : r.isComplete ? (r.netProfitCents > 0 ? '+' : '') + fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
     </div>`;
   }).join('') : emptyState('tag', 'No sales yet', 'Your latest sales show up here.', '', true);
 
@@ -2669,6 +2723,8 @@ function markSortHeaders(tableId, state) {
 }
 function wireSortHeaders(tableId, state, rerender) {
   document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+    th.tabIndex = 0;
+    th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); } });
     th.addEventListener('click', () => {
       if (state.key === th.dataset.sort) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
       else { state.key = th.dataset.sort; state.dir = ['name', 'platform', 'category', 'size', 'status', 'description'].includes(th.dataset.sort) ? 'asc' : 'desc'; }
@@ -2689,8 +2745,9 @@ function renderInventory() {
   const platformFilter = document.getElementById('inv-platform-filter').value;
 
   let rows = items.map(item => {
-    // Prefer the completed sale; fall back to a returned/cancelled one.
-    const sale = sales.find(s => s.item_id === item.id && s.status === 'completed') || sales.find(s => s.item_id === item.id);
+    // Only a completed sale counts: returned/cancelled sales earned nothing,
+    // so the item shows its listing details instead.
+    const sale = sales.find(s => s.item_id === item.id && s.status === 'completed');
     return { item, sale, r: sale ? calcProfit(sale, item) : null };
   });
 
@@ -2780,7 +2837,7 @@ function renderInventory() {
       <td data-label="Status">${statusBadge(item.status)}</td>
       <td data-label="${sale ? 'Sale price' : 'Listing price'}" class="num">${sale ? fmtCents(sale.sale_price_cents) : item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">listed</span>` : '&mdash;'}</td>
       <td data-label="Profit" class="num">${sale ? (r.isComplete ? moneyCell(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
-      <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
+      <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}${!sale && item.purchase_date ? '<span class="date-note">bought</span>' : ''}</td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete ${unit ? 'this unit' : 'item'}" aria-label="Delete ${unit ? 'this unit' : 'item'}">&times;</button></td>
     </tr>`;
@@ -2796,16 +2853,16 @@ function renderInventory() {
     const counts = [['unsold', b.unsold], ['listed', b.listed], ['sold', b.sold], ['returned', b.returned]].filter(([, n]) => n);
     const platforms = [...new Set(b.units.map(u => (sales.find(s => s.item_id === u.id && s.status === 'completed') || {}).platform).filter(Boolean))];
     const filtered = entry.rows.length < b.units.length ? ` &middot; ${entry.rows.length} shown` : '';
-    const head = `<tr class="batch-row${open ? ' open' : ''}${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-batch-toggle="${esc(entry.batchId)}" aria-expanded="${open}">
+    const head = `<tr class="batch-row${open ? ' open' : ''}${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-batch-toggle="${esc(entry.batchId)}">
       <td class="cell-title"><div class="item-cell"><span class="batch-thumb">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span></span><div>
-        <div class="item-name"><svg class="batch-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${esc(item.item_name)}</div>
+        <button type="button" class="item-name batch-toggle" aria-expanded="${open}"><svg class="batch-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${esc(item.item_name)}</button>
         <div class="item-sub">${[subOf(item), `${b.units.length} units${filtered}`].filter(Boolean).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${platforms.length ? platforms.map(p => platformChip(p, platforms.length > 1 ? 'mark' : false)).join(' ') : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${costText}</td>
       <td data-label="Status"><div class="batch-counts">${counts.map(([st, n]) => `<span class="badge badge-${st}">${n} ${esc(statusLabel(st).toLowerCase())}</span>`).join('')}</div></td>
       <td data-label="Listing price" class="num">${item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">each</span>` : '&mdash;'}</td>
       <td data-label="Profit" class="num">${b.profitCount ? moneyCell(b.profit) : '&mdash;'}</td>
-      <td data-label="Bought">${fmtDate(item.purchase_date)}</td>
+      <td data-label="Bought">${fmtDate(item.purchase_date)}${item.purchase_date ? '<span class="date-note">bought</span>' : ''}</td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-batch="${esc(entry.batchId)}">Edit batch</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-batch="${esc(entry.batchId)}" title="Delete the whole batch" aria-label="Delete the whole batch">&times;</button></td>
     </tr>`;
@@ -2833,12 +2890,14 @@ function batchSummary(batchId) {
 // Batches opened up in the Inventory table (click the row to toggle).
 const expandedBatches = new Set();
 document.getElementById('inv-tbody').addEventListener('click', e => {
-  if (e.target.closest('button, a, input')) return;
+  const toggle = e.target.closest('.batch-toggle');
+  if (!toggle && e.target.closest('button, a, input')) return;
   const row = e.target.closest('[data-batch-toggle]');
   if (!row) return;
   const id = row.dataset.batchToggle;
   if (expandedBatches.has(id)) expandedBatches.delete(id); else expandedBatches.add(id);
   renderInventory();
+  if (toggle) { const again = document.querySelector(`#inv-tbody [data-batch-toggle="${CSS.escape(id)}"] .batch-toggle`); if (again) again.focus(); }
 });
 
 // Inventory layout: table or photo grid, remembered per browser.
@@ -2951,7 +3010,7 @@ function renderSales() {
 
   const valueOf = ({ s, item, r, costs }, key) => ({
     name: item ? item.item_name : null, platform: s.platform, price: s.sale_price_cents, costs,
-    profit: r.isComplete ? r.netProfitCents : null, margin: r.isComplete ? r.marginBps : null,
+    profit: s.status === 'completed' && r.isComplete ? r.netProfitCents : null, margin: s.status === 'completed' && r.isComplete ? r.marginBps : null,
     date: s.sale_date, status: s.status,
   })[key];
   sortRows(rows, valueOf, sortState.sales);
@@ -2966,9 +3025,9 @@ function renderSales() {
       <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div class="item-name">${item ? esc(item.item_name) : 'Unknown'}</div></div></td>
       <td data-label="Platform">${platformChip(s.platform)}</td>
       <td data-label="Sale price" class="num">${fmtCents(s.sale_price_cents)}</td>
-      <td data-label="Costs" class="num">${costs !== null ? fmtCents(costs) : '<span class="badge badge-incomplete">Partial</span>'}</td>
-      <td data-label="Net profit" class="num">${r.isComplete ? moneyCell(r.netProfitCents) : '&mdash;'}</td>
-      <td data-label="Margin" class="num">${r.isComplete ? marginCell(r.marginBps) : '&mdash;'}</td>
+      <td data-label="Fees &amp; shipping" class="num">${costs !== null ? fmtCents(costs) : '<span class="badge badge-incomplete">Partial</span>'}</td>
+      <td data-label="Net profit" class="num">${s.status !== 'completed' ? `<span class="price-note" title="${esc(statusLabel(s.status))} sales aren't counted in your totals">not counted</span>` : r.isComplete ? moneyCell(r.netProfitCents) : '&mdash;'}</td>
+      <td data-label="Margin" class="num">${s.status === 'completed' && r.isComplete ? marginCell(r.marginBps) : '&mdash;'}</td>
       <td data-label="Date">${fmtDate(s.sale_date)}</td>
       <td data-label="Status"><span class="badge badge-${esc(s.status)}">${esc(s.status.charAt(0).toUpperCase() + s.status.slice(1))}</span></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
@@ -2979,13 +3038,22 @@ function renderSales() {
 /* =========================================================
    ADD ITEM MODAL
    ========================================================= */
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const visibleFocusables = root => [...root.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null || el === document.activeElement);
+let overlayOpener = null;
 function openOverlay(id, originEl) {
   const overlay = document.getElementById(id);
   const modal = overlay.querySelector('.modal');
   if (modal) modal.getAnimations().forEach(a => a.cancel()); // stop a close still in progress
+  if (!overlay.classList.contains('open')) overlayOpener = originEl || document.activeElement;
   overlay.classList.remove('closing');
   overlay.classList.add('open');
   if (!modal) return;
+  // Focus the first field (or, in a confirm, the safe Cancel button).
+  const first = modal.classList.contains('confirm-modal')
+    ? modal.querySelector('.modal-actions [data-close]')
+    : visibleFocusables(modal).find(el => !el.classList.contains('close-x'));
+  if (first) first.focus({ preventScroll: true });
   // Sections of the item form cascade in one after another.
   if (modal.querySelector('.form-section')) {
     modal.classList.remove('stagger');
@@ -3031,6 +3099,8 @@ function openOverlay(id, originEl) {
 function closeOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay.classList.contains('open') || overlay.classList.contains('closing')) return;
+  if (overlayOpener && overlayOpener.isConnected && overlayOpener.focus) overlayOpener.focus({ preventScroll: true });
+  overlayOpener = null;
   const modal = overlay.querySelector('.modal');
   if (prefersReducedMotion() || !modal || !modal.animate) { overlay.classList.remove('open'); return; }
   overlay.classList.add('closing');
@@ -3093,20 +3163,20 @@ const CATEGORIES = {
   Kids: ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'One-pieces', 'Activewear', 'Footwear', 'Accessories'],
 };
 const ALL_CATEGORIES = [...new Set(Object.values(CATEGORIES).flat())];
-const range = (from, to, step = 1) => { const out = []; for (let n = from; n <= to + 1e-9; n += step) out.push(n); return out; };
-const opt = (value, label = value) => ({ value, label });
+const numberRange = (from, to, step = 1) => { const out = []; for (let n = from; n <= to + 1e-9; n += step) out.push(n); return out; };
+const sizeOpt = (value, label = value) => ({ value, label });
 const SIZE_GROUPS = {
-  letters: ['Sizes', ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size'].map(v => opt(v))],
-  kids: ['Kids', [4, 5, 6, 7, 8, 10, 12, 14, 16, 18].map(n => opt('Kids ' + n, String(n)))],
-  toddler: ['Toddler', ['2T', '3T', '4T', '5T'].map(v => opt(v))],
-  baby: ['Baby', ['0-3M', '3-6M', '6-9M', '9-12M', '12-18M', '18-24M'].map(v => opt(v, v.replace('-', '–')))],
-  oneSize: ['Sizes', [opt('One size')]],
-  waist: ['Waist', range(28, 44).filter(n => n <= 34 || n % 2 === 0).map(n => opt('W' + n, n + '"'))],
-  womenNumeric: ['Numeric', ['00', ...range(0, 20, 2).map(String)].map(v => opt('Size ' + v, v))],
-  menShoes: ["Men's shoes (US)", range(6, 15, 0.5).map(n => opt('US ' + n, String(n)))],
-  womenShoes: ["Women's shoes (US)", range(5, 12, 0.5).map(n => opt('US ' + n, String(n)))],
-  toddlerShoes: ['Toddler shoes', range(4, 13).map(n => opt(n + 'C'))],
-  youthShoes: ['Youth shoes', range(1, 7).map(n => opt(n + 'Y'))],
+  letters: ['Sizes', ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size'].map(v => sizeOpt(v))],
+  kids: ['Kids', [4, 5, 6, 7, 8, 10, 12, 14, 16, 18].map(n => sizeOpt('Kids ' + n, String(n)))],
+  toddler: ['Toddler', ['2T', '3T', '4T', '5T'].map(v => sizeOpt(v))],
+  baby: ['Baby', ['0-3M', '3-6M', '6-9M', '9-12M', '12-18M', '18-24M'].map(v => sizeOpt(v, v.replace('-', '–')))],
+  oneSize: ['Sizes', [sizeOpt('One size')]],
+  waist: ['Waist', numberRange(28, 44).filter(n => n <= 34 || n % 2 === 0).map(n => sizeOpt('W' + n, n + '"'))],
+  womenNumeric: ['Numeric', ['00', ...numberRange(0, 20, 2).map(String)].map(v => sizeOpt('Size ' + v, v))],
+  menShoes: ["Men's shoes (US)", numberRange(6, 15, 0.5).map(n => sizeOpt('US ' + n, String(n)))],
+  womenShoes: ["Women's shoes (US)", numberRange(5, 12, 0.5).map(n => sizeOpt('US ' + n, String(n)))],
+  toddlerShoes: ['Toddler shoes', numberRange(4, 13).map(n => sizeOpt(n + 'C'))],
+  youthShoes: ['Youth shoes', numberRange(1, 7).map(n => sizeOpt(n + 'Y'))],
 };
 function sizeGroupsFor(dept, category) {
   const g = SIZE_GROUPS;
@@ -3134,7 +3204,7 @@ function refreshProductChoices(keepCategory, keepSize) {
   const catKnown = !catOtherMode && (!category || cats.includes(category));
   // Older items can have a category but no department — keep that editable.
   catSel.disabled = !dept && !category && !catOtherMode;
-  catSel.innerHTML = `<option value="">${catSel.disabled ? "Choose Men's, Women's or Kids first" : 'Select'}</option>${optionsHtml(cats.map(c => opt(c)))}<option value="__other">Other…</option>`;
+  catSel.innerHTML = `<option value="">${catSel.disabled ? "Choose Men's, Women's or Kids first" : 'Select'}</option>${optionsHtml(cats.map(c => sizeOpt(c)))}<option value="__other">Other…</option>`;
   catSel.value = catKnown ? category : '__other';
   catOther.value = catKnown ? '' : category;
   catOther.hidden = catKnown;
@@ -3348,6 +3418,15 @@ function updateSaleCalc() {
   };
   const r = calcProfit(draftSale, item);
   const box = document.getElementById('rs-calc-box');
+  if (!fd.get('item_id') || salePrice === '') {
+    // Nothing to work out yet: a neutral prompt, not a warning.
+    box.classList.remove('incomplete');
+    box.classList.add('pending');
+    document.getElementById('rs-profit').textContent = !fd.get('item_id') ? 'Pick an item' : 'Enter the sale price';
+    document.getElementById('rs-margin').innerHTML = '&mdash;';
+    return;
+  }
+  box.classList.remove('pending');
   box.classList.toggle('incomplete', !r.isComplete);
   const missing = [(!item || item.purchase_cost_cents === null) && 'purchase cost', draftSale.platform_fees_cents === null && 'platform fees'].filter(Boolean);
   document.getElementById('rs-profit').innerHTML = r.isComplete ? fmtCents(r.netProfitCents) : `Needs the ${missing.join(' and ') || 'cost data'}`;
@@ -3547,6 +3626,7 @@ const LEDGER_SUGGESTIONS = [
 let ledgerTurns = [];
 try { const saved = JSON.parse(localStorage.getItem(LEDGER_CHAT_KEY) || '[]'); if (Array.isArray(saved)) ledgerTurns = saved.slice(-30); } catch (e) {}
 let ledgerSample = null, ledgerMode = 'checking', ledgerBusy = false, ledgerCtl = null;
+let ledgerChatId = 0; // bumps on "Start a new chat" so a late answer can't land in the new one
 
 // Daily allowance for Claude answers (built-in offline answers are free and unlimited).
 // Kept in this browser only: it paces use, it isn't a lock.
@@ -4009,6 +4089,7 @@ async function askLedger(question, opts = {}) {
   question = question.trim();
   if (!question || ledgerBusy) return;
   const cost = opts.cost || 1;
+  const chatId = ledgerChatId;
   ledgerBusy = true;
   const input = document.getElementById('ledger-q');
   if (!opts.label) { input.value = ''; input.style.height = ''; }
@@ -4062,6 +4143,11 @@ async function askLedger(question, opts = {}) {
     answer = opts.label ? ledgerOfflineReport() : ledgerOfflineAnswer(question);
   }
 
+  if (chatId !== ledgerChatId) { // the chat was cleared while this answer was on its way
+    ledgerBusy = false;
+    document.getElementById('ledger-send').disabled = false;
+    return;
+  }
   if (answer) ledgerTurns.push({ role: 'assistant', content: answer });
   else ledgerTurns.pop(); // nothing came back: forget the question too, so the chat stays user/assistant pairs
   bubble.innerHTML = (answer ? ledgerMarkdown(answer) : '') + (note ? `<div class="ledger-note">${esc(note)}</div>` : '');
@@ -4098,6 +4184,7 @@ document.getElementById('ledger-stop').addEventListener('click', () => { if (led
 document.getElementById('ledger-analyze').addEventListener('click', () => askLedger(LEDGER_ANALYSIS_PROMPT, { label: LEDGER_ANALYSIS_LABEL, cost: LEDGER_ANALYSIS_COST }));
 document.getElementById('ledger-clear').addEventListener('click', () => {
   if (ledgerCtl) ledgerCtl.abort();
+  ledgerChatId++;
   ledgerTurns = []; saveLedgerChat(); renderLedgerChat(); setPencilState('happy'); pencilSay('Fresh page! What’s on your mind?', 3000);
 });
 renderLedgerChat();
@@ -4351,7 +4438,7 @@ function renderColorControls() {
       <div class="custom-color-fields">
         ${[['bg', 'Background'], ['accent', 'Accent'], ['fg', 'Text']].map(([key, label]) => `
           <div class="color-field">
-            <label>${label}</label>
+            <label for="cc-${key}">${label}</label>
             <div class="swatch-input">
               <input type="color" id="cc-${key}" value="${effective[key]}">
               <span class="hex-val" id="cc-${key}-val">${effective[key].toUpperCase()}</span>
@@ -4392,6 +4479,8 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(b => b.toggleAttribute('aria-current', b === btn));
+    if (btn.hasAttribute('aria-current')) btn.setAttribute('aria-current', 'page');
     document.getElementById('view-' + btn.dataset.view).classList.add('active');
     updateNavPill(btn);
   });
@@ -4450,6 +4539,15 @@ document.querySelectorAll('.overlay').forEach(ov => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => closeOverlay(ov.id));
+  // Keep Tab inside an open dialog.
+  const open = document.querySelector('.overlay.open:not(.closing) .modal');
+  if (e.key === 'Tab' && open) {
+    const f = visibleFocusables(open);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  }
 });
 
 document.getElementById('inv-search').addEventListener('input', renderInventory);
@@ -4575,7 +4673,7 @@ function editBatch(batchId, originEl) {
 function renderBatchUnits(b) {
   document.getElementById('ai-units').innerHTML = b.units.map((u, i) => {
     const sale = sales.find(s => s.item_id === u.id && s.status === 'completed') || sales.find(s => s.item_id === u.id);
-    const r = sale ? calcProfit(sale, u) : null;
+    const r = sale && sale.status === 'completed' ? calcProfit(sale, u) : null;
     const detail = sale
       ? `${platformChip(sale.platform, true)} <span>${fmtCents(sale.sale_price_cents)} &middot; ${fmtDate(sale.sale_date)}</span>${r && r.isComplete ? ` <span class="${moneyClass(r.netProfitCents)}">${r.netProfitCents > 0 ? '+' : ''}${fmtCents(r.netProfitCents)}</span>` : ''}`
       : `<span>cost ${u.purchase_cost_cents === null ? 'unknown' : fmtCents(u.purchase_cost_cents)}</span>`;
@@ -4780,7 +4878,7 @@ function renderAnalytics() {
   document.getElementById('an-categories').innerHTML = categoryRows.length ? `<table class="mini-table">
     <thead><tr><th>Category</th><th class="num">Sold</th><th class="num">Revenue</th><th class="num">Profit</th><th class="num">Days to sell</th></tr></thead>
     <tbody>${categoryRows.map(([name, c]) => `<tr><td>${esc(name)}</td><td class="num">${c.n}</td><td class="num">${fmtCents(c.revenue)}</td>
-      <td class="num">${fmtCents(c.profit)}</td><td class="num">${c.days.length ? Math.round(c.days.reduce((a, b) => a + b, 0) / c.days.length) : '&mdash;'}</td></tr>`).join('')}</tbody></table>`
+      <td class="num">${moneyCell(c.profit)}</td><td class="num">${c.days.length ? Math.round(c.days.reduce((a, b) => a + b, 0) / c.days.length) : '&mdash;'}</td></tr>`).join('')}</tbody></table>`
     : '<div class="empty-note">No completed sales yet.</div>';
 }
 
@@ -4863,7 +4961,7 @@ function renderMonthlyChart(completed) {
       <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Net profit</div>
     </div>
     <details class="an-details"><summary>Show as a table</summary>
-      <div class="table-scroll"><table class="mini-table">
+      <div class="table-scroll" tabindex="0" aria-label="Revenue and net profit by month"><table class="mini-table">
         <thead><tr><th>Month</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Net profit</th></tr></thead>
         <tbody>${[...months].reverse().map(m => `<tr><td>${m.longLabel}</td><td class="num">${m.n}</td><td class="num">${fmtCents(m.revenue)}</td><td class="num">${fmtCents(m.net)}</td></tr>`).join('')}</tbody>
       </table></div>
@@ -4949,6 +5047,14 @@ function downloadFile(filename, content, type) {
   return Promise.resolve(true);
 }
 
+// Sidebar status: says so when saving isn't working.
+function renderSaveStatus() {
+  const foot = document.querySelector('.sidebar-foot');
+  if (!foot) return;
+  foot.classList.toggle('save-failed', saveFailed);
+  foot.querySelector('.foot-title').textContent = saveFailed ? "Couldn't save changes" : 'Saved in this browser';
+}
+
 function renderBackupNote() {
   let last = null;
   try { last = localStorage.getItem(LAST_BACKUP_KEY); } catch (e) {}
@@ -4969,9 +5075,12 @@ document.getElementById('backup-btn').addEventListener('click', () => {
 });
 
 function isValidBackup(b) {
+  const centsOrNull = v => v === null || v === undefined || Number.isFinite(v);
   return b && Array.isArray(b.items) && Array.isArray(b.sales)
-    && b.items.every(i => i && typeof i.id === 'number' && typeof i.item_name === 'string')
-    && b.sales.every(s => s && typeof s.id === 'number' && typeof s.item_id === 'number' && typeof s.sale_price_cents === 'number');
+    && b.items.every(i => i && typeof i.id === 'number' && typeof i.item_name === 'string'
+      && centsOrNull(i.purchase_cost_cents) && centsOrNull(i.listing_price_cents))
+    && b.sales.every(s => s && typeof s.id === 'number' && typeof s.item_id === 'number' && Number.isFinite(s.sale_price_cents)
+      && centsOrNull(s.platform_fees_cents) && centsOrNull(s.shipping_cost_cents) && centsOrNull(s.other_costs_cents));
 }
 
 document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-file').click());
@@ -5098,6 +5207,8 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
   const parts = splitCents(totalCents, names.length);
   // Everything in the bundle is one purchase, so it shares one order number.
   const purchaseOrder = form.elements.purchase_order.value || newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value);
+  const before = snapshotData();
+  const firstId = nextItemId;
   names.forEach((name, i) => items.push(normalizeItem({
     id: nextItemId++, item_name: name, brand: '', category: '', size: '', color: '', condition: '',
     purchase_cost_cents: parts[i], purchase_date: form.elements.purchase_date.value || null,
@@ -5105,7 +5216,10 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
     notes: `Part of a ${names.length}-item bundle, ${fmtCents(totalCents)} total`,
   })));
   closeOverlay('overlay-add-bundle');
+  highlightItemIds = new Set(items.filter(i => i.id >= firstId).map(i => i.id));
   renderAll();
+  highlightItemIds = new Set();
+  showUndo(`Added a ${names.length}-item bundle`, before);
 });
 
 /* =========================================================
@@ -5141,7 +5255,21 @@ document.body.addEventListener('click', e => {
   if (focus) setTimeout(() => { focus.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' }); focus.focus({ preventScroll: true }); }, 60);
 });
 
+// Tie each ".field" label to its control, and name the few controls that have no visible label.
+function linkFieldLabels(root = document) {
+  let n = 0;
+  root.querySelectorAll('.field').forEach(field => {
+    const label = field.querySelector(':scope > label');
+    const control = field.querySelector('input:not([type=hidden]):not([type=radio]):not([type=file]), select, textarea');
+    if (!label || !control || label.htmlFor) return;
+    if (!control.id) control.id = 'fld-' + (control.name || 'x') + '-' + (++n);
+    label.htmlFor = control.id;
+  });
+}
 function renderAll() {
+  // Any new change makes an older Undo unsafe (it would also erase this
+  // change), so the toast goes away; actions that offer Undo show it after.
+  hideToast();
   saveData();
   renderDashboard();
   renderInventory();
@@ -5150,6 +5278,7 @@ function renderAll() {
 }
 
 populatePlatformFilter();
+linkFieldLabels();
 renderVibeGrid();
 renderColorControls();
 renderFontScaleControl();
@@ -5187,6 +5316,7 @@ renderFeeRates();
 renderBackupNote();
 renderAll();
 loadPhotos();
+if (loadProblem) alert("Your saved data couldn't be read, so Ledgery started empty. A copy of it was kept in this browser. If you have a backup file, restore it in Settings.");
 </script>
 </body>
 </html>

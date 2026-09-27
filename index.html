@@ -903,7 +903,6 @@ th[data-sort]:hover { color: var(--ink); }
 th[data-sort].sorted { color: var(--accent-text); }
 th[data-sort].sorted::after { content: ' \25B2'; font-size: 0.6rem; }
 th[data-sort].sorted.desc::after { content: ' \25BC'; }
-table.table-narrow { min-width: 560px; }
 
 /* Undo toast */
 .toast {
@@ -968,7 +967,7 @@ table.table-narrow { min-width: 560px; }
 
   /* Big tables become one card per row, each cell labelled. */
   .table-wrap { background: none; border: none; box-shadow: none; overflow: visible; }
-  .table-wrap table, table.table-narrow { min-width: 0; }
+  .table-wrap table { min-width: 0; }
   .table-wrap thead { display: none; }
   .table-wrap tbody tr {
     display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
@@ -1019,7 +1018,6 @@ table.table-narrow { min-width: 560px; }
     <button class="nav-item active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
     <button class="nav-item" data-view="inventory"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Inventory</button>
     <button class="nav-item" data-view="sales"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Sales</button>
-    <button class="nav-item" data-view="expenses"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>Expenses</button>
     <button class="nav-item" data-view="smart-entry"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg>Smart Entry</button>
     <button class="nav-item" data-view="analytics"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>Analytics</button>
     <button class="nav-item" data-view="settings"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
@@ -1060,8 +1058,8 @@ table.table-narrow { min-width: 560px; }
               <button type="button" class="btn btn-sm" data-open="add-bundle">Add a bundle</button></div></li>
             <li><strong>Record a sale.</strong> Fees are estimated for you. You can also add a new item right in the sale form.
               <div><button type="button" class="btn btn-sm" data-open="record-sale">Record a sale</button></div></li>
-            <li><strong>Log business costs.</strong> Packaging, shipping supplies and subscriptions go on the Expenses page, so your profit is real.
-              <div><button type="button" class="btn btn-sm" data-goto="expenses">Open Expenses</button></div></li>
+            <li><strong>See what you make.</strong> Your Dashboard and Analytics update as you go: profit, margins, best platforms and how fast things sell.
+              <div><button type="button" class="btn btn-sm" data-goto="analytics">Open Analytics</button></div></li>
           </ol>
           <p class="welcome-sub">Coming from another device? <button type="button" class="link-btn" data-goto="settings">Restore a backup in Settings</button>.</p>
         </div>
@@ -1166,29 +1164,6 @@ table.table-narrow { min-width: 560px; }
       </div>
     </section>
 
-    <!-- EXPENSES -->
-    <section class="view" id="view-expenses">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Expenses</h1>
-          <div class="page-sub">Business costs not tied to one item. They're subtracted from your profit on the Dashboard.</div>
-        </div>
-        <button class="btn btn-primary" data-open="expense">Add expense</button>
-      </div>
-      <div class="stat-grid" id="expense-stats"></div>
-      <div class="toolbar">
-        <input type="text" id="exp-search" placeholder="Search description or category…">
-      </div>
-      <div class="table-wrap">
-        <table id="expenses-table" class="table-narrow">
-          <thead>
-            <tr><th data-sort="description">Description</th><th data-sort="category">Category</th><th data-sort="date">Date</th><th data-sort="amount">Amount</th><th></th><th></th></tr>
-          </thead>
-          <tbody id="exp-tbody"></tbody>
-        </table>
-      </div>
-    </section>
-
     <!-- SMART ENTRY -->
     <section class="view" id="view-smart-entry">
       <div class="page-header">
@@ -1230,10 +1205,10 @@ table.table-narrow { min-width: 560px; }
 
     <!-- ANALYTICS (stub) -->
     <section class="view" id="view-analytics">
-      <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">All-time performance across your sales, inventory and expenses</div></div></div>
+      <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">All-time performance across your sales and inventory</div></div></div>
       <div class="stat-grid" id="an-stats"></div>
       <div class="panel">
-        <div class="panel-head"><h3>Revenue and net profit by month</h3><span class="page-sub" style="margin:0">last 12 months &middot; net profit is after expenses</span></div>
+        <div class="panel-head"><h3>Revenue and net profit by month</h3><span class="page-sub" style="margin:0">last 12 months</span></div>
         <div class="panel-body"><div id="an-monthly"></div></div>
       </div>
       <div class="panel-grid">
@@ -1302,7 +1277,6 @@ table.table-narrow { min-width: 560px; }
           <div class="data-actions">
             <button type="button" class="btn btn-sm" data-export="inventory">Inventory</button>
             <button type="button" class="btn btn-sm" data-export="sales">Sales</button>
-            <button type="button" class="btn btn-sm" data-export="expenses">Expenses</button>
           </div>
           <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
             <button type="button" class="btn btn-danger-outline" id="reset-data-btn">Erase all data</button>
@@ -1391,32 +1365,6 @@ table.table-narrow { min-width: 560px; }
   </div>
 </div>
 
-<!-- EXPENSE MODAL -->
-<div class="overlay" id="overlay-expense">
-  <div class="modal">
-    <div class="modal-head"><h3 id="expense-modal-title">Add expense</h3><button class="close-x" data-close>&times;</button></div>
-    <p class="modal-sub">A business cost that isn't part of one item's purchase price.</p>
-    <form id="expense-form">
-      <input type="hidden" name="editing_id">
-      <div class="field-grid">
-        <div class="field"><label>Date *</label><input required name="expense_date" type="date"></div>
-        <div class="field"><label>Amount *</label><input required name="amount" type="number" step="0.01" min="0"></div>
-        <div class="field full"><label>Category</label>
-          <select name="category">
-            <option>Shipping supplies</option><option>Packaging</option><option>Subscriptions &amp; tools</option>
-            <option>Boosts &amp; promotion</option><option>Mileage &amp; travel</option><option>Equipment</option><option>Other</option>
-          </select>
-        </div>
-        <div class="field full"><label>Description</label><input name="description" placeholder="Poly mailers, 100 pack"></div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn btn-primary" id="expense-submit-btn">Save expense</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <!-- BUNDLE MODAL — one purchase, cost split across several items -->
 <div class="overlay" id="overlay-add-bundle">
   <div class="modal">
@@ -1444,7 +1392,7 @@ table.table-narrow { min-width: 560px; }
   <button type="button" class="toast-undo" id="toast-undo">Undo</button>
 </div>
 
-<!-- DELETE CONFIRM MODAL — shared by Inventory, Sales and Expenses -->
+<!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
 <div class="overlay" id="overlay-confirm-delete">
   <div class="modal confirm-modal">
     <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button class="close-x" data-close>&times;</button></div>
@@ -1471,9 +1419,6 @@ function money(dollars) { return Math.round(dollars * 100); }
 // Everyone starts with an empty ledger; items and sales are added in the app.
 const items = [];
 const sales = [];
-// Business costs not tied to one item (supplies, subscriptions, mileage…).
-const expenses = [];
-let nextExpenseId = 1;
 
 /* =========================================================
    PERSISTENCE
@@ -1485,13 +1430,11 @@ let nextExpenseId = 1;
 // renaming them would hide everyone's saved data.
 const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
-function replaceData(newItems, newSales, newExpenses) {
+function replaceData(newItems, newSales) {
   items.splice(0, items.length, ...newItems);
   sales.splice(0, sales.length, ...newSales);
-  expenses.splice(0, expenses.length, ...(newExpenses || []));
   nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
-  nextExpenseId = expenses.reduce((max, x) => Math.max(max, x.id), 0) + 1;
 }
 
 function loadData() {
@@ -1500,23 +1443,23 @@ function loadData() {
     if (!raw) return;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed.items) && Array.isArray(parsed.sales)) {
-      replaceData(parsed.items, parsed.sales, Array.isArray(parsed.expenses) ? parsed.expenses : []);
+      replaceData(parsed.items, parsed.sales);
     }
   } catch (e) {}
 }
 
 function saveData() {
-  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales, expenses })); } catch (e) {}
+  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales })); } catch (e) {}
 }
 
 function resetData() {
-  replaceData([], [], []);
+  replaceData([], []);
   try { localStorage.removeItem(DATA_STORAGE_KEY); } catch (e) {}
 }
 
 // A deep copy of everything, used to undo a delete or an erase.
 function snapshotData() {
-  return JSON.parse(JSON.stringify({ items, sales, expenses }));
+  return JSON.parse(JSON.stringify({ items, sales }));
 }
 
 loadData();
@@ -1742,21 +1685,20 @@ function buildSparkline(values, colorVar) {
   </svg>`;
 }
 
-function renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents) {
+function renderHero(periodSales, prevSales) {
   const chrono = [...periodSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date));
   const profitOf = s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : 0; };
   const sumRevenue = list => list.reduce((t, s) => t + s.sale_price_cents, 0);
   const sumProfit = list => list.reduce((t, s) => t + profitOf(s), 0);
 
   const totalRevenue = sumRevenue(chrono);
-  const salesProfit = sumProfit(chrono);
-  const totalProfit = salesProfit - periodExpenseCents;
+  const totalProfit = sumProfit(chrono);
 
   // Trend: this period so far vs. the same point in the previous one.
   const pctChange = (now, prev) => (prev === 0 ? null : Math.round(((now - prev) / Math.abs(prev)) * 100));
   const hasTrend = dashPeriod !== 'all';
   const revTrend = hasTrend ? pctChange(totalRevenue, sumRevenue(prevSales)) : null;
-  const profTrend = hasTrend ? pctChange(totalProfit, sumProfit(prevSales) - prevExpenseCents) : null;
+  const profTrend = hasTrend ? pctChange(totalProfit, sumProfit(prevSales)) : null;
   const vsText = dashPeriod === 'month' ? 'vs. same point last month' : 'vs. same point last year';
   const trendBadge = t => (t === null ? ''
     : `<span class="hero-trend ${t >= 0 ? 'up' : 'down'}" title="${vsText}">${t >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(t)}%</span>`);
@@ -1780,7 +1722,7 @@ function renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents
         ${trendBadge(profTrend)}
       </div>
       <div class="hero-value" id="hero-profit"></div>
-      <div class="hero-sub">${periodExpenseCents ? `sales profit ${fmtCents(salesProfit)} &minus; expenses ${fmtCents(periodExpenseCents)}` : 'complete sales only &middot; no expenses logged'}</div>
+      <div class="hero-sub">complete sales only</div>
       ${buildSparkline(chrono.map(s => profitOf(s) / 100), '--success')}
     </div>
   `;
@@ -1939,11 +1881,8 @@ function renderDashboard() {
   const completedSales = sales.filter(s => s.status === 'completed');
   const periodSales = completedSales.filter(s => inRange(s.sale_date, range));
   const prevSales = prevRange ? completedSales.filter(s => inRange(s.sale_date, prevRange)) : [];
-  const expenseTotal = r => expenses.filter(x => inRange(x.expense_date, r)).reduce((t, x) => t + x.amount_cents, 0);
-  const periodExpenseCents = expenseTotal(range);
-  const prevExpenseCents = prevRange ? expenseTotal(prevRange) : 0;
 
-  document.getElementById('welcome-panel').hidden = !(items.length === 0 && sales.length === 0 && expenses.length === 0);
+  document.getElementById('welcome-panel').hidden = !(items.length === 0 && sales.length === 0);
   const now = new Date(), hour = now.getHours();
   document.getElementById('dash-eyebrow').textContent =
     `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'} · ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
@@ -1958,7 +1897,7 @@ function renderDashboard() {
   const avgProfit = completeCount ? Math.round(totalProfitCheck / completeCount) : null;
   const activeInventory = items.filter(i => i.status === 'unsold' || i.status === 'listed').length;
 
-  renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents);
+  renderHero(periodSales, prevSales);
   renderTrendChart(periodSales);
   renderInventoryDonut();
 
@@ -1966,7 +1905,6 @@ function renderDashboard() {
     { label: 'Items sold', value: periodSales.length, plain: true },
     { label: 'Active inventory', value: activeInventory, plain: true },
     { label: 'Avg profit / sale', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit) },
-    { label: 'Expenses', value: fmtCents(periodExpenseCents) },
   ];
   document.getElementById('stat-grid').innerHTML = tiles.map(t => `
     <div class="stat-tile">
@@ -2023,14 +1961,13 @@ function renderDashboard() {
 }
 
 /* =========================================================
-   TABLE SORTING — shared by Inventory, Sales and Expenses.
+   TABLE SORTING — shared by Inventory and Sales.
    Click a column header to sort; click again to flip. Blank
    values always sort last.
    ========================================================= */
 const sortState = {
   inv: { key: 'date', dir: 'desc' },
   sales: { key: 'date', dir: 'desc' },
-  exp: { key: 'date', dir: 'desc' },
 };
 function sortRows(rows, valueOf, state) {
   const dir = state.dir === 'asc' ? 1 : -1;
@@ -2948,7 +2885,6 @@ document.querySelectorAll('[data-open]').forEach(btn => {
     const target = btn.dataset.open;
     if (target === 'record-sale') { resetRecordSaleFormForCreate(); updateSaleCalc(); }
     if (target === 'add-item') { resetAddItemFormForCreate(); }
-    if (target === 'expense') { resetExpenseForm(); }
     if (target === 'add-bundle') { resetBundleForm(); }
     openOverlay('overlay-' + target, btn);
   });
@@ -3022,21 +2958,11 @@ function askDeleteItem(item, originEl) {
   openOverlay('overlay-confirm-delete', originEl);
 }
 
-function askDeleteExpense(x, originEl) {
-  pendingDelete = { kind: 'expense', id: x.id };
-  document.getElementById('confirm-delete-title').textContent = 'Delete expense?';
-  document.getElementById('confirm-delete-item-name').textContent = x.description || x.category;
-  openOverlay('overlay-confirm-delete', originEl);
-}
-
 document.getElementById('confirm-delete-btn').addEventListener('click', () => {
   if (!pendingDelete) return;
   const before = snapshotData();
   const deletedName = document.getElementById('confirm-delete-item-name').textContent;
-  if (pendingDelete.kind === 'expense') {
-    const idx = expenses.findIndex(x => x.id === pendingDelete.id);
-    if (idx !== -1) expenses.splice(idx, 1);
-  } else if (pendingDelete.kind === 'item') {
+  if (pendingDelete.kind === 'item') {
     const idx = items.findIndex(i => i.id === pendingDelete.id);
     if (idx !== -1) items.splice(idx, 1);
     // Remove its sales too, so none are left pointing at a missing item.
@@ -3081,92 +3007,7 @@ document.body.addEventListener('click', e => {
   if (deleteSaleBtn) {
     const sale = saleById(parseInt(deleteSaleBtn.dataset.deleteSale, 10));
     if (sale) askDeleteSale(sale, deleteSaleBtn);
-    return;
   }
-  const editExpenseBtn = e.target.closest('[data-edit-expense]');
-  if (editExpenseBtn) {
-    const x = expenseById(parseInt(editExpenseBtn.dataset.editExpense, 10));
-    if (x) editExpense(x, editExpenseBtn);
-    return;
-  }
-  const deleteExpenseBtn = e.target.closest('[data-delete-expense]');
-  if (deleteExpenseBtn) {
-    const x = expenseById(parseInt(deleteExpenseBtn.dataset.deleteExpense, 10));
-    if (x) askDeleteExpense(x, deleteExpenseBtn);
-  }
-});
-
-/* =========================================================
-   EXPENSES — business costs not tied to one item. Subtracted
-   from sales profit on the Dashboard and in Analytics.
-   ========================================================= */
-function renderExpenses() {
-  const sumIn = range => expenses.filter(x => inRange(x.expense_date, range)).reduce((t, x) => t + x.amount_cents, 0);
-  document.getElementById('expense-stats').innerHTML = [
-    ['This month', sumIn(periodRange('month', 0))],
-    ['This year', sumIn(periodRange('year', 0))],
-    ['All time', sumIn(null)],
-  ].map(([label, cents]) => `<div class="stat-tile"><div class="stat-label">${label}</div><div class="stat-value mono">${fmtCents(cents)}</div></div>`).join('');
-
-  const search = document.getElementById('exp-search').value.trim().toLowerCase();
-  const rows = expenses.filter(x => !search || [x.category, x.description].join(' ').toLowerCase().includes(search));
-  const valueOf = (x, key) => ({ date: x.expense_date, category: x.category, description: x.description || x.category, amount: x.amount_cents })[key];
-  sortRows(rows, valueOf, sortState.exp);
-  markSortHeaders('expenses-table', sortState.exp);
-
-  const emptyMsg = expenses.length ? 'No expenses match your search.' : 'No expenses yet. Add things like packaging, shipping supplies and subscriptions.';
-  document.getElementById('exp-tbody').innerHTML = rows.length ? rows.map(x => `<tr>
-      <td class="cell-title item-name">${esc(x.description || x.category)}</td>
-      <td data-label="Category">${esc(x.category)}</td>
-      <td data-label="Date">${fmtDate(x.expense_date)}</td>
-      <td data-label="Amount" class="num">${fmtCents(x.amount_cents)}</td>
-      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-expense="${x.id}">Edit</button></td>
-      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-expense="${x.id}" title="Delete expense" aria-label="Delete expense">&times;</button></td>
-    </tr>`).join('') : `<tr><td colspan="6" class="empty-note">${emptyMsg}</td></tr>`;
-}
-
-function expenseById(id) { return expenses.find(x => x.id === id); }
-
-function resetExpenseForm() {
-  const form = document.getElementById('expense-form');
-  form.reset();
-  form.elements.editing_id.value = '';
-  form.elements.expense_date.value = isoDate(new Date());
-  document.getElementById('expense-modal-title').textContent = 'Add expense';
-  document.getElementById('expense-submit-btn').textContent = 'Save expense';
-}
-
-function editExpense(x, originEl) {
-  const form = document.getElementById('expense-form');
-  form.reset();
-  form.elements.editing_id.value = x.id;
-  form.elements.expense_date.value = x.expense_date || '';
-  form.elements.amount.value = (x.amount_cents / 100).toFixed(2);
-  form.elements.category.value = x.category || 'Other';
-  form.elements.description.value = x.description || '';
-  document.getElementById('expense-modal-title').textContent = 'Edit expense';
-  document.getElementById('expense-submit-btn').textContent = 'Save changes';
-  openOverlay('overlay-expense', originEl);
-}
-
-document.getElementById('expense-form').addEventListener('submit', e => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const fields = {
-    expense_date: fd.get('expense_date'),
-    amount_cents: money(parseFloat(fd.get('amount'))),
-    category: fd.get('category') || 'Other',
-    description: (fd.get('description') || '').trim(),
-  };
-  const editingId = fd.get('editing_id');
-  if (editingId) {
-    const existing = expenseById(parseInt(editingId, 10));
-    if (existing) Object.assign(existing, fields);
-  } else {
-    expenses.push(Object.assign({ id: nextExpenseId++ }, fields));
-  }
-  closeOverlay('overlay-expense');
-  renderAll();
 });
 
 /* =========================================================
@@ -3180,7 +3021,6 @@ function renderAnalytics() {
     return { s, item, r: calcProfit(s, item) };
   });
   const complete = completed.filter(x => x.r.isComplete);
-  const totalExpenses = expenses.reduce((t, x) => t + x.amount_cents, 0);
   const salesProfit = complete.reduce((t, x) => t + x.r.netProfitCents, 0);
   const soldItems = items.filter(i => i.status === 'sold').length;
   const sellDays = completed.filter(x => x.item && x.item.purchase_date && x.s.sale_date)
@@ -3189,7 +3029,7 @@ function renderAnalytics() {
   const avgMargin = complete.length ? Math.round(complete.reduce((t, x) => t + (x.r.marginBps || 0), 0) / complete.length) : null;
 
   const stats = [
-    ['Net profit (after expenses)', fmtCents(salesProfit - totalExpenses)],
+    ['Net profit', fmtCents(salesProfit)],
     ['Sell-through', items.length ? Math.round((soldItems / items.length) * 100) + '%' : '&mdash;', `${soldItems} of ${items.length} items sold`],
     ['Avg days to sell', sellDays.length ? Math.round(sellDays.reduce((a, b) => a + b, 0) / sellDays.length) : '&mdash;', sellDays.length ? `from ${sellDays.length} sales with a purchase date` : 'needs purchase dates'],
     ['Avg margin', fmtBps(avgMargin)],
@@ -3248,7 +3088,7 @@ function renderMonthlyChart(completed) {
       key: isoDate(d).slice(0, 7),
       label: d.toLocaleDateString('en-US', { month: 'short' }),
       longLabel: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      n: 0, revenue: 0, salesProfit: 0, expenses: 0,
+      n: 0, revenue: 0, net: 0,
     });
   }
   const byKey = Object.fromEntries(months.map(m => [m.key, m]));
@@ -3256,14 +3096,12 @@ function renderMonthlyChart(completed) {
     const m = byKey[(s.sale_date || '').slice(0, 7)];
     if (!m) return;
     m.n++; m.revenue += s.sale_price_cents;
-    if (r.isComplete) m.salesProfit += r.netProfitCents;
+    if (r.isComplete) m.net += r.netProfitCents;
   });
-  expenses.forEach(x => { const m = byKey[(x.expense_date || '').slice(0, 7)]; if (m) m.expenses += x.amount_cents; });
-  months.forEach(m => { m.net = m.salesProfit - m.expenses; });
 
   const container = document.getElementById('an-monthly');
-  if (!months.some(m => m.n || m.expenses)) {
-    container.innerHTML = '<div class="empty-note">No sales or expenses in the last 12 months yet.</div>';
+  if (!months.some(m => m.n)) {
+    container.innerHTML = '<div class="empty-note">No sales in the last 12 months yet.</div>';
     return;
   }
 
@@ -3310,12 +3148,12 @@ function renderMonthlyChart(completed) {
     </div>
     <div class="trend-legend">
       <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--ink-faint)"></span>Revenue</div>
-      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Net profit (after expenses)</div>
+      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Net profit</div>
     </div>
     <details class="an-details"><summary>Show as a table</summary>
       <div class="table-scroll"><table class="mini-table">
-        <thead><tr><th>Month</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Sales profit</th><th class="num">Expenses</th><th class="num">Net profit</th></tr></thead>
-        <tbody>${[...months].reverse().map(m => `<tr><td>${m.longLabel}</td><td class="num">${m.n}</td><td class="num">${fmtCents(m.revenue)}</td><td class="num">${fmtCents(m.salesProfit)}</td><td class="num">${fmtCents(m.expenses)}</td><td class="num">${fmtCents(m.net)}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>Month</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Net profit</th></tr></thead>
+        <tbody>${[...months].reverse().map(m => `<tr><td>${m.longLabel}</td><td class="num">${m.n}</td><td class="num">${fmtCents(m.revenue)}</td><td class="num">${fmtCents(m.net)}</td></tr>`).join('')}</tbody>
       </table></div>
     </details>`;
 
@@ -3328,7 +3166,7 @@ function renderMonthlyChart(completed) {
       tip.innerHTML = `<strong>${m.longLabel}</strong>
         <div class="tip-row"><span class="tip-key" style="background:var(--ink-faint)"></span>Revenue ${fmtCents(m.revenue)}</div>
         <div class="tip-row"><span class="tip-key" style="background:var(--accent)"></span>Net profit ${fmtCents(m.net)}</div>
-        <div class="tip-row" style="color:var(--ink-muted)">${m.n} sale${m.n === 1 ? '' : 's'}${m.expenses ? ' &middot; expenses ' + fmtCents(m.expenses) : ''}</div>`;
+        <div class="tip-row" style="color:var(--ink-muted)">${m.n} sale${m.n === 1 ? '' : 's'}</div>`;
       tip.hidden = false;
       const hr = hit.getBoundingClientRect(), cr = chart.getBoundingClientRect();
       const left = Math.min(Math.max(0, hr.left - cr.left + hr.width / 2 - tip.offsetWidth / 2), cr.width - tip.offsetWidth);
@@ -3389,7 +3227,7 @@ function renderBackupNote() {
 }
 
 document.getElementById('backup-btn').addEventListener('click', () => {
-  const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, expenses, feeRates: getFeeRates() };
+  const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, feeRates: getFeeRates() };
   downloadFile(`ledgery-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
   try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
   renderBackupNote();
@@ -3398,8 +3236,7 @@ document.getElementById('backup-btn').addEventListener('click', () => {
 function isValidBackup(b) {
   return b && Array.isArray(b.items) && Array.isArray(b.sales)
     && b.items.every(i => i && typeof i.id === 'number' && typeof i.item_name === 'string')
-    && b.sales.every(s => s && typeof s.id === 'number' && typeof s.item_id === 'number' && typeof s.sale_price_cents === 'number')
-    && (b.expenses === undefined || (Array.isArray(b.expenses) && b.expenses.every(x => x && typeof x.id === 'number' && typeof x.amount_cents === 'number')));
+    && b.sales.every(s => s && typeof s.id === 'number' && typeof s.item_id === 'number' && typeof s.sale_price_cents === 'number');
 }
 
 document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-file').click());
@@ -3411,11 +3248,11 @@ document.getElementById('restore-file').addEventListener('change', e => {
     let backup = null;
     try { backup = JSON.parse(text); } catch (err) {}
     if (!isValidBackup(backup)) { alert("That file isn't a Ledgery backup, so nothing was changed."); return; }
-    const count = (i, s, x) => `${i} items, ${s} sales and ${x} expenses`;
-    const ok = confirm(`Replace your current data (${count(items.length, sales.length, expenses.length)}) with this backup (${count(backup.items.length, backup.sales.length, (backup.expenses || []).length)})?`);
+    const count = (i, s) => `${i} items and ${s} sales`;
+    const ok = confirm(`Replace your current data (${count(items.length, sales.length)}) with this backup (${count(backup.items.length, backup.sales.length)})?`);
     if (!ok) return;
     const before = snapshotData();
-    replaceData(backup.items, backup.sales, backup.expenses || []);
+    replaceData(backup.items, backup.sales); // older backups may also hold expenses; they're ignored
     if (backup.feeRates) { saveFeeRates(backup.feeRates); renderFeeRates(); }
     renderAll();
     showUndo('Backup restored', before);
@@ -3441,7 +3278,7 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
     csv = toCsv(['ID', 'Item', 'Category', 'Size', 'Color', 'Condition', 'Purchase cost', 'Purchase date', 'Supplier', 'Storage location', 'Status', 'Notes'],
       items.map(i => [i.id, csvText(i.item_name), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition), csvMoney(i.purchase_cost_cents),
         csvText(i.purchase_date), csvText(i.supplier), csvText(i.storage_location), csvText(i.status), csvText(i.notes)]));
-  } else if (kind === 'sales') {
+  } else {
     csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Notes'],
       sales.map(s => {
         const item = itemById(s.item_id);
@@ -3451,9 +3288,6 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
           r.isComplete ? csvMoney(r.netProfitCents) : '', r.isComplete && r.marginBps !== null ? (r.marginBps / 100).toFixed(2) : '',
           csvText(s.order_number), csvText(s.status), csvText(s.notes)];
       }));
-  } else {
-    csv = toCsv(['ID', 'Date', 'Category', 'Description', 'Amount'],
-      expenses.map(x => [x.id, csvText(x.expense_date), csvText(x.category), csvText(x.description), csvMoney(x.amount_cents)]));
   }
   downloadFile(`ledgery-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');
 }));
@@ -3476,7 +3310,7 @@ function hideToast() {
 }
 document.getElementById('toast-undo').addEventListener('click', () => {
   if (undoSnapshot) {
-    replaceData(undoSnapshot.items, undoSnapshot.sales, undoSnapshot.expenses);
+    replaceData(undoSnapshot.items, undoSnapshot.sales);
     renderAll();
   }
   hideToast();
@@ -3563,7 +3397,6 @@ function renderAll() {
   renderDashboard();
   renderInventory();
   renderSales();
-  renderExpenses();
   renderAnalytics();
 }
 
@@ -3573,7 +3406,7 @@ renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
 document.getElementById('reset-data-btn').addEventListener('click', () => {
-  if (!confirm('Erase all your items, sales and expenses?')) return;
+  if (!confirm('Erase all your items and sales?')) return;
   const before = snapshotData();
   resetData();
   renderAll();
@@ -3582,11 +3415,9 @@ document.getElementById('reset-data-btn').addEventListener('click', () => {
 document.getElementById('font-scale-slider').addEventListener('input', (e) => setFontScale(parseFloat(e.target.value)));
 wireSortHeaders('inv-table', sortState.inv, renderInventory);
 wireSortHeaders('sales-table', sortState.sales, renderSales);
-wireSortHeaders('expenses-table', sortState.exp, renderExpenses);
 document.getElementById('sales-search').addEventListener('input', renderSales);
 document.getElementById('sales-status-filter').addEventListener('change', renderSales);
 document.getElementById('sales-platform-filter').addEventListener('change', renderSales);
-document.getElementById('exp-search').addEventListener('input', renderExpenses);
 renderFeeRates();
 renderBackupNote();
 renderAll();

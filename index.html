@@ -951,6 +951,14 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 }
 .price-note { font-size: 0.6875rem; color: var(--ink-faint); font-family: var(--font-sans); }
 
+.order-no {
+  min-height: 38px; display: flex; align-items: center; padding: 0 12px;
+  border-radius: var(--radius); border: 1px dashed var(--hairline);
+  font-family: var(--font-mono); font-size: 0.875rem; letter-spacing: 0.04em; color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.field select + input { margin-top: 6px; }
+
 /* Visible focus for keyboard users on every control. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .field input:focus, .field select:focus, .field textarea:focus,
@@ -1402,7 +1410,17 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
           <div class="field full"><label>Name *</label><input required name="item_name" placeholder="Carhartt Detroit jacket"></div>
           <div class="field"><label>Brand</label><input name="brand" list="brand-options" placeholder="Carhartt" autocomplete="off"></div>
           <div class="field"><label>Category</label><input name="category" list="category-options" placeholder="Outerwear" autocomplete="off"></div>
-          <div class="field"><label>Size</label><input name="size" placeholder="M"></div>
+          <div class="field"><label>Size</label>
+            <select name="size_choice" id="ai-size-select">
+              <option value="">Select</option>
+              <optgroup label="Adult"><option value="XXS">XXS</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="XXXL">XXXL</option><option value="One size">One size</option></optgroup>
+              <optgroup label="Kids"><option value="Kids 4">4</option><option value="Kids 5">5</option><option value="Kids 6">6</option><option value="Kids 7">7</option><option value="Kids 8">8</option><option value="Kids 10">10</option><option value="Kids 12">12</option><option value="Kids 14">14</option><option value="Kids 16">16</option><option value="Kids 18">18</option></optgroup>
+              <optgroup label="Toddler"><option value="2T">2T</option><option value="3T">3T</option><option value="4T">4T</option><option value="5T">5T</option></optgroup>
+              <optgroup label="Baby"><option value="0-3M">0–3M</option><option value="3-6M">3–6M</option><option value="6-9M">6–9M</option><option value="9-12M">9–12M</option><option value="12-18M">12–18M</option><option value="18-24M">18–24M</option></optgroup>
+              <option value="__other">Other (shoe size, waist…)</option>
+            </select>
+            <input name="size_other" placeholder="e.g. 10, 32x32" hidden>
+          </div>
           <div class="field"><label>Color</label><input name="color" placeholder="Brown"></div>
           <div class="field full"><label>Condition</label>
             <select name="condition"><option value="">Select</option><option>New with tags</option><option>New without tags</option><option>Like new</option><option>Good</option><option>Fair</option></select>
@@ -1413,8 +1431,9 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
       <fieldset class="form-section">
         <legend>Purchase</legend>
         <div class="field-grid">
-          <div class="field full"><label>Purchase name</label><input name="purchase_name" list="purchase-options" placeholder="Goodwill haul, estate sale…" autocomplete="off"></div>
+          <div class="field full"><label>Order number</label><div class="order-no" id="ai-order-no"></div><input type="hidden" name="purchase_order"><span class="field-hint">Generated automatically from the date, time and a random code</span></div>
           <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
+          <div class="field"><label>Time purchased</label><input name="purchase_time" type="time"></div>
           <div class="field"><label>Total spent</label><input name="total_spent" type="number" step="0.01" min="0" placeholder="Blank if unknown"></div>
           <div class="field" data-create-only><label>Quantity</label><input name="quantity" type="number" min="1" max="100" step="1" value="1"></div>
           <div class="field"><label>Cost per item</label><div class="calc-inline" id="ai-cost-each">&mdash;</div><span class="field-hint" id="ai-cost-hint">Worked out automatically</span></div>
@@ -1449,7 +1468,6 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 
       <datalist id="brand-options"></datalist>
       <datalist id="category-options"></datalist>
-      <datalist id="purchase-options"></datalist>
       <div class="modal-actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn btn-primary" id="add-item-submit-btn">Save item</button>
@@ -1507,8 +1525,9 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
     <form id="bundle-form">
       <div class="field-grid">
         <div class="field"><label>Total paid *</label><input required name="total_cost" type="number" step="0.01" min="0"></div>
-        <div class="field"><label>Purchase date</label><input name="purchase_date" type="date"></div>
-        <div class="field"><label>Purchase name</label><input name="purchase_name" list="purchase-options" placeholder="Estate sale" autocomplete="off"></div>
+        <div class="field full"><label>Order number</label><div class="order-no" id="bundle-order-no"></div><input type="hidden" name="purchase_order"></div>
+        <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
+        <div class="field"><label>Time purchased</label><input name="purchase_time" type="time"></div>
         <div class="field full"><label>Items * <span class="field-hint">one per line</span></label><textarea required name="item_names" rows="5" placeholder="Levi's 501 jeans&#10;Champion hoodie&#10;Nike Air Max 90"></textarea></div>
       </div>
       <div class="calc-box" id="bundle-calc"><div class="calc-item"><div class="calc-label">Each item's cost</div><div class="calc-val" id="bundle-each">&mdash;</div></div></div>
@@ -1563,6 +1582,27 @@ const sales = [];
 // renaming them would hide everyone's saved data.
 const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
+/* Purchase order numbers: ORD-YYMMDD-HHMM-XXXX (date, time, random code).
+   Letters/digits that are easy to misread (0/O, 1/I/L) are left out. */
+const ORDER_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function randomOrderCode(length = 4) {
+  let code = '';
+  for (let i = 0; i < length; i++) code += ORDER_CODE_CHARS[Math.floor(Math.random() * ORDER_CODE_CHARS.length)];
+  return code;
+}
+function buildOrderNumber(date, time, code) {
+  const d = (date || isoDate(new Date())).replace(/-/g, '').slice(2);
+  const t = (time || '').replace(':', '');
+  return `ORD-${d}${t ? '-' + t : ''}-${code}`;
+}
+function newOrderNumber(date, time) {
+  const taken = new Set(items.map(i => i.purchase_order));
+  let num;
+  do { num = buildOrderNumber(date, time, randomOrderCode()); } while (taken.has(num));
+  return num;
+}
+const nowTime = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
 // Fill in fields added later so older saved data and backups keep working.
 function normalizeItem(item) {
   if (item.purchase_name === undefined) item.purchase_name = item.supplier || '';
@@ -1570,6 +1610,8 @@ function normalizeItem(item) {
   if (item.listing_price_cents === undefined) item.listing_price_cents = null;
   if (item.listed_date === undefined) item.listed_date = null;
   if (!Array.isArray(item.photo_ids)) item.photo_ids = [];
+  if (item.purchase_time === undefined) item.purchase_time = null;
+  if (!item.purchase_order) item.purchase_order = newOrderNumber(item.purchase_date, item.purchase_time);
   return item;
 }
 
@@ -2238,7 +2280,7 @@ function renderInventory() {
 
   rows = rows.filter(({ item, sale }) => {
     if (search) {
-      const haystack = [item.item_name, item.brand, item.category, item.size, item.color, item.purchase_name, item.storage_location].join(' ').toLowerCase();
+      const haystack = [item.item_name, item.brand, item.category, item.size, item.color, item.purchase_order, item.purchase_name, item.storage_location].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     if (statusFilter && item.status !== statusFilter) return false;
@@ -2444,6 +2486,30 @@ function updateItemCostEach() {
   hint.textContent = qty > 1 ? `Adds ${qty} separate items${parts[0] !== parts[parts.length - 1] ? ' (a few get 1¢ more)' : ''}` : 'Worked out automatically';
 }
 
+// Size: a dropdown of standard sizes, plus "Other" for anything else.
+const SIZE_OPTIONS = new Set([...document.querySelectorAll('#ai-size-select option')].map(o => o.value).filter(v => v && v !== '__other'));
+function setSizeField(size) {
+  const form = document.getElementById('add-item-form');
+  const known = !size || SIZE_OPTIONS.has(size);
+  form.elements.size_choice.value = known ? (size || '') : '__other';
+  form.elements.size_other.value = known ? '' : size;
+  form.elements.size_other.hidden = known;
+}
+function getSizeField() {
+  const form = document.getElementById('add-item-form');
+  return form.elements.size_choice.value === '__other' ? form.elements.size_other.value.trim() : form.elements.size_choice.value;
+}
+
+// Order number shown in a form; for a new purchase it follows the date/time fields.
+function showOrderNumber(form, displayId, number) {
+  form.elements.purchase_order.value = number;
+  document.getElementById(displayId).textContent = number;
+}
+function refreshNewOrderNumber(form, displayId) {
+  const code = (form.elements.purchase_order.value.match(/-([A-Z0-9]{4})$/) || [])[1] || randomOrderCode();
+  showOrderNumber(form, displayId, buildOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value, code));
+}
+
 // Listing price / date only matter once the item is listed.
 function updateListingFields() {
   const form = document.getElementById('add-item-form');
@@ -2459,12 +2525,20 @@ function fillItemSuggestions() {
   const opts = list => list.map(v => `<option value="${esc(v)}"></option>`).join('');
   document.getElementById('brand-options').innerHTML = opts(uniq(items.map(i => i.brand)));
   document.getElementById('category-options').innerHTML = opts(uniq(items.map(i => i.category), ['Tops', 'Bottoms', 'Outerwear', 'Dresses', 'Footwear', 'Bags', 'Accessories']));
-  document.getElementById('purchase-options').innerHTML = opts(uniq(items.map(i => i.purchase_name)));
 }
 
 document.getElementById('add-item-form').addEventListener('input', e => {
   if (e.target.name === 'total_spent' || e.target.name === 'quantity') updateItemCostEach();
   if (e.target.name === 'status') updateListingFields();
+  if (e.target.name === 'size_choice') {
+    const other = e.target.value === '__other';
+    e.currentTarget.elements.size_other.hidden = !other;
+    if (other) e.currentTarget.elements.size_other.focus();
+  }
+  const form = e.currentTarget;
+  if ((e.target.name === 'purchase_date' || e.target.name === 'purchase_time') && !form.elements.editing_id.value) {
+    refreshNewOrderNumber(form, 'ai-order-no');
+  }
 });
 
 document.getElementById('add-item-form').addEventListener('submit', e => {
@@ -2486,11 +2560,12 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     item_name: fd.get('item_name').trim(),
     brand: (fd.get('brand') || '').trim(),
     category: (fd.get('category') || '').trim(),
-    size: (fd.get('size') || '').trim(),
+    size: getSizeField(),
     color: (fd.get('color') || '').trim(),
     condition: fd.get('condition') || '',
-    purchase_name: (fd.get('purchase_name') || '').trim(),
+    purchase_order: fd.get('purchase_order') || newOrderNumber(fd.get('purchase_date'), fd.get('purchase_time')),
     purchase_date: fd.get('purchase_date') || null,
+    purchase_time: fd.get('purchase_time') || null,
     status,
     listing_price_cents: listingRaw === '' || listingRaw === null ? null : money(parseFloat(listingRaw)),
     listed_date: status === 'unsold' ? null : (fd.get('listed_date') || null),
@@ -2615,11 +2690,11 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     const name = (fd.get('new_item_name') || '').trim();
     if (!name) return;
     const cost = fd.get('new_item_cost');
-    const newItem = {
+    const newItem = normalizeItem({
       id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
       purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)), purchase_date: null,
-      purchase_name: '', brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
-    };
+      brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
+    });
     items.push(newItem);
     itemId = newItem.id;
   }
@@ -2919,11 +2994,11 @@ document.getElementById('se-confirm-btn').addEventListener('click', () => {
     item.purchase_cost_cents = money(currentDraft.purchase_cost);
   }
   if (!item) {
-    item = {
+    item = normalizeItem({
       id: nextItemId++, item_name: currentDraft.item_name, category: '', size: '', color: '',
       condition: '', purchase_cost_cents: currentDraft.purchase_cost !== null ? money(currentDraft.purchase_cost) : null,
-      purchase_date: null, purchase_name: '', brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
-    };
+      purchase_date: null, brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
+    });
     items.push(item);
   }
   const newSale = {
@@ -3311,6 +3386,9 @@ function resetAddItemFormForCreate() {
   form.reset();
   form.elements.editing_id.value = '';
   form.elements.purchase_date.value = isoDate(new Date());
+  form.elements.purchase_time.value = nowTime();
+  showOrderNumber(form, 'ai-order-no', newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value));
+  setSizeField('');
   form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = false; });
   formPhotos = [];
   fillItemSuggestions();
@@ -3330,11 +3408,12 @@ function editItem(item, originEl) {
   form.elements.item_name.value = item.item_name || '';
   form.elements.brand.value = item.brand || '';
   form.elements.category.value = item.category || '';
-  form.elements.size.value = item.size || '';
+  setSizeField(item.size || '');
   form.elements.color.value = item.color || '';
   form.elements.condition.value = item.condition || '';
-  form.elements.purchase_name.value = item.purchase_name || '';
+  showOrderNumber(form, 'ai-order-no', item.purchase_order);
   form.elements.purchase_date.value = item.purchase_date || '';
+  form.elements.purchase_time.value = item.purchase_time || '';
   form.elements.total_spent.value = money2(item.purchase_cost_cents);
   form.elements.quantity.value = 1;
   form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = true; });
@@ -3713,9 +3792,9 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
   const kind = btn.dataset.export;
   let csv;
   if (kind === 'inventory') {
-    csv = toCsv(['ID', 'Item', 'Brand', 'Category', 'Size', 'Color', 'Condition', 'Purchase name', 'Date purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
+    csv = toCsv(['ID', 'Item', 'Brand', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
       items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
-        csvText(i.purchase_name), csvText(i.purchase_date), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
+        csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {
     csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Notes'],
@@ -3781,10 +3860,14 @@ function resetBundleForm() {
   const form = document.getElementById('bundle-form');
   form.reset();
   form.elements.purchase_date.value = isoDate(new Date());
-  fillItemSuggestions();
+  form.elements.purchase_time.value = nowTime();
+  showOrderNumber(form, 'bundle-order-no', newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value));
   updateBundleCalc();
 }
-document.getElementById('bundle-form').addEventListener('input', updateBundleCalc);
+document.getElementById('bundle-form').addEventListener('input', e => {
+  if (e.target.name === 'purchase_date' || e.target.name === 'purchase_time') refreshNewOrderNumber(e.currentTarget, 'bundle-order-no');
+  updateBundleCalc();
+});
 document.getElementById('bundle-form').addEventListener('submit', e => {
   e.preventDefault();
   const form = e.target;
@@ -3792,11 +3875,12 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
   if (!names.length) return;
   const totalCents = money(parseFloat(form.elements.total_cost.value));
   const parts = splitCents(totalCents, names.length);
-  const purchaseName = form.elements.purchase_name.value.trim();
+  // Everything in the bundle is one purchase, so it shares one order number.
+  const purchaseOrder = form.elements.purchase_order.value || newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value);
   names.forEach((name, i) => items.push(normalizeItem({
     id: nextItemId++, item_name: name, brand: '', category: '', size: '', color: '', condition: '',
     purchase_cost_cents: parts[i], purchase_date: form.elements.purchase_date.value || null,
-    purchase_name: purchaseName, status: 'unsold',
+    purchase_time: form.elements.purchase_time.value || null, purchase_order: purchaseOrder, status: 'unsold',
     notes: `Part of a ${names.length}-item bundle, ${fmtCents(totalCents)} total`,
   })));
   closeOverlay('overlay-add-bundle');

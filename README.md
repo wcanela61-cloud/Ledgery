@@ -6,7 +6,7 @@ A single-file web app for resellers: track what you buy, what you sell, and what
 
 Open `index.html` in a browser — no build step or server required. The app starts empty.
 
-- **Inventory** — add items with product details (name, brand, category, size, color, condition), what you paid (total spent ÷ quantity = cost per item, one item per unit), listing status, listing price, photos and notes. Or add a bundle: one price split evenly across several different items.
+- **Inventory** — add items with product details (name, brand, category, size from a dropdown of adult, kids, toddler and baby sizes or your own, color, condition), the purchase (an automatic order number like `ORD-260927-1432-K7QX`, date and time purchased, total spent ÷ quantity = cost per item, one item per unit), listing status, listing price, photos and notes. Or add a bundle: one price split evenly across several different items.
 - **Sales** — record a sale, creating the item on the spot if it isn't in inventory yet. Platform fees are pre-filled from each platform's rate (editable in Settings).
 - **Smart Entry** — type a sale in plain words ("Sold Levi jeans on eBay for $40, bought for $8"). It's a basic text reader, not AI, so check the fields before saving.
 - **Dashboard** — this month / this year / all time.

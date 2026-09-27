@@ -1283,6 +1283,14 @@ td .empty-state { white-space: normal; }
   .ledger-chips { padding: 4px 14px 8px; }
   .ledger-msg { max-width: 94%; }
 }
+.ledger-usage { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.7188rem; color: var(--ink-muted); margin: 2px 0 10px; }
+.ledger-pips { display: flex; gap: 5px; }
+.ledger-pips i { width: 18px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 12%, transparent); transition: background 300ms ease; }
+.ledger-pips i.on { background: var(--accent); box-shadow: 0 0 8px -2px var(--accent); }
+.ledger-analyze { gap: 7px; margin-bottom: 10px; }
+.ledger-analyze svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ledger-cost { font-size: 0.6562rem; font-weight: 600; padding: 2px 6px; border-radius: 100px; background: rgba(255,255,255,0.2); }
+@media (max-width: 900px) { .ledger-usage { align-items: flex-start; } }
 </style>
 </head>
 <body>
@@ -1475,6 +1483,11 @@ td .empty-state { white-space: normal; }
             <h1 class="page-title">Ledger</h1>
             <p class="page-sub">Your pencil-pushing business buddy. Ask me anything about your sales, inventory and profit.</p>
             <div class="ledger-mode" id="ledger-mode"><span class="ledger-mode-dot"></span><span id="ledger-mode-text">Getting my pencil sharpened…</span></div>
+            <div class="ledger-usage" id="ledger-usage" hidden>
+              <div class="ledger-pips" id="ledger-pips" aria-hidden="true"></div>
+              <span id="ledger-usage-text"></span>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm ledger-analyze" id="ledger-analyze"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>Analyze my business<span class="ledger-cost" id="ledger-analyze-cost"></span></button>
             <button type="button" class="link-btn" id="ledger-clear">Start a new chat</button>
           </div>
         </aside>
@@ -3447,6 +3460,38 @@ let ledgerTurns = [];
 try { const saved = JSON.parse(localStorage.getItem(LEDGER_CHAT_KEY) || '[]'); if (Array.isArray(saved)) ledgerTurns = saved.slice(-30); } catch (e) {}
 let ledgerSample = null, ledgerMode = 'checking', ledgerBusy = false, ledgerCtl = null;
 
+// Daily allowance for Claude answers (built-in offline answers are free and unlimited).
+// Kept in this browser only: it paces use, it isn't a lock.
+const LEDGER_DAILY_LIMIT = 5, LEDGER_ANALYSIS_COST = 2, LEDGER_USAGE_KEY = 'ledgery-ledger-usage';
+function ledgerUsedToday() {
+  try { const u = JSON.parse(localStorage.getItem(LEDGER_USAGE_KEY) || 'null'); return u && u.date === isoDate(new Date()) ? Number(u.used) || 0 : 0; } catch (e) { return 0; }
+}
+function ledgerLeft() { return Math.max(0, LEDGER_DAILY_LIMIT - ledgerUsedToday()); }
+function spendLedger(n) {
+  try { localStorage.setItem(LEDGER_USAGE_KEY, JSON.stringify({ date: isoDate(new Date()), used: ledgerUsedToday() + n })); } catch (e) {}
+  renderLedgerUsage();
+}
+function renderLedgerUsage() {
+  const ai = ledgerMode === 'ai', left = ledgerLeft();
+  document.getElementById('ledger-usage').hidden = !ai;
+  document.getElementById('ledger-pips').innerHTML = Array.from({ length: LEDGER_DAILY_LIMIT }, (_, i) => `<i class="${i < left ? 'on' : ''}"></i>`).join('');
+  document.getElementById('ledger-usage-text').textContent = left
+    ? `${left} of ${LEDGER_DAILY_LIMIT} questions left today`
+    : 'All questions used today. Back at midnight!';
+  const cost = document.getElementById('ledger-analyze-cost');
+  cost.textContent = ai ? `uses ${LEDGER_ANALYSIS_COST}` : '';
+  cost.hidden = !ai;
+}
+
+const LEDGER_ANALYSIS_LABEL = 'Analyze my business';
+const LEDGER_ANALYSIS_PROMPT = `Give me a full analysis of my resale business. Use these short sections, each a bold label followed by 2–4 bullets:
+**How I'm doing** (this month vs last month, and the overall trend)
+**What's working** (best platforms, categories and brands, with numbers)
+**What's stuck** (the oldest unsold stock, with a specific action for each: drop the price, relist, move platform or bundle)
+**Money leaks** (fees, shipping, thin-margin or losing sales)
+**Next steps** (3 concrete things to do this week)
+Keep it under 300 words.`;
+
 function saveLedgerChat() { try { localStorage.setItem(LEDGER_CHAT_KEY, JSON.stringify(ledgerTurns.slice(-30))); } catch (e) {} }
 
 // Tiny, safe Markdown: paragraphs, "- " bullets and **bold** only.
@@ -3476,10 +3521,12 @@ function setLedgerMode(mode) {
   const el = document.getElementById('ledger-mode');
   el.classList.toggle('ai', mode === 'ai');
   el.classList.toggle('offline', mode === 'offline');
+  el.title = mode === 'ai' ? 'Each answer uses your own Claude usage' : mode === 'offline' ? 'Ledger works out answers from your numbers, without Claude' : '';
   document.getElementById('ledger-mode-text').textContent =
-    mode === 'ai' ? 'Answers by Claude · uses your Claude usage'
+    mode === 'ai' ? 'Answers by Claude'
     : mode === 'offline' ? 'Offline mode · built-in answers'
     : 'Getting my pencil sharpened…';
+  renderLedgerUsage();
 }
 
 function ledgerBubble(role, html) {
@@ -3499,7 +3546,7 @@ function renderLedgerChat() {
     ? "Hi! I'm **Ledger**, your pencil-pushing sidekick. I've read through your inventory and sales, so ask me anything: profit, platforms, what's not moving, how you're tracking against your goal."
     : "Hi! I'm **Ledger**, your pencil-pushing sidekick. Once you add some inventory and record a few sales, I can tell you what you're making, what sells best and what's sitting around. Ask me anything in the meantime!";
   ledgerBubble('bot', ledgerMarkdown(hello));
-  ledgerTurns.forEach(t => ledgerBubble(t.role, t.role === 'user' ? `<p>${esc(t.content)}</p>` : ledgerMarkdown(t.content)));
+  ledgerTurns.forEach(t => ledgerBubble(t.role, t.role === 'user' ? `<p>${esc(t.label || t.content)}</p>` : ledgerMarkdown(t.content)));
   const used = new Set(ledgerTurns.filter(t => t.role === 'user').map(t => t.content));
   document.getElementById('ledger-chips').innerHTML = LEDGER_SUGGESTIONS.filter(q => !used.has(q)).slice(0, 5)
     .map(q => `<button type="button" data-ledger-ask="${esc(q)}">${esc(q)}</button>`).join('');
@@ -3688,39 +3735,85 @@ function ledgerOfflineAnswer(q) {
   return "I'm in offline mode right now, so I can only answer the usual questions: profit for a period, best platform or category, top flips, what's not selling, fees, inventory value, sell speed and your goal. Try one of the suggestions below!";
 }
 
+// The built-in "Analyze my business": the same sections, from the numbers alone.
+function ledgerOfflineReport() {
+  if (!items.length && !sales.length) return ledgerOfflineAnswer('profit');
+  const now = new Date();
+  const month = ledgerStats(periodRange('month', 0));
+  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const last = ledgerStats({ start: isoDate(lm), end: isoDate(new Date(now.getFullYear(), now.getMonth(), 0)) });
+  const all = ledgerStats(null);
+  const plats = ledgerGroup(s => s.platform);
+  const cats = ledgerGroup((s, i) => i && [DEPARTMENTS[i.department], i.category].filter(Boolean).join(' ') || 'Uncategorized');
+  const stale = ledgerStock().filter(e => e.days !== null && e.days >= 30).slice(0, 3);
+  const thin = all.list.map(s => ({ s, r: calcProfit(s, itemById(s.item_id)) })).filter(x => x.r.isComplete && x.r.marginBps !== null && x.r.marginBps < 2000);
+  const trend = last.profit ? Math.round((month.profit - last.profit) / Math.abs(last.profit) * 100) : null;
+  const out = ['**How you\'re doing**',
+    `- This month: ${month.count} sales, ${plainMoney(month.profit)} profit${trend !== null ? ` (${trend >= 0 ? 'up' : 'down'} ${Math.abs(trend)}% on last month's ${plainMoney(last.profit)})` : ''}`,
+    `- All time: ${all.count} sales, ${plainMoney(all.profit)} profit${all.margin !== null ? `, ${(all.margin / 100).toFixed(0)}% average margin` : ''}`,
+    '**What\'s working**'];
+  if (plats.length) out.push(`- Best platform: ${plats[0].name} (${plainMoney(plats[0].profit)} profit from ${plats[0].n} sales)`);
+  if (cats.length) out.push(`- Best category: ${cats[0].name} (${plainMoney(cats[0].profit)} profit)`);
+  if (!plats.length) out.push('- No completed sales yet, so nothing to compare.');
+  out.push('**What\'s stuck**');
+  out.push(...(stale.length ? stale.map(e => `- ${e.item.item_name}${e.units > 1 ? ` ×${e.units}` : ''}: ${e.days} days, ${e.listed || e.item.status === 'listed' ? 'try a 10–15% price drop or a new platform' : 'get it listed'}`) : ['- Nothing unsold for 30+ days. Nice turnover!']));
+  out.push('**Money leaks**', `- Fees: ${plainMoney(all.fees)} all time${all.revenue ? ` (${(all.fees / all.revenue * 100).toFixed(1)}% of revenue)` : ''}`,
+    `- ${thin.length ? `${thin.length} sale${thin.length === 1 ? '' : 's'} under a 20% margin. Watch what you pay for those kinds of items.` : 'No thin-margin sales. Your buying is on point.'}`);
+  out.push('**Next steps**');
+  const steps = [];
+  if (stale.length) steps.push(`Refresh or reprice ${stale[0].item.item_name}`);
+  if (cats.length) steps.push(`Source more ${cats[0].name}`);
+  if (plats.length) steps.push(`List your best pieces on ${plats[0].name} first`);
+  if (!loadGoalCents()) steps.push('Set a monthly goal in Settings');
+  steps.push('Record every sale with its cost so profits stay accurate');
+  out.push(...steps.slice(0, 3).map(t => `- ${t}`));
+  return out.join('\n');
+}
+
 /* ---------- asking ---------- */
-async function askLedger(question) {
+// opts.label: what the chat shows instead of the prompt; opts.cost: questions it uses.
+async function askLedger(question, opts = {}) {
   question = question.trim();
   if (!question || ledgerBusy) return;
+  const cost = opts.cost || 1;
   ledgerBusy = true;
   const input = document.getElementById('ledger-q');
-  input.value = ''; input.style.height = '';
-  ledgerBubble('user', `<p>${esc(question)}</p>`);
-  ledgerTurns.push({ role: 'user', content: question });
+  if (!opts.label) { input.value = ''; input.style.height = ''; }
+  ledgerBubble('user', `<p>${esc(opts.label || question)}</p>`);
+  ledgerTurns.push(opts.label ? { role: 'user', content: question, label: opts.label } : { role: 'user', content: question });
   const bubble = ledgerBubble('bot', '<span class="ledger-typing"><i></i><i></i><i></i></span>');
   const log = document.getElementById('ledger-log');
   setPencilState('thinking');
   document.getElementById('ledger-send').disabled = true;
 
   let answer = '', note = '';
-  if (ledgerMode === 'ai' && ledgerSample) {
+  const outOfQuestions = ledgerMode === 'ai' && ledgerLeft() < cost;
+  if (outOfQuestions) {
+    await new Promise(r => setTimeout(r, prefersReducedMotion() ? 150 : 500));
+    answer = opts.label ? ledgerOfflineReport() : ledgerOfflineAnswer(question);
+    note = ledgerLeft()
+      ? `That needs ${cost} questions and you have ${ledgerLeft()} left today, so here's my built-in version.`
+      : `You've used your ${LEDGER_DAILY_LIMIT} questions for today, so this is one of my built-in answers. More at midnight!`;
+  } else if (ledgerMode === 'ai' && ledgerSample) {
     ledgerCtl = new AbortController();
     document.getElementById('ledger-stop').hidden = false;
-    const history = ledgerTurns.slice(-12);
+    const history = ledgerTurns.slice(-12).map(t => ({ role: t.role, content: t.content }));
+    let fromClaude = false;
     try {
       const res = await ledgerSample([{ role: 'user', content: LEDGER_RULES + buildLedgerSnapshot() }, ...history], {
         cache: false, signal: ledgerCtl.signal,
         onText: ({ text }) => { bubble.innerHTML = ledgerMarkdown(text); log.scrollTop = log.scrollHeight; },
       });
-      answer = res.text;
+      answer = res.text; fromClaude = true;
       if (res.truncated) note = 'That answer got cut short. Ask me for less at a time.';
     } catch (e) {
       const code = e && e.code;
       answer = (e && e.text) || '';
+      fromClaude = !!answer;
       if (code === 'cancelled') note = answer ? 'Stopped.' : '';
       else if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) {
         setLedgerMode('offline');
-        answer = ledgerOfflineAnswer(question);
+        answer = opts.label ? ledgerOfflineReport() : ledgerOfflineAnswer(question);
         note = "I couldn't use Claude here, so this is one of my built-in answers.";
       } else if (code === 'rate_limited') note = "I'm being asked a lot right now. Give me a moment, then try again.";
       else if (code === 'session_expired') note = 'Please sign in to Claude again, then ask me again.';
@@ -3729,9 +3822,10 @@ async function askLedger(question) {
     }
     ledgerCtl = null;
     document.getElementById('ledger-stop').hidden = true;
+    if (fromClaude) spendLedger(cost); // only answers Claude actually wrote count
   } else {
     await new Promise(r => setTimeout(r, prefersReducedMotion() ? 150 : 700));
-    answer = ledgerOfflineAnswer(question);
+    answer = opts.label ? ledgerOfflineReport() : ledgerOfflineAnswer(question);
   }
 
   if (answer) ledgerTurns.push({ role: 'assistant', content: answer });
@@ -3756,6 +3850,7 @@ document.getElementById('ledger-q').addEventListener('keydown', e => {
 document.getElementById('ledger-q').addEventListener('input', e => { e.target.style.height = ''; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; });
 document.getElementById('ledger-chips').addEventListener('click', e => { const b = e.target.closest('[data-ledger-ask]'); if (b) askLedger(b.dataset.ledgerAsk); });
 document.getElementById('ledger-stop').addEventListener('click', () => { if (ledgerCtl) ledgerCtl.abort(); });
+document.getElementById('ledger-analyze').addEventListener('click', () => askLedger(LEDGER_ANALYSIS_PROMPT, { label: LEDGER_ANALYSIS_LABEL, cost: LEDGER_ANALYSIS_COST }));
 document.getElementById('ledger-clear').addEventListener('click', () => {
   if (ledgerCtl) ledgerCtl.abort();
   ledgerTurns = []; saveLedgerChat(); renderLedgerChat(); setPencilState('happy');

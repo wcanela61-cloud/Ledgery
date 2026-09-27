@@ -365,7 +365,6 @@ button:not(:disabled):active, .btn:active, .nav-item:active, .vibe-card:active {
 .overlay.open { animation: overlay-fade 180ms ease; }
 /* Add Item / Record Sale's pop-open effect is driven directly via
    modal.animate() in openOverlay() — see that function for why. */
-.preview-card.open { animation: modal-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 tr { transition: background-color 150ms ease; }
 
 .range-slider::-webkit-slider-thumb { transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -419,7 +418,7 @@ tr.row-new td { animation: row-flash 1.8s ease-out; }
    "Always play animations" in Settings (html.motion-full). */
 @media (prefers-reduced-motion: reduce) {
   :root:not(.motion-full) :is(.ripple, .modal.stagger .form-section, .modal.stagger .modal-actions, .overlay.closing, tr.row-new, tr.row-new td,
-  .vibe-card.selected, .view.active, .stat-tile, .panel, .table-wrap, .preview-card.open, .btn.pulse::after, .inv-card) {
+  .vibe-card.selected, .view.active, .stat-tile, .panel, .table-wrap, .btn.pulse::after, .inv-card) {
     animation: none !important;
   }
   :root:not(.motion-full) :is(button, .btn, .nav-item, .vibe-card, input[type="color"], .nav-active-pill, .bar-fill, .goal-arc) {
@@ -784,44 +783,6 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .calc-item .calc-val { font-family: var(--font-num); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--success-text); }
 .calc-box.incomplete .calc-val { color: var(--danger); font-size: 0.8125rem; }
 
-/* ---------- Smart entry ---------- */
-.se-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-.se-box textarea {
-  width: 100%; border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 12px 14px; background: var(--bg); color: var(--ink);
-  min-height: 84px; resize: vertical; font-size: 0.875rem;
-}
-.se-examples { font-size: 0.75rem; color: var(--ink-faint); margin: 8px 0 14px; }
-.se-flow-note {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 0.7188rem; color: var(--ink-faint); margin-top: 14px;
-}
-.flow-step { background: var(--bg); border: 1px solid var(--border); border-radius: 100px; padding: 3px 10px; }
-.flow-arrow { color: var(--ink-faint); }
-
-.preview-card {
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  padding: 20px 22px;
-  display: none;
-}
-.preview-card.open { display: block; }
-.preview-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.preview-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-.preview-head h3 { margin: 0; font-size: 0.875rem; font-weight: 600; }
-.preview-sub { color: var(--ink-muted); font-size: 0.75rem; margin: 0 0 16px; }
-.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 4px; }
-.preview-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; }
-.preview-row .k { color: var(--ink-muted); }
-.preview-row .v { font-family: var(--font-num); font-weight: 500; }
-.preview-flag { color: var(--danger); font-size: 0.7188rem; margin-top: 2px; }
 
 .empty-note { color: var(--ink-faint); font-size: 0.8125rem; padding: 28px 12px; text-align: center; }
 
@@ -962,7 +923,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 /* Visible focus for keyboard users on every control. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .field input:focus, .field select:focus, .field textarea:focus,
-.toolbar input:focus, .toolbar select:focus, .se-box textarea:focus, .fee-row input:focus {
+.toolbar input:focus, .toolbar select:focus, .ledger-input textarea:focus, .fee-row input:focus {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
@@ -1093,7 +1054,6 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
   .hero-value { font-size: 2.375rem; }
   .table-wrap th { background: none; }
   .field-grid { grid-template-columns: 1fr; }
-  .preview-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .stat-grid .stat-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
@@ -1241,6 +1201,88 @@ td .empty-state { white-space: normal; }
   .unit-row td.cell-title { padding-left: 0; }
   .batch-row.open td, .unit-row td { background: none; }
 }
+/* =========================================================
+   LEDGER — the pencil assistant
+   ========================================================= */
+.ledger-wrap { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
+.ledger-hero { position: sticky; top: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+.ledger-stage {
+  width: 100%; aspect-ratio: 1 / 1.05; display: flex; align-items: center; justify-content: center; border-radius: 22px;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%), var(--card-bg);
+  border: 1px solid var(--hairline); box-shadow: var(--highlight), var(--shadow); overflow: hidden; position: relative;
+}
+.ledger-stage::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: repeating-linear-gradient(transparent 0 17px, color-mix(in srgb, var(--info-text) 16%, transparent) 17px 18px); mask: linear-gradient(transparent, #000 40%); pointer-events: none; }
+.ledger-stage .pencil { width: 62%; height: 90%; position: relative; z-index: 1; }
+.ledger-intro .page-sub { max-width: 260px; margin: 2px auto 10px; }
+.ledger-mode { display: inline-flex; align-items: center; gap: 7px; font-size: 0.7188rem; color: var(--ink-muted); padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); margin-bottom: 8px; }
+.ledger-mode-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+.ledger-mode.ai .ledger-mode-dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
+.ledger-mode.offline .ledger-mode-dot { background: var(--warning); }
+
+.ledger-chat {
+  display: flex; flex-direction: column; min-height: calc(100vh - 96px); max-height: calc(100vh - 96px);
+  background: var(--card-bg); border: 1px solid var(--hairline); border-radius: var(--radius-lg); box-shadow: var(--highlight), var(--shadow); overflow: hidden;
+}
+.ledger-log { flex: 1; overflow-y: auto; padding: 22px 22px 8px; display: flex; flex-direction: column; gap: 16px; }
+.ledger-msg { display: flex; gap: 10px; align-items: flex-end; max-width: 88%; animation: fade-up-in 260ms ease both; }
+.ledger-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.ledger-avatar { width: 34px; height: 34px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.ledger-avatar .pencil { width: 26px; height: 30px; }
+.ledger-bubble { padding: 11px 15px; border-radius: 16px; font-size: 0.875rem; line-height: 1.55; overflow-wrap: anywhere; }
+.ledger-msg.bot .ledger-bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 5px; }
+.ledger-msg.user .ledger-bubble { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent)); color: #fff; border-bottom-right-radius: 5px; }
+.ledger-bubble p { margin: 0; }
+.ledger-bubble p + p, .ledger-bubble p + ul, .ledger-bubble ul + p { margin-top: 8px; }
+.ledger-bubble ul { margin: 0; padding-left: 18px; }
+.ledger-bubble li + li { margin-top: 3px; }
+.ledger-bubble strong { font-weight: 650; }
+.ledger-note { font-size: 0.6875rem; color: var(--ink-faint); margin-top: 6px; }
+.ledger-typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+.ledger-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); animation: ledger-dot 1.1s ease-in-out infinite; }
+.ledger-typing i:nth-child(2) { animation-delay: 0.15s; } .ledger-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ledger-dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-4px); opacity: 1; } }
+.ledger-chips { display: flex; gap: 8px; padding: 6px 22px 10px; overflow-x: auto; scrollbar-width: none; }
+.ledger-chips button { flex-shrink: 0; border: 1px solid var(--border); background: var(--surface); color: var(--ink-muted); border-radius: 100px; padding: 7px 13px; font: inherit; font-size: 0.7812rem; cursor: pointer; white-space: nowrap; }
+.ledger-chips button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); color: var(--ink); }
+.ledger-input { display: flex; gap: 8px; align-items: flex-end; padding: 12px 14px 14px; border-top: 1px solid var(--border); }
+.ledger-input textarea { flex: 1; resize: none; max-height: 140px; min-height: 42px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--bg); color: var(--ink); font: inherit; font-size: 0.875rem; line-height: 1.45; }
+.ledger-send { width: 42px; height: 42px; padding: 0; border-radius: 12px; }
+.ledger-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The pencil. States: idle (bob + blink), thinking (scribbles), happy (hop). */
+.pencil { overflow: visible; }
+.pencil .p-body { transform-origin: 60px 190px; animation: pencil-bob 3.2s ease-in-out infinite; }
+.pencil .p-eyes { transform-origin: 60px 84px; animation: pencil-blink 4.6s infinite; }
+.pencil .p-arm-l { transform-origin: 37px 112px; animation: pencil-wave 3.2s ease-in-out infinite; }
+.pencil .p-scribble { stroke-dasharray: 130; stroke-dashoffset: 130; opacity: 0; }
+.pencil.thinking .p-body { animation: pencil-write 0.55s ease-in-out infinite; }
+.pencil.thinking .p-scribble { opacity: 1; animation: pencil-scribble 1.6s linear infinite; }
+.pencil.thinking .p-mouth-idle, .pencil:not(.thinking) .p-mouth-think { display: none; }
+.pencil.happy .p-body { animation: pencil-hop 700ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pencil-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-1.5deg); } }
+@keyframes pencil-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes pencil-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
+@keyframes pencil-write { 0%, 100% { transform: rotate(-7deg) translateX(-3px); } 50% { transform: rotate(6deg) translateX(3px); } }
+@keyframes pencil-scribble { 0% { stroke-dashoffset: 130; } 70%, 100% { stroke-dashoffset: 0; } }
+@keyframes pencil-hop { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-14px) scale(1.03, 0.97); } 100% { transform: translateY(0); } }
+.ledger-avatar .pencil * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  :root:not(.motion-full) .pencil *, :root:not(.motion-full) .ledger-msg, :root:not(.motion-full) .ledger-typing i { animation: none !important; }
+  :root:not(.motion-full) .pencil.thinking .p-scribble { stroke-dashoffset: 0; }
+}
+@media (max-width: 900px) {
+  .ledger-wrap { grid-template-columns: 1fr; gap: 14px; }
+  .ledger-hero { position: static; flex-direction: row; text-align: left; align-items: center; gap: 14px; }
+  .ledger-stage { width: 96px; flex-shrink: 0; border-radius: 18px; }
+  .ledger-intro .page-sub { margin: 2px 0 8px; max-width: none; }
+  .ledger-chat { min-height: 60vh; max-height: calc(100vh - 290px); }
+}
+@media (max-width: 720px) {
+  .ledger-chat { max-height: calc(100vh - 300px - env(safe-area-inset-bottom, 0px)); min-height: 380px; }
+  .ledger-log { padding: 16px 14px 6px; }
+  .ledger-chips { padding: 4px 14px 8px; }
+  .ledger-msg { max-width: 94%; }
+}
 </style>
 </head>
 <body>
@@ -1265,7 +1307,7 @@ td .empty-state { white-space: normal; }
     <button class="nav-item active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
     <button class="nav-item" data-view="inventory"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Inventory</button>
     <button class="nav-item" data-view="sales"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Sales</button>
-    <button class="nav-item" data-view="smart-entry"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg>Smart Entry</button>
+    <button class="nav-item" data-view="ledger"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/><path d="M13.5 6.5l4 4"/></svg>Ledger</button>
     <button class="nav-item" data-view="analytics"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>Analytics</button>
     <button class="nav-item" data-view="settings"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
     <button type="button" class="sidebar-foot" data-goto="settings" title="Backup settings">
@@ -1424,41 +1466,26 @@ td .empty-state { white-space: normal; }
       </div>
     </section>
 
-    <!-- SMART ENTRY -->
-    <section class="view" id="view-smart-entry">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Smart Entry</h1>
-          <div class="page-sub">Describe a sale in plain language — nothing saves until you confirm</div>
-        </div>
-      </div>
-
-      <div class="se-box">
-        <textarea id="se-input" placeholder="e.g. Sold Patagonia fleece on Depop for $65. Bought it for $30. Fees were $4. Shipping was $7. Sold September 21."></textarea>
-        <div class="se-examples">This is a basic text reader, not AI — it looks for words like "sold", "bought", "fees" and "shipping". Always check the fields before saving. Missing fees are estimated from the platform.</div>
-        <button class="btn btn-primary" id="se-parse-btn">Parse entry</button>
-        <div class="se-flow-note">
-          <span class="flow-step">Your text</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">Text reader</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">Draft</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">Validate</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">You review</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">You confirm</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">App saves</span>
-        </div>
-      </div>
-
-      <div class="preview-card" id="se-preview">
-        <div class="preview-head"><span class="preview-dot"></span><h3>Detected sale</h3></div>
-        <p class="preview-sub">Review and edit before saving — nothing is written to your data yet.</p>
-        <div id="se-preview-fields"></div>
-        <div class="calc-box" id="se-calc-box">
-          <div class="calc-item"><div class="calc-label">Net profit</div><div class="calc-val" id="se-profit">&mdash;</div></div>
-          <div class="calc-item"><div class="calc-label">Profit margin</div><div class="calc-val" id="se-margin">&mdash;</div></div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn" id="se-edit-btn">Edit</button>
-          <button class="btn btn-primary" id="se-confirm-btn">Confirm and save</button>
+    <!-- LEDGER — the pencil assistant -->
+    <section class="view" id="view-ledger">
+      <div class="ledger-wrap">
+        <aside class="ledger-hero">
+          <div class="ledger-stage" id="ledger-stage"></div>
+          <div class="ledger-intro">
+            <h1 class="page-title">Ledger</h1>
+            <p class="page-sub">Your pencil-pushing business buddy. Ask me anything about your sales, inventory and profit.</p>
+            <div class="ledger-mode" id="ledger-mode"><span class="ledger-mode-dot"></span><span id="ledger-mode-text">Getting my pencil sharpened…</span></div>
+            <button type="button" class="link-btn" id="ledger-clear">Start a new chat</button>
+          </div>
+        </aside>
+        <div class="ledger-chat">
+          <div class="ledger-log" id="ledger-log" aria-live="polite"></div>
+          <div class="ledger-chips" id="ledger-chips"></div>
+          <form class="ledger-input" id="ledger-form">
+            <textarea id="ledger-q" rows="1" placeholder="Ask Ledger about your business…" aria-label="Ask Ledger a question"></textarea>
+            <button type="button" class="btn" id="ledger-stop" hidden>Stop</button>
+            <button type="submit" class="btn btn-primary ledger-send" id="ledger-send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+          </form>
         </div>
       </div>
     </section>
@@ -3369,233 +3396,377 @@ function askDeleteSale(sale, originEl) {
 }
 
 /* =========================================================
-   SMART ENTRY — mocked parser
-   This function is the ONLY thing that changes when you wire
-   up a real AI provider. It must return the same shape:
-   { item_name, platform, sale_price, purchase_cost, fees,
-     shipping, other, sale_date, missing: [...] }
-   The rest of the flow (validation, preview, edit, confirm,
-   save) never talks to the AI directly — it only reads this
-   structured draft, exactly like the real app will.
+   LEDGER — a pencil you can ask about your business.
+   Inside the Claude viewer, answers come from Claude (the
+   "sample" capability) with a snapshot of this browser's data.
+   Anywhere else (index.html opened directly) Ledger answers
+   common questions itself from the same numbers.
    ========================================================= */
-function mockParseSmartEntry(text) {
-  const lower = text.toLowerCase();
+function pencilSvg(extraClass = '') {
+  return `<svg class="pencil ${extraClass}" viewBox="0 0 120 210" aria-hidden="true">
+    <ellipse cx="60" cy="203" rx="30" ry="4.5" fill="color-mix(in srgb, var(--ink) 16%, transparent)"/>
+    <path class="p-scribble" d="M30 199c10-9 16 6 26-2s14-8 22 1 12-6 18-3" fill="none" stroke="var(--ink-muted)" stroke-width="2.2" stroke-linecap="round"/>
+    <g class="p-body">
+      <rect x="36" y="6" width="48" height="28" rx="11" fill="#F29CB4"/>
+      <rect x="36" y="6" width="14" height="28" rx="7" fill="#F7B8CA" opacity=".8"/>
+      <rect x="34" y="30" width="52" height="19" rx="3" fill="#C4CAD3"/>
+      <path d="M34 36h52M34 43h52" stroke="#9AA2AE" stroke-width="2"/>
+      <rect x="36" y="49" width="48" height="104" fill="#F6C443"/>
+      <rect x="52" y="49" width="16" height="104" fill="#FAD774"/>
+      <rect x="36" y="49" width="4" height="104" fill="#E9AE2C"/>
+      <path d="M36 153h48l-24 42z" fill="#F0D2A6"/>
+      <path d="M36 153q6 5 12 0t12 0 12 0 12 0" fill="#E3BD86"/>
+      <path d="M52.5 181h15L60 195z" fill="#3B3D42"/>
+      <path class="p-arm-l" d="M37 112c-9 -2 -15 -9 -17 -18" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/>
+      <circle class="p-arm-l" cx="19.5" cy="92" r="4" fill="#3B3D42"/>
+      <path d="M83 112c8 3 12 9 13 15" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/>
+      <circle cx="96.5" cy="129" r="4" fill="#3B3D42"/>
+      <g class="p-eyes">
+        <ellipse cx="50" cy="84" rx="5" ry="6.2" fill="#2B2D31"/><ellipse cx="70" cy="84" rx="5" ry="6.2" fill="#2B2D31"/>
+        <circle cx="51.8" cy="81.6" r="1.8" fill="#fff"/><circle cx="71.8" cy="81.6" r="1.8" fill="#fff"/>
+      </g>
+      <circle cx="43" cy="97" r="4.2" fill="#F2789A" opacity=".45"/><circle cx="77" cy="97" r="4.2" fill="#F2789A" opacity=".45"/>
+      <path class="p-mouth-idle" d="M52 97q8 8 16 0" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
+      <path class="p-mouth-think" d="M54 99h11" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+}
 
-  // Platform, including common nicknames.
-  const PLATFORM_ALIASES = [
-    ['Facebook Marketplace', /\b(facebook|fb marketplace|fb|marketplace)\b/],
-    ['Poshmark', /\b(poshmark|posh)\b/],
-    ['Instagram', /\b(instagram|insta|ig)\b/],
-    ['eBay', /\bebay\b/], ['Depop', /\bdepop\b/], ['Vinted', /\bvinted\b/], ['Grailed', /\bgrailed\b/],
-  ];
-  const platformHit = PLATFORM_ALIASES.find(([, re]) => re.test(lower));
-  const platform = platformHit ? platformHit[0] : null;
+const LEDGER_CHAT_KEY = 'ledgery-ledger-chat';
+const LEDGER_SUGGESTIONS = [
+  'How much profit did I make this month?',
+  'Which platform makes me the most money?',
+  'What has been sitting unsold the longest?',
+  'What category sells best for me?',
+  'What were my best flips?',
+  'How close am I to my monthly goal?',
+  'How much money is tied up in inventory?',
+  'How much have I paid in fees?',
+];
+let ledgerTurns = [];
+try { const saved = JSON.parse(localStorage.getItem(LEDGER_CHAT_KEY) || '[]'); if (Array.isArray(saved)) ledgerTurns = saved.slice(-30); } catch (e) {}
+let ledgerSample = null, ledgerMode = 'checking', ledgerBusy = false, ledgerCtl = null;
 
-  // Read the text one clause at a time, so "bought it for $30, sold on
-  // Depop for $65" keeps the two prices apart. Split on sentence ends
-  // (a "." not inside a number like $4.50), semicolons, commas, "and".
-  const clauses = text.split(/\.(?!\d)|[;\n]|,\s*|\s+and\s+|\s+but\s+/i).map(c => c.trim()).filter(Boolean);
-  const amountIn = clause => {
-    const m = clause.match(/\$\s*(\d+(?:\.\d{1,2})?)/)
-      || clause.match(/\b(?:for|at|was|were|of|paid|cost|is|are)\s+(\d+(?:\.\d{1,2})?)\b(?!\s*(?:st|nd|rd|th)\b)/i)
-      || clause.match(/\b(\d+(?:\.\d{1,2})?)\s*(?:dollars|bucks|usd)\b/i)
-      || clause.match(/\b(?:shipping|postage|fees?)\s+(?:cost\s+|costs\s+)?(\d+(?:\.\d{1,2})?)\b/i);
-    return m ? parseFloat(m[1]) : null;
-  };
-  let salePrice = null, purchaseCost = null, fees = null, shipping = null;
-  clauses.forEach(clause => {
-    const c = clause.toLowerCase();
-    const amount = amountIn(clause);
-    if (amount === null) return;
-    if (/\b(bought|paid|purchased|cost me|got it|picked it up|picked up)\b/.test(c)) { if (purchaseCost === null) purchaseCost = amount; }
-    else if (/\bfees?\b/.test(c)) { if (fees === null) fees = amount; }
-    else if (/\bship/.test(c) || /\bpostage\b/.test(c)) { if (shipping === null) shipping = amount; }
-    else if (/\b(sold|sell|for|price|went for)\b/.test(c)) { if (salePrice === null) salePrice = amount; }
+function saveLedgerChat() { try { localStorage.setItem(LEDGER_CHAT_KEY, JSON.stringify(ledgerTurns.slice(-30))); } catch (e) {} }
+
+// Tiny, safe Markdown: paragraphs, "- " bullets and **bold** only.
+function ledgerMarkdown(text) {
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const out = []; let list = null;
+  String(text).split('\n').forEach(raw => {
+    const line = raw.trim();
+    const bullet = line.match(/^[-*•]\s+(.*)/) || line.match(/^\d+[.)]\s+(.*)/);
+    if (bullet) { if (!list) { list = []; out.push(list); } list.push(inline(bullet[1])); return; }
+    list = null;
+    if (line) out.push(`<p>${inline(line.replace(/^#+\s*/, ''))}</p>`);
   });
+  return out.map(x => Array.isArray(x) ? `<ul>${x.map(li => `<li>${li}</li>`).join('')}</ul>` : x).join('');
+}
 
-  // Sale date: "today", "yesterday", "September 21", "Sep 21st", "9/21".
-  let saleDate = null;
-  const today = new Date();
-  if (/\btoday\b/.test(lower)) saleDate = isoDate(today);
-  else if (/\byesterday\b/.test(lower)) saleDate = isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
-  else {
-    const named = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?/i);
-    const numeric = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
-    let parsed = null;
-    if (named) {
-      const year = named[3] || today.getFullYear();
-      parsed = new Date(`${named[1].slice(0, 3)} ${named[2]}, ${year}`);
-    } else if (numeric) {
-      let year = numeric[3] ? parseInt(numeric[3], 10) : today.getFullYear();
-      if (year < 100) year += 2000;
-      parsed = new Date(year, parseInt(numeric[1], 10) - 1, parseInt(numeric[2], 10));
+function setPencilState(state) {
+  const p = document.querySelector('#ledger-stage .pencil');
+  if (!p) return;
+  p.classList.remove('thinking', 'happy');
+  if (state === 'thinking') p.classList.add('thinking');
+  if (state === 'happy') { void p.getBoundingClientRect(); p.classList.add('happy'); setTimeout(() => p.classList.remove('happy'), 750); }
+}
+
+function setLedgerMode(mode) {
+  ledgerMode = mode;
+  const el = document.getElementById('ledger-mode');
+  el.classList.toggle('ai', mode === 'ai');
+  el.classList.toggle('offline', mode === 'offline');
+  document.getElementById('ledger-mode-text').textContent =
+    mode === 'ai' ? 'Answers by Claude · uses your Claude usage'
+    : mode === 'offline' ? 'Offline mode · built-in answers'
+    : 'Getting my pencil sharpened…';
+}
+
+function ledgerBubble(role, html) {
+  const log = document.getElementById('ledger-log');
+  const msg = document.createElement('div');
+  msg.className = 'ledger-msg ' + (role === 'user' ? 'user' : 'bot');
+  msg.innerHTML = (role === 'user' ? '' : `<div class="ledger-avatar">${pencilSvg()}</div>`) + `<div class="ledger-bubble">${html}</div>`;
+  log.appendChild(msg);
+  log.scrollTop = log.scrollHeight;
+  return msg.querySelector('.ledger-bubble');
+}
+
+function renderLedgerChat() {
+  const log = document.getElementById('ledger-log');
+  log.innerHTML = '';
+  const hello = items.length || sales.length
+    ? "Hi! I'm **Ledger**, your pencil-pushing sidekick. I've read through your inventory and sales, so ask me anything: profit, platforms, what's not moving, how you're tracking against your goal."
+    : "Hi! I'm **Ledger**, your pencil-pushing sidekick. Once you add some inventory and record a few sales, I can tell you what you're making, what sells best and what's sitting around. Ask me anything in the meantime!";
+  ledgerBubble('bot', ledgerMarkdown(hello));
+  ledgerTurns.forEach(t => ledgerBubble(t.role, t.role === 'user' ? `<p>${esc(t.content)}</p>` : ledgerMarkdown(t.content)));
+  const used = new Set(ledgerTurns.filter(t => t.role === 'user').map(t => t.content));
+  document.getElementById('ledger-chips').innerHTML = LEDGER_SUGGESTIONS.filter(q => !used.has(q)).slice(0, 5)
+    .map(q => `<button type="button" data-ledger-ask="${esc(q)}">${esc(q)}</button>`).join('');
+}
+
+/* ---------- the numbers Ledger works from ---------- */
+function ledgerStats(range) {
+  const list = sales.filter(s => s.status === 'completed' && inRange(s.sale_date, range));
+  let revenue = 0, profit = 0, complete = 0, fees = 0, marginSum = 0;
+  list.forEach(s => {
+    revenue += s.sale_price_cents; fees += s.platform_fees_cents || 0;
+    const r = calcProfit(s, itemById(s.item_id));
+    if (r.isComplete) { profit += r.netProfitCents; complete++; if (r.marginBps !== null) marginSum += r.marginBps; }
+  });
+  return { count: list.length, revenue, profit, complete, fees, margin: complete ? Math.round(marginSum / complete) : null, list };
+}
+function ledgerGroup(keyOf) {
+  const out = {};
+  sales.filter(s => s.status === 'completed').forEach(s => {
+    const item = itemById(s.item_id);
+    const key = keyOf(s, item) || 'Other';
+    const g = out[key] || (out[key] = { n: 0, revenue: 0, profit: 0, complete: 0, fees: 0, marginSum: 0 });
+    g.n++; g.revenue += s.sale_price_cents; g.fees += s.platform_fees_cents || 0;
+    const r = calcProfit(s, item);
+    if (r.isComplete) { g.profit += r.netProfitCents; g.complete++; g.marginSum += r.marginBps || 0; }
+  });
+  return Object.entries(out).map(([name, g]) => ({ name, ...g, margin: g.complete ? Math.round(g.marginSum / g.complete) : null }))
+    .sort((a, b) => b.profit - a.profit);
+}
+// Unsold stock, one entry per item or batch, oldest first.
+function ledgerStock() {
+  const seen = new Map();
+  items.filter(i => i.status === 'unsold' || i.status === 'listed').forEach(i => {
+    const key = isBatched(i) ? i.batch_id : 'i' + i.id;
+    const e = seen.get(key) || { item: i, units: 0, listed: 0, cost: 0, costKnown: true };
+    e.units++; if (i.status === 'listed') e.listed++;
+    if (i.purchase_cost_cents === null) e.costKnown = false; else e.cost += i.purchase_cost_cents;
+    seen.set(key, e);
+  });
+  return [...seen.values()].map(e => ({ ...e, days: e.item.purchase_date ? daysSince(e.item.purchase_date) : null }))
+    .sort((a, b) => (b.days ?? -1) - (a.days ?? -1));
+}
+function daysToSell(s) {
+  const item = itemById(s.item_id);
+  if (!item || !item.purchase_date) return null;
+  return Math.max(0, Math.round((new Date(s.sale_date + 'T00:00:00') - new Date(item.purchase_date + 'T00:00:00')) / 86400000));
+}
+const plainMoney = c => (c === null || c === undefined ? 'unknown' : fmtCents(c).replace('&mdash;', '—'));
+
+// Everything Claude sees about the business, as compact text.
+function buildLedgerSnapshot() {
+  const now = new Date();
+  const line = (label, st) => `${label}: ${st.count} sales, revenue ${plainMoney(st.revenue)}, net profit ${plainMoney(st.profit)} (${st.complete} with full cost data)${st.margin !== null ? `, avg margin ${(st.margin / 100).toFixed(1)}%` : ''}, fees ${plainMoney(st.fees)}`;
+  const out = [`Today: ${isoDate(now)} (${now.toLocaleDateString('en-US', { weekday: 'long' })}). Currency: USD.`];
+  const goal = loadGoalCents();
+  const monthStats = ledgerStats(periodRange('month', 0));
+  out.push(goal ? `Monthly net profit goal: ${plainMoney(goal)}; so far this month: ${plainMoney(monthStats.profit)}; days left in month: ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate()}.` : 'Monthly profit goal: not set (can be set in Settings).');
+  out.push('', 'TOTALS (completed sales)');
+  out.push(line('All time', ledgerStats(null)));
+  out.push(line('This year', ledgerStats(periodRange('year', 0))));
+  out.push(line('This month', monthStats));
+  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  out.push(line('Last month', ledgerStats({ start: isoDate(lm), end: isoDate(new Date(now.getFullYear(), now.getMonth(), 0)) })));
+
+  out.push('', 'BY MONTH (last 12 months)');
+  for (let k = 11; k >= 0; k--) {
+    const a = new Date(now.getFullYear(), now.getMonth() - k, 1), b = new Date(a.getFullYear(), a.getMonth() + 1, 0);
+    const st = ledgerStats({ start: isoDate(a), end: isoDate(b) });
+    if (st.count) out.push(`${isoDate(a).slice(0, 7)}: ${st.count} sales, revenue ${plainMoney(st.revenue)}, profit ${plainMoney(st.profit)}`);
+  }
+  const groupLines = g => g.map(x => `${x.name}: ${x.n} sales, revenue ${plainMoney(x.revenue)}, profit ${plainMoney(x.profit)}, fees ${plainMoney(x.fees)}${x.margin !== null ? `, avg margin ${(x.margin / 100).toFixed(1)}%` : ''}`);
+  out.push('', 'BY PLATFORM', ...groupLines(ledgerGroup(s => s.platform)));
+  out.push('', 'BY CATEGORY', ...groupLines(ledgerGroup((s, i) => i && [DEPARTMENTS[i.department], i.category].filter(Boolean).join(' ') || 'Uncategorized')));
+  out.push('', 'BY BRAND', ...groupLines(ledgerGroup((s, i) => i && i.brand || 'No brand').slice(0, 15)));
+
+  const stock = ledgerStock();
+  const unitCount = stock.reduce((t, e) => t + e.units, 0);
+  const tied = stock.reduce((t, e) => t + e.cost, 0);
+  const listedValue = stock.reduce((t, e) => t + (e.item.listing_price_cents || 0) * e.units, 0);
+  out.push('', `INVENTORY NOT YET SOLD: ${unitCount} units in ${stock.length} listings; cost tied up ${plainMoney(tied)} (known costs); total listing value ${plainMoney(listedValue)}. Oldest first:`);
+  stock.slice(0, 120).forEach(e => {
+    const i = e.item;
+    out.push(`- ${i.item_name}${e.units > 1 ? ` ×${e.units} (${e.listed} listed)` : ` (${statusLabel(i.status)})`} | ${[i.brand, DEPARTMENTS[i.department], i.category, i.size, i.condition].filter(Boolean).join(', ') || 'no details'} | cost ${e.costKnown ? plainMoney(Math.round(e.cost / e.units)) + ' each' : 'unknown'} | list price ${i.listing_price_cents !== null ? plainMoney(i.listing_price_cents) : 'none'} | bought ${i.purchase_date || 'date unknown'}${e.days !== null ? ` (${e.days} days ago)` : ''}`);
+  });
+  if (stock.length > 120) out.push(`…and ${stock.length - 120} more.`);
+
+  const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date)).slice(0, 60);
+  out.push('', `SALES (latest ${recent.length} of ${sales.length})`);
+  recent.forEach(s => {
+    const item = itemById(s.item_id), r = calcProfit(s, item), d = daysToSell(s);
+    out.push(`- ${s.sale_date} | ${item ? item.item_name : 'Unknown item'} | ${s.platform} | sold ${plainMoney(s.sale_price_cents)} | fees ${plainMoney(s.platform_fees_cents)} | shipping ${plainMoney(s.shipping_cost_cents || 0)} | cost ${plainMoney(item ? item.purchase_cost_cents : null)} | profit ${r.isComplete ? plainMoney(r.netProfitCents) : 'incomplete'}${d !== null ? ` | ${d} days to sell` : ''}${s.status !== 'completed' ? ` | ${s.status}` : ''}`);
+  });
+  return out.join('\n').slice(0, 45000);
+}
+
+const LEDGER_RULES = `You are Ledger, a cheerful and sharp little pencil who lives inside Ledgery, a bookkeeping app for resellers (people who buy clothes, shoes and other items and resell them on Depop, eBay, Poshmark, Grailed and similar). You're chatting with the owner of this resale business about THEIR business.
+
+Personality: warm, upbeat, encouraging and practical. You may make a small pencil or writing pun now and then (at most one, not in every reply). Never cheesy or long-winded.
+
+Rules:
+- Base every number on the business data below. Never invent sales, items or figures. If the data can't answer, say what's missing and how to add it in Ledgery (Inventory → Add item, Record sale, Settings → Monthly goal).
+- Money in US dollars, like $1,234.56.
+- Keep answers short: 2–5 sentences or a few bullets, unless the owner asks for more detail.
+- When it helps, finish with one concrete suggestion (pricing, relisting, which platform to use, what to source more of).
+- Formatting: plain sentences, "- " bullets and **bold** only. No tables, no headings, no emoji.
+- Net profit already subtracts purchase cost, platform fees, shipping and other costs. Sales with an unknown purchase cost or fees are "incomplete" and are left out of profit totals.
+- General reselling advice is fine when asked; say when something is general advice rather than from their numbers.
+
+BUSINESS DATA (from the owner's Ledgery app):
+`;
+
+/* ---------- offline answers (no Claude available) ---------- */
+function ledgerOfflineAnswer(q) {
+  const t = q.toLowerCase();
+  const now = new Date();
+  const has = re => re.test(t);
+  if (!items.length && !sales.length) return "Your ledger's still a blank page! Add what you've bought under **Inventory → Add item**, then **Record sale** when something sells, and I'll have plenty to say.";
+
+  let range = null, label = 'all time';
+  if (has(/last month/)) { const a = new Date(now.getFullYear(), now.getMonth() - 1, 1); range = { start: isoDate(a), end: isoDate(new Date(now.getFullYear(), now.getMonth(), 0)) }; label = 'last month'; }
+  else if (has(/this month|month/)) { range = periodRange('month', 0); label = 'this month'; }
+  else if (has(/last year/)) { const y = now.getFullYear() - 1; range = { start: `${y}-01-01`, end: `${y}-12-31` }; label = 'last year'; }
+  else if (has(/this year|year|ytd/)) { range = periodRange('year', 0); label = 'this year'; }
+  else if (has(/this week|week/)) { const a = new Date(now); a.setDate(now.getDate() - 6); range = { start: isoDate(a), end: isoDate(now) }; label = 'the last 7 days'; }
+  else if (has(/today/)) { range = { start: isoDate(now), end: isoDate(now) }; label = 'today'; }
+
+  if (has(/goal|target/)) {
+    const goal = loadGoalCents();
+    if (!goal) return "You haven't set a monthly goal yet. Pop one in under **Settings → Monthly goal** and I'll keep score for you.";
+    const st = ledgerStats(periodRange('month', 0));
+    const left = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+    return st.profit >= goal
+      ? `You've **smashed it**: ${plainMoney(st.profit)} profit this month against a ${plainMoney(goal)} goal. Maybe it's time to raise the bar?`
+      : `You're at **${plainMoney(st.profit)}** of your ${plainMoney(goal)} goal (${Math.round(st.profit / goal * 100)}%). That's ${plainMoney(goal - st.profit)} to go with ${left} day${left === 1 ? '' : 's'} left in the month.`;
+  }
+  if (has(/platform|where should i (sell|list)|which (site|app)|depop|ebay|poshmark|grailed|vinted|mercari/)) {
+    const g = ledgerGroup(s => s.platform);
+    if (!g.length) return 'No completed sales yet, so I can\'t compare platforms. Record a few sales and ask again!';
+    return `Here's how your platforms stack up by net profit:\n${g.slice(0, 5).map(x => `- **${x.name}**: ${plainMoney(x.profit)} from ${x.n} sale${x.n === 1 ? '' : 's'}${x.margin !== null ? `, ${(x.margin / 100).toFixed(0)}% avg margin` : ''}`).join('\n')}\n**${g[0].name}** is pulling the most weight${g.length > 1 ? `, so it's a good home for your best pieces` : ''}.`;
+  }
+  if (has(/categor|what sells|sells best|best.?selling|type of item|niche|source/)) {
+    const g = ledgerGroup((s, i) => i && [DEPARTMENTS[i.department], i.category].filter(Boolean).join(' ') || 'Uncategorized');
+    if (!g.length) return 'No completed sales yet, so I can\'t tell what sells best. Record a few and ask again!';
+    return `Your most profitable categories:\n${g.slice(0, 5).map(x => `- **${x.name}**: ${plainMoney(x.profit)} from ${x.n} sale${x.n === 1 ? '' : 's'}`).join('\n')}\nIf you're sourcing, more **${g[0].name}** looks like a safe bet.`;
+  }
+  if (has(/unsold|aging|sitting|stale|longest|oldest|not selling|relist|discount|slow/)) {
+    const stock = ledgerStock().filter(e => e.days !== null);
+    if (!stock.length) return 'Nothing unsold with a purchase date, so nothing is gathering dust. Nice!';
+    return `These have been sitting the longest:\n${stock.slice(0, 5).map(e => `- **${e.item.item_name}**${e.units > 1 ? ` ×${e.units}` : ''}: ${e.days} days${e.item.status === 'listed' || e.listed ? ', listed' : ', not listed yet'}`).join('\n')}\n${stock[0].days >= 60 ? 'Anything past 60 days is worth a price drop, fresh photos or a different platform.' : 'Nothing is too old yet, so keep them listed.'}`;
+  }
+  if (has(/best|top|biggest|most profitable (sale|item|flip)|flip/)) {
+    const top = ledgerStats(range).list.map(s => ({ s, r: calcProfit(s, itemById(s.item_id)) })).filter(x => x.r.isComplete).sort((a, b) => b.r.netProfitCents - a.r.netProfitCents).slice(0, 3);
+    if (!top.length) return `No complete sales ${label === 'all time' ? 'yet' : label}, so no top flips to brag about yet.`;
+    return `Your best flips ${label}:\n${top.map(x => `- **${(itemById(x.s.item_id) || {}).item_name || 'Unknown item'}** on ${x.s.platform}: ${plainMoney(x.r.netProfitCents)} profit`).join('\n')}`;
+  }
+  if (has(/worst|loss|lost money|\blos(e|ing|t)\b|negative/)) {
+    const low = ledgerStats(range).list.map(s => ({ s, r: calcProfit(s, itemById(s.item_id)) })).filter(x => x.r.isComplete).sort((a, b) => a.r.netProfitCents - b.r.netProfitCents).slice(0, 3);
+    if (!low.length) return 'No complete sales to judge yet.';
+    const losses = low.filter(x => x.r.netProfitCents < 0);
+    return `${losses.length ? `You lost money on ${losses.length} of these:` : 'Good news: no losing sales here. Your thinnest ones were:'}\n${low.map(x => `- **${(itemById(x.s.item_id) || {}).item_name || 'Unknown item'}** on ${x.s.platform}: ${plainMoney(x.r.netProfitCents)}`).join('\n')}`;
+  }
+  if (has(/inventory|stock|tied up|worth|value|how many (items|things)/)) {
+    const stock = ledgerStock();
+    const units = stock.reduce((t, e) => t + e.units, 0), tied = stock.reduce((t, e) => t + e.cost, 0);
+    const listedValue = stock.reduce((t, e) => t + (e.item.listing_price_cents || 0) * e.units, 0);
+    return `You have **${units}** unsold unit${units === 1 ? '' : 's'}, with **${plainMoney(tied)}** of known cost tied up in them.${listedValue ? ` At your listing prices they're worth about ${plainMoney(listedValue)}.` : ' Add listing prices and I can tell you what they could bring in.'}`;
+  }
+  if (has(/fee/)) {
+    const st = ledgerStats(range);
+    const g = ledgerGroup(s => s.platform).sort((a, b) => b.fees - a.fees);
+    return `You've paid **${plainMoney(st.fees)}** in platform fees ${label}${st.revenue ? ` (${(st.fees / st.revenue * 100).toFixed(1)}% of revenue)` : ''}.${g.length ? ` The biggest bite comes from **${g[0].name}** (${plainMoney(g[0].fees)} all time).` : ''}`;
+  }
+  if (has(/fast|how long|days to sell|sell.?through|turnover/)) {
+    const ds = sales.filter(s => s.status === 'completed').map(daysToSell).filter(d => d !== null);
+    const sold = items.filter(i => i.status === 'sold').length;
+    return `${ds.length ? `On average things sell **${Math.round(ds.reduce((a, b) => a + b, 0) / ds.length)} days** after you buy them. ` : ''}Your sell-through is **${items.length ? Math.round(sold / items.length * 100) : 0}%** (${sold} of ${items.length} items sold).`;
+  }
+  if (has(/profit|made|make|earn|revenue|sales|sold|money|income|doing/)) {
+    const st = ledgerStats(range);
+    if (!st.count) return `No completed sales ${label}. Time to get some listings out there!`;
+    return `${label.charAt(0).toUpperCase() + label.slice(1)} you made **${st.count} sale${st.count === 1 ? '' : 's'}** for ${plainMoney(st.revenue)} in revenue and **${plainMoney(st.profit)} net profit**${st.margin !== null ? ` (${(st.margin / 100).toFixed(0)}% average margin)` : ''}.${st.complete < st.count ? ` ${st.count - st.complete} sale${st.count - st.complete === 1 ? " is" : "s are"} missing cost data, so the profit may be higher.` : ''}`;
+  }
+  if (has(/^(hi|hey|hello|yo|sup)\b|who are you|what can you do|help/)) {
+    return "I'm Ledger! I keep an eye on your numbers. Try asking me:\n- How much profit did I make this month?\n- Which platform makes me the most money?\n- What's been sitting unsold the longest?\n- How close am I to my goal?";
+  }
+  return "I'm in offline mode right now, so I can only answer the usual questions: profit for a period, best platform or category, top flips, what's not selling, fees, inventory value, sell speed and your goal. Try one of the suggestions below!";
+}
+
+/* ---------- asking ---------- */
+async function askLedger(question) {
+  question = question.trim();
+  if (!question || ledgerBusy) return;
+  ledgerBusy = true;
+  const input = document.getElementById('ledger-q');
+  input.value = ''; input.style.height = '';
+  ledgerBubble('user', `<p>${esc(question)}</p>`);
+  ledgerTurns.push({ role: 'user', content: question });
+  const bubble = ledgerBubble('bot', '<span class="ledger-typing"><i></i><i></i><i></i></span>');
+  const log = document.getElementById('ledger-log');
+  setPencilState('thinking');
+  document.getElementById('ledger-send').disabled = true;
+
+  let answer = '', note = '';
+  if (ledgerMode === 'ai' && ledgerSample) {
+    ledgerCtl = new AbortController();
+    document.getElementById('ledger-stop').hidden = false;
+    const history = ledgerTurns.slice(-12);
+    try {
+      const res = await ledgerSample([{ role: 'user', content: LEDGER_RULES + buildLedgerSnapshot() }, ...history], {
+        cache: false, signal: ledgerCtl.signal,
+        onText: ({ text }) => { bubble.innerHTML = ledgerMarkdown(text); log.scrollTop = log.scrollHeight; },
+      });
+      answer = res.text;
+      if (res.truncated) note = 'That answer got cut short. Ask me for less at a time.';
+    } catch (e) {
+      const code = e && e.code;
+      answer = (e && e.text) || '';
+      if (code === 'cancelled') note = answer ? 'Stopped.' : '';
+      else if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) {
+        setLedgerMode('offline');
+        answer = ledgerOfflineAnswer(question);
+        note = "I couldn't use Claude here, so this is one of my built-in answers.";
+      } else if (code === 'rate_limited') note = "I'm being asked a lot right now. Give me a moment, then try again.";
+      else if (code === 'session_expired') note = 'Please sign in to Claude again, then ask me again.';
+      else if (code === 'refused') { answer = ''; note = "I can't help with that one. Try asking about your sales or inventory."; }
+      else note = 'Something went wrong on my end. Try asking again.';
     }
-    if (parsed && !isNaN(parsed)) saleDate = isoDate(parsed);
-  }
-
-  // Item name: "sold (a/the/my) <name> on/for/to/at…", skipping "sold on Depop".
-  const nameMatch = text.match(/\bsold\s+(?!on\b|for\b|to\b|at\b|it\b|yesterday\b|today\b)(?:an?\s+|the\s+|my\s+)?(.+?)\s+(?:on|for|to|at|via|through)\b/i);
-  const itemName = nameMatch ? nameMatch[1].trim() : null;
-
-  // No fee in the text: estimate it from the platform's rate.
-  let feesEstimated = false;
-  if (fees === null && platform && salePrice !== null) {
-    const est = estimateFeeCents(platform, money(salePrice));
-    if (est !== null) { fees = est / 100; feesEstimated = true; }
-  }
-
-  const missing = [];
-  if (!itemName) missing.push('item name');
-  if (!platform) missing.push('platform');
-  if (salePrice === null) missing.push('sale price');
-  if (purchaseCost === null) missing.push('purchase cost');
-  if (!saleDate) missing.push('sale date');
-
-  return {
-    item_name: itemName ? itemName.charAt(0).toUpperCase() + itemName.slice(1) : null,
-    platform,
-    sale_price: salePrice,
-    purchase_cost: purchaseCost,
-    fees,
-    fees_estimated: feesEstimated,
-    shipping,
-    other: null,
-    sale_date: saleDate,
-    missing,
-  };
-}
-
-let currentDraft = null;
-
-document.getElementById('se-parse-btn').addEventListener('click', () => {
-  const text = document.getElementById('se-input').value.trim();
-  if (!text) return;
-  currentDraft = mockParseSmartEntry(text);
-  renderSmartEntryPreview(currentDraft, false);
-});
-
-function renderSmartEntryPreview(draft, editing) {
-  const preview = document.getElementById('se-preview');
-  preview.classList.add('open');
-
-  const fieldDefs = [
-    ['Item', draft.item_name || null, 'item_name', 'text'],
-    ['Platform', draft.platform || null, 'platform', 'select'],
-    ['Sale price', draft.sale_price !== null ? '$' + draft.sale_price.toFixed(2) : null, 'sale_price', 'number'],
-    ['Purchase cost', draft.purchase_cost !== null ? '$' + draft.purchase_cost.toFixed(2) : null, 'purchase_cost', 'number'],
-    ['Platform fees', draft.fees !== null ? '$' + draft.fees.toFixed(2) + (draft.fees_estimated ? ' (estimated)' : '') : 'Not detected', 'fees', 'number'],
-    ['Shipping', draft.shipping !== null ? '$' + draft.shipping.toFixed(2) : '$0.00 (none mentioned)', 'shipping', 'number'],
-    ['Sale date', draft.sale_date ? fmtDate(draft.sale_date).replace('&mdash;','') : null, 'sale_date', 'date'],
-  ];
-
-  if (!editing) {
-    document.getElementById('se-preview-fields').innerHTML = `
-      <div class="preview-grid">
-        ${fieldDefs.map(([label, val]) => `
-          <div class="preview-row"><span class="k">${label}</span><span class="v">${val !== null ? esc(val) : '<span class="badge badge-incomplete">Missing</span>'}</span></div>
-        `).join('')}
-      </div>
-      ${draft.missing.length ? `<div class="preview-flag">Missing: ${draft.missing.join(', ')} — fill these in before saving.</div>` : ''}
-    `;
+    ledgerCtl = null;
+    document.getElementById('ledger-stop').hidden = true;
   } else {
-    document.getElementById('se-preview-fields').innerHTML = `
-      <div class="field-grid" id="se-edit-fields">
-        <div class="field"><label>Item</label><input id="ef-item_name" value="${esc(draft.item_name || '')}"></div>
-        <div class="field"><label>Platform</label>
-          <select id="ef-platform"><option value="">Select</option>${PLATFORMS.map(p => `<option ${p===draft.platform?'selected':''}>${esc(p)}</option>`).join('')}</select>
-        </div>
-        <div class="field"><label>Sale price</label><input id="ef-sale_price" type="number" step="0.01" value="${draft.sale_price ?? ''}"></div>
-        <div class="field"><label>Purchase cost</label><input id="ef-purchase_cost" type="number" step="0.01" value="${draft.purchase_cost ?? ''}"></div>
-        <div class="field"><label>Platform fees</label><input id="ef-fees" type="number" step="0.01" value="${draft.fees ?? ''}"></div>
-        <div class="field"><label>Shipping</label><input id="ef-shipping" type="number" step="0.01" value="${draft.shipping ?? ''}"></div>
-        <div class="field"><label>Sale date</label><input id="ef-sale_date" type="date" value="${draft.sale_date || ''}"></div>
-      </div>
-    `;
-    ['item_name','platform','sale_price','purchase_cost','fees','shipping','sale_date'].forEach(f => {
-      const el = document.getElementById('ef-' + f);
-      el.addEventListener('input', syncDraftFromEditFields);
-    });
+    await new Promise(r => setTimeout(r, prefersReducedMotion() ? 150 : 700));
+    answer = ledgerOfflineAnswer(question);
   }
-  updateSmartEntryCalc(draft);
+
+  if (answer) ledgerTurns.push({ role: 'assistant', content: answer });
+  else ledgerTurns.pop(); // nothing came back: forget the question too, so the chat stays user/assistant pairs
+  bubble.innerHTML = (answer ? ledgerMarkdown(answer) : '') + (note ? `<div class="ledger-note">${esc(note)}</div>` : '');
+  if (!answer && !note) bubble.closest('.ledger-msg').remove();
+  log.scrollTop = log.scrollHeight;
+  saveLedgerChat();
+  setPencilState(answer ? 'happy' : 'idle');
+  ledgerBusy = false;
+  document.getElementById('ledger-send').disabled = false;
+  const used = new Set(ledgerTurns.filter(t => t.role === 'user').map(t => t.content));
+  document.getElementById('ledger-chips').innerHTML = LEDGER_SUGGESTIONS.filter(q => !used.has(q)).slice(0, 5)
+    .map(q => `<button type="button" data-ledger-ask="${esc(q)}">${esc(q)}</button>`).join('');
 }
 
-function syncDraftFromEditFields() {
-  currentDraft.item_name = document.getElementById('ef-item_name').value || null;
-  currentDraft.platform = document.getElementById('ef-platform').value || null;
-  const sp = document.getElementById('ef-sale_price').value;
-  const pc = document.getElementById('ef-purchase_cost').value;
-  const fe = document.getElementById('ef-fees').value;
-  const sh = document.getElementById('ef-shipping').value;
-  currentDraft.sale_price = sp === '' ? null : parseFloat(sp);
-  currentDraft.purchase_cost = pc === '' ? null : parseFloat(pc);
-  const newFees = fe === '' ? null : parseFloat(fe);
-  if (newFees !== currentDraft.fees) currentDraft.fees_estimated = false;
-  currentDraft.fees = newFees;
-  currentDraft.shipping = sh === '' ? null : parseFloat(sh);
-  currentDraft.sale_date = document.getElementById('ef-sale_date').value || null;
-  updateSmartEntryCalc(currentDraft);
-}
-
-function updateSmartEntryCalc(draft) {
-  const complete = draft.sale_price !== null && draft.purchase_cost !== null && draft.fees !== null;
-  const box = document.getElementById('se-calc-box');
-  box.classList.toggle('incomplete', !complete);
-  if (complete) {
-    const salePriceCents = money(draft.sale_price);
-    const netCents = salePriceCents - money(draft.purchase_cost) - money(draft.fees) - money(draft.shipping || 0);
-    const marginBps = salePriceCents !== 0 ? Math.round((netCents * 10000) / salePriceCents) : null;
-    document.getElementById('se-profit').innerHTML = fmtCents(netCents);
-    document.getElementById('se-margin').innerHTML = fmtBps(marginBps);
-  } else {
-    document.getElementById('se-profit').textContent = 'Incomplete';
-    document.getElementById('se-margin').innerHTML = '&mdash;';
-  }
-}
-
-document.getElementById('se-edit-btn').addEventListener('click', () => {
-  renderSmartEntryPreview(currentDraft, true);
+document.getElementById('ledger-stage').innerHTML = pencilSvg();
+document.getElementById('ledger-form').addEventListener('submit', e => { e.preventDefault(); askLedger(document.getElementById('ledger-q').value); });
+document.getElementById('ledger-q').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askLedger(e.target.value); }
 });
-
-document.getElementById('se-confirm-btn').addEventListener('click', () => {
-  if (!currentDraft) return;
-  if (!currentDraft.item_name || !currentDraft.platform || currentDraft.sale_price === null || !currentDraft.sale_date) {
-    alert('Fill in at least item, platform, sale price, and sale date before saving.');
-    return;
-  }
-  // App-controlled save path: same insert logic a manual form would use.
-  let item = items.find(i => i.item_name.toLowerCase() === currentDraft.item_name.toLowerCase());
-  if (item && item.status === 'sold') {
-    alert(`"${item.item_name}" is already marked as sold. Edit its existing sale on the Sales page, or use a different item name.`);
-    return;
-  }
-  if (item && item.purchase_cost_cents === null && currentDraft.purchase_cost !== null) {
-    // Existing item with an unknown cost: fill it in from the entry.
-    item.purchase_cost_cents = money(currentDraft.purchase_cost);
-  }
-  if (!item) {
-    item = normalizeItem({
-      id: nextItemId++, item_name: currentDraft.item_name, category: '', size: '', color: '',
-      condition: '', purchase_cost_cents: currentDraft.purchase_cost !== null ? money(currentDraft.purchase_cost) : null,
-      purchase_date: null, brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
-    });
-    items.push(item);
-  }
-  const newSale = {
-    id: nextSaleId++, item_id: item.id, platform: currentDraft.platform,
-    sale_price_cents: money(currentDraft.sale_price),
-    platform_fees_cents: currentDraft.fees !== null ? money(currentDraft.fees) : null,
-    shipping_cost_cents: currentDraft.shipping !== null ? money(currentDraft.shipping) : 0,
-    other_costs_cents: currentDraft.other !== null ? money(currentDraft.other) : money(0),
-    order_number: '', sale_date: currentDraft.sale_date, status: 'completed', notes: '(via Smart Entry)',
-  };
-  sales.push(newSale);
-  syncItemStatus(item.id);
-  document.getElementById('se-preview').classList.remove('open');
-  document.getElementById('se-input').value = '';
-  currentDraft = null;
-  renderAll();
-  document.querySelector('[data-view="dashboard"]').click();
+document.getElementById('ledger-q').addEventListener('input', e => { e.target.style.height = ''; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; });
+document.getElementById('ledger-chips').addEventListener('click', e => { const b = e.target.closest('[data-ledger-ask]'); if (b) askLedger(b.dataset.ledgerAsk); });
+document.getElementById('ledger-stop').addEventListener('click', () => { if (ledgerCtl) ledgerCtl.abort(); });
+document.getElementById('ledger-clear').addEventListener('click', () => {
+  if (ledgerCtl) ledgerCtl.abort();
+  ledgerTurns = []; saveLedgerChat(); renderLedgerChat(); setPencilState('happy');
 });
+renderLedgerChat();
+setLedgerMode('checking');
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('sample').then(fn => { ledgerSample = fn; setLedgerMode(fn ? 'ai' : 'offline'); }, () => setLedgerMode('offline'));
+} else {
+  setLedgerMode('offline');
+}
 
 /* =========================================================
    THEME SYSTEM

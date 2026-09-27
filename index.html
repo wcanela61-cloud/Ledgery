@@ -857,6 +857,56 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 @keyframes status-pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--success) 6%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .status-dot { animation: none; } }
 
+/* ---------- Add / edit item form ---------- */
+.modal-wide { max-width: 640px; }
+.form-section { border: none; margin: 0 0 6px; padding: 0 0 16px; min-width: 0; }
+.form-section + .form-section { border-top: 1px solid var(--hairline); padding-top: 16px; }
+.form-section legend {
+  float: left; width: 100%; padding: 0; margin: 0 0 12px;
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+}
+.form-section legend + * { clear: both; }
+.calc-inline {
+  min-height: 38px; display: flex; align-items: center; padding: 0 11px;
+  border-radius: var(--radius); background: var(--success-soft); color: var(--success-text);
+  font-family: var(--font-num); font-weight: 600; font-size: 0.9375rem;
+}
+.seg-radio { display: flex; width: 100%; }
+.seg-radio label { flex: 1; margin: 0; cursor: pointer; }
+.seg-radio input { position: absolute; opacity: 0; pointer-events: none; }
+.seg-radio span {
+  display: block; text-align: center; padding: 7px 12px; border-radius: var(--radius);
+  font-size: 0.8438rem; font-weight: 500; color: var(--ink-muted);
+}
+.seg-radio input:checked + span { background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.seg-radio input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
+.status-locked { display: flex; align-items: center; gap: 10px; min-height: 38px; font-size: 0.8125rem; color: var(--ink-muted); }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.photo-thumb, .photo-add { position: relative; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-remove {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 0.875rem; line-height: 1; padding: 0;
+}
+.photo-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 22%, transparent); color: var(--ink-muted);
+  font-size: 0.7188rem; font-weight: 500; background: var(--bg);
+}
+.photo-add:hover { border-color: var(--accent); color: var(--accent-text); }
+.photo-add svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.item-cell { display: flex; align-items: center; gap: 12px; }
+.item-thumb {
+  width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.item-thumb-empty {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink-faint);
+  font-family: var(--font-display); font-weight: 600; font-size: 0.875rem;
+}
+.price-note { font-size: 0.6875rem; color: var(--ink-faint); font-family: var(--font-sans); }
+
 /* Visible focus for keyboard users on every control. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .field input:focus, .field select:focus, .field textarea:focus,
@@ -1113,7 +1163,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
         <input type="text" id="inv-search" placeholder="Search name, category, size, color…">
         <select id="inv-status-filter">
           <option value="">All statuses</option>
-          <option value="unsold">Unsold</option>
+          <option value="unsold">Not listed</option>
           <option value="listed">Listed</option>
           <option value="sold">Sold</option>
           <option value="returned">Returned</option>
@@ -1127,7 +1177,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
           <thead>
             <tr>
               <th data-sort="name">Item</th><th data-sort="platform">Platform</th>
-              <th data-sort="cost">Purchase cost</th><th data-sort="status">Status</th><th data-sort="price">Sale price</th><th data-sort="profit">Profit</th><th data-sort="date">Date</th><th></th><th></th>
+              <th data-sort="cost">Purchase cost</th><th data-sort="status">Status</th><th data-sort="price">Price</th><th data-sort="profit">Profit</th><th data-sort="date">Date</th><th></th><th></th>
             </tr>
           </thead>
           <tbody id="inv-tbody"></tbody>
@@ -1288,37 +1338,71 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
   </main>
 </div>
 
-<!-- ADD ITEM MODAL -->
+<!-- ADD ITEM MODAL — Product / Purchase / Listing / Optional -->
 <div class="overlay" id="overlay-add-item">
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-head"><h3 id="add-item-modal-title">Add item</h3><button class="close-x" data-close>&times;</button></div>
-    <p class="modal-sub" id="add-item-modal-sub">Profit is calculated automatically once this item sells — it's not entered here.</p>
+    <p class="modal-sub" id="add-item-modal-sub">Profit is worked out automatically when it sells.</p>
     <form id="add-item-form">
       <input type="hidden" name="editing_id">
-      <div class="field-grid">
-        <div class="field full"><label>Item name *</label><input required name="item_name" placeholder="Black tracksuit"></div>
-        <div class="field"><label>Category</label><input name="category" placeholder="Outerwear"></div>
-        <div class="field"><label>Size</label><input name="size" placeholder="M"></div>
-        <div class="field"><label>Color</label><input name="color" placeholder="Black"></div>
-        <div class="field"><label>Condition</label>
-          <select name="condition"><option value="">Select</option><option>New with tags</option><option>Like new</option><option>Good</option><option>Fair</option></select>
+
+      <fieldset class="form-section">
+        <legend>Product</legend>
+        <div class="field-grid">
+          <div class="field full"><label>Name *</label><input required name="item_name" placeholder="Carhartt Detroit jacket"></div>
+          <div class="field"><label>Brand</label><input name="brand" list="brand-options" placeholder="Carhartt" autocomplete="off"></div>
+          <div class="field"><label>Category</label><input name="category" list="category-options" placeholder="Outerwear" autocomplete="off"></div>
+          <div class="field"><label>Size</label><input name="size" placeholder="M"></div>
+          <div class="field"><label>Color</label><input name="color" placeholder="Brown"></div>
+          <div class="field full"><label>Condition</label>
+            <select name="condition"><option value="">Select</option><option>New with tags</option><option>New without tags</option><option>Like new</option><option>Good</option><option>Fair</option></select>
+          </div>
         </div>
-        <div class="field">
-          <label>Purchase cost</label>
-          <input name="purchase_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown">
-          <span class="field-hint">Blank = unknown cost, not $0</span>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Purchase</legend>
+        <div class="field-grid">
+          <div class="field full"><label>Purchase name</label><input name="purchase_name" list="purchase-options" placeholder="Goodwill haul, estate sale…" autocomplete="off"></div>
+          <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
+          <div class="field"><label>Total spent</label><input name="total_spent" type="number" step="0.01" min="0" placeholder="Blank if unknown"></div>
+          <div class="field" data-create-only><label>Quantity</label><input name="quantity" type="number" min="1" max="100" step="1" value="1"></div>
+          <div class="field"><label>Cost per item</label><div class="calc-inline" id="ai-cost-each">&mdash;</div><span class="field-hint" id="ai-cost-hint">Worked out automatically</span></div>
         </div>
-        <div class="field"><label>Purchase date</label><input name="purchase_date" type="date"></div>
-        <div class="field"><label>Supplier</label><input name="supplier"></div>
-        <div class="field"><label>Storage location</label><input name="storage_location" placeholder="Bin 3"></div>
-        <div class="field"><label>Status</label>
-          <select name="status"><option value="unsold">Unsold</option><option value="listed">Listed</option><option value="sold">Sold</option><option value="returned">Returned</option></select>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Listing</legend>
+        <div class="field-grid">
+          <div class="field full"><label>Status</label>
+            <div class="seg seg-radio" id="ai-status-choice" role="radiogroup" aria-label="Status">
+              <label><input type="radio" name="status" value="unsold" checked><span>Not listed</span></label>
+              <label><input type="radio" name="status" value="listed"><span>Listed</span></label>
+            </div>
+            <div class="status-locked" id="ai-status-locked" hidden></div>
+          </div>
+          <div class="field" data-listing-field><label>Listing price</label><input name="listing_price" type="number" step="0.01" min="0" placeholder="0.00"></div>
+          <div class="field" data-listing-field><label>Date listed</label><input name="listed_date" type="date"></div>
         </div>
-        <div class="field full"><label>Notes</label><textarea name="notes"></textarea></div>
-      </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Optional</legend>
+        <div class="field-grid">
+          <div class="field full"><label>Photos</label>
+            <div class="photo-grid" id="ai-photos"></div>
+            <span class="field-hint" id="ai-photo-hint">Up to 8. Photos are resized and saved in this browser.</span>
+          </div>
+          <div class="field full"><label>Notes</label><textarea name="notes" placeholder="Flaws, measurements, where it's stored…"></textarea></div>
+        </div>
+      </fieldset>
+
+      <datalist id="brand-options"></datalist>
+      <datalist id="category-options"></datalist>
+      <datalist id="purchase-options"></datalist>
       <div class="modal-actions">
         <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn btn-primary">Save item</button>
+        <button type="submit" class="btn btn-primary" id="add-item-submit-btn">Save item</button>
       </div>
     </form>
   </div>
@@ -1374,8 +1458,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
       <div class="field-grid">
         <div class="field"><label>Total paid *</label><input required name="total_cost" type="number" step="0.01" min="0"></div>
         <div class="field"><label>Purchase date</label><input name="purchase_date" type="date"></div>
-        <div class="field"><label>Supplier</label><input name="supplier" placeholder="Estate sale"></div>
-        <div class="field"><label>Storage location</label><input name="storage_location" placeholder="Bin 3"></div>
+        <div class="field"><label>Purchase name</label><input name="purchase_name" list="purchase-options" placeholder="Estate sale" autocomplete="off"></div>
         <div class="field full"><label>Items * <span class="field-hint">one per line</span></label><textarea required name="item_names" rows="5" placeholder="Levi's 501 jeans&#10;Champion hoodie&#10;Nike Air Max 90"></textarea></div>
       </div>
       <div class="calc-box" id="bundle-calc"><div class="calc-item"><div class="calc-label">Each item's cost</div><div class="calc-val" id="bundle-each">&mdash;</div></div></div>
@@ -1430,8 +1513,18 @@ const sales = [];
 // renaming them would hide everyone's saved data.
 const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
+// Fill in fields added later so older saved data and backups keep working.
+function normalizeItem(item) {
+  if (item.purchase_name === undefined) item.purchase_name = item.supplier || '';
+  if (item.brand === undefined) item.brand = '';
+  if (item.listing_price_cents === undefined) item.listing_price_cents = null;
+  if (item.listed_date === undefined) item.listed_date = null;
+  if (!Array.isArray(item.photo_ids)) item.photo_ids = [];
+  return item;
+}
+
 function replaceData(newItems, newSales) {
-  items.splice(0, items.length, ...newItems);
+  items.splice(0, items.length, ...newItems.map(normalizeItem));
   sales.splice(0, sales.length, ...newSales);
   nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
@@ -1456,6 +1549,77 @@ function resetData() {
   replaceData([], []);
   try { localStorage.removeItem(DATA_STORAGE_KEY); } catch (e) {}
 }
+
+/* =========================================================
+   PHOTOS — kept in IndexedDB (localStorage is too small for
+   images), shrunk to JPEG before saving. Items hold photo ids;
+   photoCache maps id -> data URL for rendering. Photos no item
+   uses any more are cleared on the next load, so an undo within
+   the same visit can still bring them back.
+   ========================================================= */
+const photoCache = new Map();
+let photosAvailable = !!window.indexedDB;
+const PhotoStore = (() => {
+  let dbPromise = null;
+  const open = () => dbPromise || (dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open('ledgery-photos', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('photos', { keyPath: 'id' });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+  const run = (mode, fn) => open().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', mode);
+    const req = fn(tx.objectStore('photos'));
+    tx.oncomplete = () => resolve(req && req.result);
+    tx.onerror = () => reject(tx.error);
+  }));
+  return {
+    put: (id, data) => run('readwrite', st => st.put({ id, data })),
+    remove: id => run('readwrite', st => st.delete(id)),
+    all: () => run('readonly', st => st.getAll()),
+  };
+})();
+
+function savePhoto(id, data) {
+  photoCache.set(id, data);
+  return PhotoStore.put(id, data).catch(() => {
+    alert("A photo couldn't be saved (browser storage may be full or blocked).");
+  });
+}
+
+async function loadPhotos() {
+  if (!photosAvailable) return;
+  try {
+    const used = new Set(items.flatMap(i => i.photo_ids || []));
+    (await PhotoStore.all() || []).forEach(row => {
+      if (used.has(row.id)) photoCache.set(row.id, row.data);
+      else PhotoStore.remove(row.id);
+    });
+    renderInventory();
+  } catch (e) {
+    photosAvailable = false;
+  }
+}
+
+// Resize an image file to fit maxDim and return a JPEG data URL.
+function compressImage(file, maxDim = 1200, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable image')); };
+    img.src = url;
+  });
+}
+const newPhotoId = () => 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 // A deep copy of everything, used to undo a delete or an erase.
 function snapshotData() {
@@ -1866,7 +2030,7 @@ function renderInventoryDonut() {
       <div class="donut-legend">
         ${Object.entries(statusCounts).map(([status, count]) => `
           <div class="donut-legend-item">
-            <span class="donut-legend-key"><span class="donut-legend-dot" style="background:${colors[status]}"></span>${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+            <span class="donut-legend-key"><span class="donut-legend-dot" style="background:${colors[status]}"></span>${statusLabel(status)}</span>
             <span class="donut-legend-count">${count}</span>
           </div>
         `).join('')}
@@ -1996,8 +2160,10 @@ function wireSortHeaders(tableId, state, rerender) {
   });
 }
 
+const STATUS_LABELS = { unsold: 'Not listed', listed: 'Listed', sold: 'Sold', returned: 'Returned' };
+function statusLabel(status) { return STATUS_LABELS[status] || (status.charAt(0).toUpperCase() + status.slice(1)); }
 function statusBadge(status) {
-  return `<span class="badge badge-${esc(status)}">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</span>`;
+  return `<span class="badge badge-${esc(status)}">${esc(statusLabel(status))}</span>`;
 }
 
 function renderInventory() {
@@ -2013,7 +2179,7 @@ function renderInventory() {
 
   rows = rows.filter(({ item, sale }) => {
     if (search) {
-      const haystack = [item.item_name, item.category, item.size, item.color, item.storage_location, item.supplier].join(' ').toLowerCase();
+      const haystack = [item.item_name, item.brand, item.category, item.size, item.color, item.purchase_name, item.storage_location].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     if (statusFilter && item.status !== statusFilter) return false;
@@ -2023,7 +2189,7 @@ function renderInventory() {
 
   const valueOf = ({ item, sale, r }, key) => ({
     name: item.item_name, platform: sale && sale.platform,
-    cost: item.purchase_cost_cents, status: item.status, price: sale && sale.sale_price_cents,
+    cost: item.purchase_cost_cents, status: item.status, price: sale ? sale.sale_price_cents : item.listing_price_cents,
     profit: r && r.isComplete ? r.netProfitCents : null, date: sale ? sale.sale_date : item.purchase_date,
   })[key];
   sortRows(rows, valueOf, sortState.inv);
@@ -2033,16 +2199,23 @@ function renderInventory() {
   const emptyMsg = items.length ? 'No items match your filters.' : 'No items yet. Use "Add item" or "Add bundle" to add what you bought.';
 
   document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr>
-      <td class="cell-title"><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${esc(item.category || '')}${item.size ? ' &middot; ' + esc(item.size) : ''}</div></td>
+      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${[item.brand, item.category, item.size].filter(Boolean).map(esc).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${sale ? esc(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
       <td data-label="Status">${statusBadge(item.status)}</td>
-      <td data-label="Sale price" class="num">${sale ? fmtCents(sale.sale_price_cents) : '&mdash;'}</td>
+      <td data-label="${sale ? 'Sale price' : 'Listing price'}" class="num">${sale ? fmtCents(sale.sale_price_cents) : item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">listed</span>` : '&mdash;'}</td>
       <td data-label="Profit" class="num">${sale ? (r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
       <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
     </tr>`).join('') : `<tr><td colspan="9" class="empty-note">${emptyMsg}</td></tr>`;
+}
+
+function itemThumb(item) {
+  const src = (item.photo_ids || []).map(id => photoCache.get(id)).find(Boolean);
+  return src
+    ? `<img class="item-thumb" src="${src}" alt="">`
+    : `<span class="item-thumb item-thumb-empty" aria-hidden="true">${esc((item.item_name || '?').trim().charAt(0).toUpperCase())}</span>`;
 }
 
 function populatePlatformFilter() {
@@ -2142,33 +2315,112 @@ function openOverlay(id, originEl) {
 }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
 
+// Photos currently in the Add/Edit item form: [{ id, data }]
+let formPhotos = [];
+const MAX_PHOTOS = 8;
+
+function renderFormPhotos() {
+  const grid = document.getElementById('ai-photos');
+  grid.innerHTML = formPhotos.map(ph => `
+    <div class="photo-thumb"><img src="${ph.data}" alt="">
+      <button type="button" class="photo-remove" data-remove-photo="${ph.id}" aria-label="Remove photo">&times;</button></div>`).join('')
+    + (formPhotos.length < MAX_PHOTOS && photosAvailable ? `<label class="photo-add">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add photos</span>
+      <input type="file" accept="image/*" multiple hidden id="ai-photo-input"></label>` : '');
+  if (!photosAvailable) document.getElementById('ai-photo-hint').textContent = "Photos aren't available in this browser mode.";
+}
+document.getElementById('ai-photos').addEventListener('change', async e => {
+  if (e.target.id !== 'ai-photo-input') return;
+  const files = [...e.target.files].slice(0, MAX_PHOTOS - formPhotos.length);
+  for (const file of files) {
+    try { formPhotos.push({ id: newPhotoId(), data: await compressImage(file) }); }
+    catch (err) { alert(`Couldn't read "${file.name}" as an image.`); }
+  }
+  renderFormPhotos();
+});
+document.getElementById('ai-photos').addEventListener('click', e => {
+  const btn = e.target.closest('[data-remove-photo]');
+  if (!btn) return;
+  formPhotos = formPhotos.filter(ph => ph.id !== btn.dataset.removePhoto);
+  renderFormPhotos();
+});
+
+// Cost per item = total spent ÷ quantity (shown live).
+function updateItemCostEach() {
+  const form = document.getElementById('add-item-form');
+  const totalRaw = form.elements.total_spent.value;
+  const qty = Math.max(1, parseInt(form.elements.quantity.value, 10) || 1);
+  const out = document.getElementById('ai-cost-each');
+  const hint = document.getElementById('ai-cost-hint');
+  if (totalRaw === '') { out.innerHTML = '&mdash;'; hint.textContent = 'Blank total = cost unknown'; return; }
+  const parts = splitCents(money(parseFloat(totalRaw)), qty);
+  out.textContent = fmtCents(parts[parts.length - 1]);
+  hint.textContent = qty > 1 ? `Adds ${qty} separate items${parts[0] !== parts[parts.length - 1] ? ' (a few get 1¢ more)' : ''}` : 'Worked out automatically';
+}
+
+// Listing price / date only matter once the item is listed.
+function updateListingFields() {
+  const form = document.getElementById('add-item-form');
+  const locked = !document.getElementById('ai-status-locked').hidden;
+  const listed = locked || form.elements.status.value === 'listed';
+  form.querySelectorAll('[data-listing-field]').forEach(el => { el.hidden = !listed; });
+  if (listed && !locked && !form.elements.listed_date.value) form.elements.listed_date.value = isoDate(new Date());
+}
+
+// Suggestions for brand / category / purchase name from what's already entered.
+function fillItemSuggestions() {
+  const uniq = (vals, extra = []) => [...new Set([...vals, ...extra].map(v => (v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const opts = list => list.map(v => `<option value="${esc(v)}"></option>`).join('');
+  document.getElementById('brand-options').innerHTML = opts(uniq(items.map(i => i.brand)));
+  document.getElementById('category-options').innerHTML = opts(uniq(items.map(i => i.category), ['Tops', 'Bottoms', 'Outerwear', 'Dresses', 'Footwear', 'Bags', 'Accessories']));
+  document.getElementById('purchase-options').innerHTML = opts(uniq(items.map(i => i.purchase_name)));
+}
+
+document.getElementById('add-item-form').addEventListener('input', e => {
+  if (e.target.name === 'total_spent' || e.target.name === 'quantity') updateItemCostEach();
+  if (e.target.name === 'status') updateListingFields();
+});
+
 document.getElementById('add-item-form').addEventListener('submit', e => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const purchaseCostRaw = fd.get('purchase_cost');
+  const form = e.target;
+  const fd = new FormData(form);
   const editingId = fd.get('editing_id');
+  const existing = editingId ? itemById(parseInt(editingId, 10)) : null;
+  const totalRaw = fd.get('total_spent');
+  const qty = existing ? 1 : Math.min(100, Math.max(1, parseInt(fd.get('quantity'), 10) || 1));
+  const costs = totalRaw === '' ? Array(qty).fill(null) : splitCents(money(parseFloat(totalRaw)), qty);
+  // Sold/returned come from sales, so an edit keeps them as they are.
+  const status = existing && (existing.status === 'sold' || existing.status === 'returned') ? existing.status : (fd.get('status') || 'unsold');
+  const listingRaw = fd.get('listing_price');
+
+  // Store any newly added photos, then keep the form's order.
+  formPhotos.forEach(ph => { if (!photoCache.has(ph.id)) savePhoto(ph.id, ph.data); });
   const fields = {
-    item_name: fd.get('item_name'),
-    category: fd.get('category') || '',
-    size: fd.get('size') || '',
-    color: fd.get('color') || '',
+    item_name: fd.get('item_name').trim(),
+    brand: (fd.get('brand') || '').trim(),
+    category: (fd.get('category') || '').trim(),
+    size: (fd.get('size') || '').trim(),
+    color: (fd.get('color') || '').trim(),
     condition: fd.get('condition') || '',
-    purchase_cost_cents: purchaseCostRaw === '' ? null : money(parseFloat(purchaseCostRaw)),
+    purchase_name: (fd.get('purchase_name') || '').trim(),
     purchase_date: fd.get('purchase_date') || null,
-    supplier: fd.get('supplier') || '',
-    storage_location: fd.get('storage_location') || '',
-    status: fd.get('status') || 'unsold',
+    status,
+    listing_price_cents: listingRaw === '' || listingRaw === null ? null : money(parseFloat(listingRaw)),
+    listed_date: status === 'unsold' ? null : (fd.get('listed_date') || null),
+    photo_ids: formPhotos.map(ph => ph.id),
     notes: fd.get('notes') || '',
   };
-  if (editingId) {
+  if (existing) {
     // Update in place — same object reference, so any sale still
     // pointing at this item.id automatically sees the new details.
-    const existing = itemById(parseInt(editingId, 10));
-    if (existing) Object.assign(existing, fields);
+    Object.assign(existing, fields, { purchase_cost_cents: costs[0] });
   } else {
-    items.push(Object.assign({ id: nextItemId++ }, fields));
+    // Quantity N creates N separate items (each can sell on its own).
+    costs.forEach(cost => items.push(normalizeItem(Object.assign({ id: nextItemId++ }, fields, { purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }))));
   }
-  e.target.reset();
+  form.reset();
+  formPhotos = [];
   closeOverlay('overlay-add-item');
   renderAll();
 });
@@ -2247,7 +2499,15 @@ function updateSaleCalc() {
 
 document.getElementById('record-sale-form').addEventListener('input', e => {
   const name = e.target.name;
-  if (name === 'item_id') toggleNewItemFields();
+  if (name === 'item_id') {
+    toggleNewItemFields();
+    const picked = itemById(parseInt(e.target.value, 10));
+    const priceInput = e.currentTarget.elements.sale_price;
+    if (picked && picked.listing_price_cents !== null && priceInput.value === '') {
+      priceInput.value = (picked.listing_price_cents / 100).toFixed(2);
+      autoFillFee();
+    }
+  }
   if (name === 'platform_fees') e.target.dataset.manual = e.target.value === '' ? '0' : '1';
   if (name === 'platform' || name === 'sale_price' || name === 'platform_fees') autoFillFee();
   updateSaleCalc();
@@ -2263,7 +2523,7 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     const newItem = {
       id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
       purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)), purchase_date: null,
-      supplier: '', storage_location: '', status: 'unsold', notes: '',
+      purchase_name: '', brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
     };
     items.push(newItem);
     itemId = newItem.id;
@@ -2567,7 +2827,7 @@ document.getElementById('se-confirm-btn').addEventListener('click', () => {
     item = {
       id: nextItemId++, item_name: currentDraft.item_name, category: '', size: '', color: '',
       condition: '', purchase_cost_cents: currentDraft.purchase_cost !== null ? money(currentDraft.purchase_cost) : null,
-      purchase_date: null, supplier: '', storage_location: '', status: 'unsold', notes: '',
+      purchase_date: null, purchase_name: '', brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
     };
     items.push(item);
   }
@@ -2910,33 +3170,59 @@ document.getElementById('inv-platform-filter').addEventListener('change', render
    handler below branches on the hidden editing_id field to
    decide between creating a new item and updating this one.
    ========================================================= */
+function setItemStatusControl(status) {
+  const locked = status === 'sold' || status === 'returned';
+  const lockedEl = document.getElementById('ai-status-locked');
+  document.getElementById('ai-status-choice').hidden = locked;
+  lockedEl.hidden = !locked;
+  lockedEl.innerHTML = locked ? `${statusBadge(status)} <span>Set by its sale. Change the sale to change this.</span>` : '';
+  if (!locked) document.getElementById('add-item-form').elements.status.value = status === 'listed' ? 'listed' : 'unsold';
+  updateListingFields();
+}
+
 function resetAddItemFormForCreate() {
   const form = document.getElementById('add-item-form');
   form.reset();
   form.elements.editing_id.value = '';
+  form.elements.purchase_date.value = isoDate(new Date());
+  form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = false; });
+  formPhotos = [];
+  fillItemSuggestions();
+  setItemStatusControl('unsold');
+  renderFormPhotos();
+  updateItemCostEach();
   document.getElementById('add-item-modal-title').textContent = 'Add item';
-  document.getElementById('add-item-modal-sub').textContent = "Profit is calculated automatically once this item sells — it's not entered here.";
-  form.querySelector('button[type="submit"]').textContent = 'Save item';
+  document.getElementById('add-item-modal-sub').textContent = 'Profit is worked out automatically when it sells.';
+  document.getElementById('add-item-submit-btn').textContent = 'Save item';
 }
 
 function editItem(item, originEl) {
   const form = document.getElementById('add-item-form');
+  const money2 = c => (c === null || c === undefined ? '' : (c / 100).toFixed(2));
   form.reset();
   form.elements.editing_id.value = item.id;
   form.elements.item_name.value = item.item_name || '';
+  form.elements.brand.value = item.brand || '';
   form.elements.category.value = item.category || '';
   form.elements.size.value = item.size || '';
   form.elements.color.value = item.color || '';
   form.elements.condition.value = item.condition || '';
-  form.elements.purchase_cost.value = item.purchase_cost_cents === null || item.purchase_cost_cents === undefined ? '' : (item.purchase_cost_cents / 100).toFixed(2);
+  form.elements.purchase_name.value = item.purchase_name || '';
   form.elements.purchase_date.value = item.purchase_date || '';
-  form.elements.supplier.value = item.supplier || '';
-  form.elements.storage_location.value = item.storage_location || '';
-  form.elements.status.value = item.status || 'unsold';
+  form.elements.total_spent.value = money2(item.purchase_cost_cents);
+  form.elements.quantity.value = 1;
+  form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = true; });
+  form.elements.listing_price.value = money2(item.listing_price_cents);
+  form.elements.listed_date.value = item.listed_date || '';
   form.elements.notes.value = item.notes || '';
+  formPhotos = (item.photo_ids || []).filter(id => photoCache.has(id)).map(id => ({ id, data: photoCache.get(id) }));
+  fillItemSuggestions();
+  setItemStatusControl(item.status || 'unsold');
+  renderFormPhotos();
+  updateItemCostEach();
   document.getElementById('add-item-modal-title').textContent = 'Edit item';
-  document.getElementById('add-item-modal-sub').textContent = 'Update this item’s details. Profit is still calculated automatically, never entered here.';
-  form.querySelector('button[type="submit"]').textContent = 'Save changes';
+  document.getElementById('add-item-modal-sub').textContent = 'Update this item’s details. Profit is still worked out automatically.';
+  document.getElementById('add-item-submit-btn').textContent = 'Save changes';
   openOverlay('overlay-add-item', originEl);
 }
 
@@ -3227,7 +3513,10 @@ function renderBackupNote() {
 }
 
 document.getElementById('backup-btn').addEventListener('click', () => {
-  const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, feeRates: getFeeRates() };
+  // Photos travel inside the backup file so a restore on another device is complete.
+  const photos = {};
+  items.forEach(i => (i.photo_ids || []).forEach(id => { if (photoCache.has(id)) photos[id] = photoCache.get(id); }));
+  const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, feeRates: getFeeRates(), photos };
   downloadFile(`ledgery-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
   try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
   renderBackupNote();
@@ -3254,6 +3543,9 @@ document.getElementById('restore-file').addEventListener('change', e => {
     const before = snapshotData();
     replaceData(backup.items, backup.sales); // older backups may also hold expenses; they're ignored
     if (backup.feeRates) { saveFeeRates(backup.feeRates); renderFeeRates(); }
+    if (backup.photos && typeof backup.photos === 'object') {
+      Object.entries(backup.photos).forEach(([id, data]) => { if (typeof data === 'string' && data.startsWith('data:image/')) savePhoto(id, data); });
+    }
     renderAll();
     showUndo('Backup restored', before);
   });
@@ -3275,9 +3567,10 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
   const kind = btn.dataset.export;
   let csv;
   if (kind === 'inventory') {
-    csv = toCsv(['ID', 'Item', 'Category', 'Size', 'Color', 'Condition', 'Purchase cost', 'Purchase date', 'Supplier', 'Storage location', 'Status', 'Notes'],
-      items.map(i => [i.id, csvText(i.item_name), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition), csvMoney(i.purchase_cost_cents),
-        csvText(i.purchase_date), csvText(i.supplier), csvText(i.storage_location), csvText(i.status), csvText(i.notes)]));
+    csv = toCsv(['ID', 'Item', 'Brand', 'Category', 'Size', 'Color', 'Condition', 'Purchase name', 'Date purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
+      items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
+        csvText(i.purchase_name), csvText(i.purchase_date), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
+        csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {
     csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Notes'],
       sales.map(s => {
@@ -3342,6 +3635,7 @@ function resetBundleForm() {
   const form = document.getElementById('bundle-form');
   form.reset();
   form.elements.purchase_date.value = isoDate(new Date());
+  fillItemSuggestions();
   updateBundleCalc();
 }
 document.getElementById('bundle-form').addEventListener('input', updateBundleCalc);
@@ -3352,13 +3646,13 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
   if (!names.length) return;
   const totalCents = money(parseFloat(form.elements.total_cost.value));
   const parts = splitCents(totalCents, names.length);
-  const supplier = form.elements.supplier.value.trim();
-  names.forEach((name, i) => items.push({
-    id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
+  const purchaseName = form.elements.purchase_name.value.trim();
+  names.forEach((name, i) => items.push(normalizeItem({
+    id: nextItemId++, item_name: name, brand: '', category: '', size: '', color: '', condition: '',
     purchase_cost_cents: parts[i], purchase_date: form.elements.purchase_date.value || null,
-    supplier, storage_location: form.elements.storage_location.value.trim(), status: 'unsold',
+    purchase_name: purchaseName, status: 'unsold',
     notes: `Part of a ${names.length}-item bundle, ${fmtCents(totalCents)} total`,
-  }));
+  })));
   closeOverlay('overlay-add-bundle');
   renderAll();
 });
@@ -3421,6 +3715,7 @@ document.getElementById('sales-platform-filter').addEventListener('change', rend
 renderFeeRates();
 renderBackupNote();
 renderAll();
+loadPhotos();
 </script>
 </body>
 </html>

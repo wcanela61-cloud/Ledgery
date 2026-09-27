@@ -1403,6 +1403,29 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
   .goal-ring { width: 80px; height: 80px; }
 }
 .toolbar input[type="search"] { -webkit-appearance: none; appearance: none; }
+/* Accounts */
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.account-email { font-weight: 600; overflow-wrap: anywhere; }
+.account-sync { font-size: 0.7812rem; color: var(--ink-muted); margin-top: 3px; }
+.account-sync.bad { color: var(--danger-text); }
+.account-modal { max-width: 420px; }
+.account-form { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.account-form .field input { width: 100%; }
+.account-modal-actions { justify-content: space-between; align-items: center; margin-top: 4px; }
+.account-switch { font-size: 0.8125rem; color: var(--ink-muted); margin: 14px 0 0; text-align: center; }
+.account-notice { font-size: 0.8125rem; padding: 9px 12px; border-radius: var(--radius); background: var(--success-soft); color: var(--success-text); margin: 4px 0 10px; }
+.account-notice.bad { background: var(--danger-soft); color: var(--danger-text); }
+.conflict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 12px; }
+.conflict-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+.conflict-card:hover, .conflict-card:focus-visible { border-color: var(--accent); }
+.conflict-card span { font-family: var(--font-num); font-size: 0.8125rem; color: var(--ink-muted); }
+.conflict-card em { font-style: normal; font-size: 0.7188rem; color: var(--ink-faint); }
+.sidebar-foot.sync-error .status-dot { background: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); animation: none; }
+.mobile-account { margin-left: auto; }
+.sidebar-foot > span:last-child { min-width: 0; }
+.sidebar-foot .foot-title, .sidebar-foot .foot-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 480px) { .conflict-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -1437,7 +1460,7 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
   </nav>
 
   <main class="main">
-    <div class="mobile-brand"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Ledgery</div>
+    <div class="mobile-brand"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Ledgery<button type="button" class="mobile-account btn btn-sm" data-account="open" hidden>Sign in</button></div>
 
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
@@ -1470,7 +1493,7 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
             <li><strong>See what you make.</strong> Your Dashboard and Analytics update as you go: profit, margins, best platforms and how fast things sell.
               <div><button type="button" class="btn btn-sm" data-goto="analytics">Open Analytics</button></div></li>
           </ol>
-          <p class="welcome-sub">Coming from another device? <button type="button" class="link-btn" data-goto="settings">Restore a backup in Settings</button>.</p>
+          <p class="welcome-sub"><span data-account-signin hidden>Have an account? <button type="button" class="link-btn" data-account="signin">Sign in</button> to load your data. </span>Coming from another device? <button type="button" class="link-btn" data-goto="settings">Restore a backup in Settings</button>.</p>
         </div>
       </div>
 
@@ -1637,7 +1660,12 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
 
     <!-- SETTINGS -->
     <section class="view" id="view-settings">
-      <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Appearance, platform fees, and your data</div></div></div>
+      <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Your account, appearance, platform fees and data</div></div></div>
+
+      <div class="panel" id="account-panel">
+        <div class="panel-head"><h2>Account</h2><span class="page-sub" style="margin:0">Sync across your devices</span></div>
+        <div class="panel-body" id="account-panel-body"></div>
+      </div>
 
       <div class="panel">
         <div class="panel-head"><h2>Appearance</h2><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
@@ -1869,6 +1897,14 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
   <button type="button" class="toast-undo" id="toast-undo">Undo</button>
 </div>
 
+<!-- ACCOUNT — sign in / create account / sync choices (filled by renderAccountModal) -->
+<div class="overlay" id="overlay-account">
+  <div class="modal account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+    <div class="modal-head"><h3 id="account-title">Sign in</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
+    <div id="account-body"></div>
+  </div>
+</div>
+
 <!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
 <div class="overlay" id="overlay-confirm-delete">
   <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-body">
@@ -1973,6 +2009,7 @@ function saveData() {
   if (!ok && !saveFailed) alert("Your changes couldn't be saved in this browser (storage may be full or blocked). Download a backup from Settings so nothing is lost.");
   saveFailed = !ok;
   renderSaveStatus();
+  if (ok) queueCloudSave();
   return ok;
 }
 
@@ -5048,9 +5085,10 @@ function downloadFile(filename, content, type) {
 }
 
 // Sidebar status: says so when saving isn't working.
-function renderSaveStatus() {
+function renderSaveStatus(fromAccount) {
   const foot = document.querySelector('.sidebar-foot');
   if (!foot) return;
+  if (!fromAccount && Account.status === 'ready' && Account.user && !saveFailed) { renderAccountUI(); return; }
   foot.classList.toggle('save-failed', saveFailed);
   foot.querySelector('.foot-title').textContent = saveFailed ? "Couldn't save changes" : 'Saved in this browser';
 }
@@ -5059,7 +5097,7 @@ function renderBackupNote() {
   let last = null;
   try { last = localStorage.getItem(LAST_BACKUP_KEY); } catch (e) {}
   document.getElementById('last-backup-note').textContent = last ? 'Last backup: ' + fmtDate(last) : 'No backup downloaded yet';
-  document.getElementById('sidebar-backup-note').textContent = last ? 'Backed up ' + fmtDate(last) : 'No backup yet';
+  if (!(Account.status === 'ready' && !saveFailed)) document.getElementById('sidebar-backup-note').textContent = last ? 'Backed up ' + fmtDate(last) : 'No backup yet';
 }
 
 document.getElementById('backup-btn').addEventListener('click', () => {
@@ -5223,6 +5261,400 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
 });
 
 /* =========================================================
+   ACCOUNTS & CLOUD SYNC (Supabase)
+   Optional. With the two values below filled in, people can
+   create an account, sign in, and have their items, sales, fee
+   rates and monthly goal sync across devices. Left empty, the
+   app works exactly as before: data stays in this browser.
+   Setup steps: README.md → "Accounts". Database: supabase/schema.sql.
+   The anon key is meant to be public; row-level security in the
+   schema is what keeps each person's data private.
+   ========================================================= */
+const LEDGERY_SUPABASE = {
+  url: '',      // e.g. https://abcdefghijklmno.supabase.co
+  anonKey: '',  // Project Settings → API → "anon public" key
+};
+const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+const SYNC_META_KEY = 'ledgery-sync-meta';
+
+const Account = {
+  status: 'off',        // off (not set up) | loading | ready | unavailable
+  client: null,
+  user: null,
+  sync: 'idle',         // idle | syncing | synced | error | conflict
+  syncError: '',
+  lastSyncedAt: null,
+  pushTimer: null,
+  pushing: null,        // promise of the push in flight
+  conflict: null,       // { cloud } while waiting for the person to choose
+  modalMode: 'signin',  // signin | signup | reset | newpass | check-email | signedin | conflict | unavailable
+  notice: '',
+};
+const accountsConfigured = () => !!(LEDGERY_SUPABASE.url && LEDGERY_SUPABASE.anonKey);
+
+// What syncs: the ledger itself plus the settings that change its numbers.
+function syncPayload() {
+  return { items, sales, feeRates: getFeeRates(), goalCents: loadGoalCents() };
+}
+function hashString(str) { // FNV-1a: cheap "has anything changed?" check
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
+function loadSyncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_META_KEY) || 'null'); } catch (e) { return null; } }
+function saveSyncMeta(meta) { try { if (meta) localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta)); else localStorage.removeItem(SYNC_META_KEY); } catch (e) {} }
+const localHash = () => hashString(JSON.stringify(syncPayload()));
+const hasLocalData = () => items.length > 0 || sales.length > 0;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src; el.async = true;
+    el.onload = resolve; el.onerror = () => reject(new Error('script failed to load'));
+    document.head.appendChild(el);
+  });
+}
+
+async function initAccounts() {
+  if (!accountsConfigured()) { Account.status = 'off'; renderAccountUI(); return; }
+  Account.status = 'loading'; renderAccountUI();
+  try {
+    await loadScript(SUPABASE_JS_URL);
+    Account.client = window.supabase.createClient(LEDGERY_SUPABASE.url, LEDGERY_SUPABASE.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
+  } catch (e) {
+    Account.status = 'unavailable'; renderAccountUI(); return;
+  }
+  Account.status = 'ready';
+  Account.client.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') { Account.modalMode = 'newpass'; openAccountModal(); }
+    setTimeout(() => handleSession(session), 0); // never await Supabase calls inside this callback
+  });
+  const { data } = await Account.client.auth.getSession();
+  await handleSession(data && data.session);
+}
+
+async function handleSession(session) {
+  const user = session ? session.user : null;
+  const changed = (user && user.id) !== (Account.user && Account.user.id);
+  Account.user = user;
+  if (changed && user) await startSync();
+  if (!user) { Account.sync = 'idle'; Account.conflict = null; }
+  renderAccountUI();
+}
+
+async function fetchCloud() {
+  const { data, error } = await Account.client.from('ledgers').select('data, version, updated_at').eq('user_id', Account.user.id).maybeSingle();
+  if (error) throw error;
+  return data; // null when this account has nothing saved yet
+}
+
+// First contact after signing in (or when coming back to the tab): work out
+// who is ahead, this browser or the account, without ever silently losing data.
+async function startSync() {
+  if (!Account.user) return;
+  Account.sync = 'syncing'; renderAccountUI();
+  let cloud;
+  try { cloud = await fetchCloud(); } catch (e) { return syncFailed(e); }
+  const meta = loadSyncMeta();
+  const linked = meta && meta.userId === Account.user.id;
+  const localChanged = !linked || meta.hash !== localHash();
+  const cloudHasData = !!cloud && ((cloud.data.items || []).length || (cloud.data.sales || []).length);
+
+  if (!cloud) return pushNow();                                   // new account: upload what's here
+  if (linked && meta.version === cloud.version) return localChanged ? pushNow() : syncDone(cloud.version);
+  if (linked && !localChanged) return applyCloud(cloud);          // changed on another device only
+  if (!linked && !hasLocalData()) return applyCloud(cloud);        // fresh browser: just load the account
+  if (!linked && !cloudHasData) return pushNow(cloud.version);     // empty account: upload this browser
+  // Both sides have different data: the person decides.
+  Account.conflict = { cloud };
+  Account.sync = 'conflict';
+  Account.modalMode = 'conflict';
+  openAccountModal();
+  renderAccountUI();
+}
+
+function applyCloud(cloud) {
+  const d = cloud.data || {};
+  replaceData(d.items || [], d.sales || []);
+  if (d.feeRates) { saveFeeRates(d.feeRates); renderFeeRates(); }
+  try { if (d.goalCents > 0) localStorage.setItem(GOAL_KEY, String(d.goalCents)); else localStorage.removeItem(GOAL_KEY); } catch (e) {}
+  const g = loadGoalCents(); document.getElementById('goal-input').value = g ? (g / 100).toFixed(0) : '';
+  saveSyncMeta({ userId: Account.user.id, version: cloud.version, hash: localHash() });
+  renderAll(); // saves locally; the cloud push is skipped because nothing differs
+  syncDone(cloud.version);
+}
+
+function syncDone(version) {
+  const meta = loadSyncMeta() || {};
+  saveSyncMeta({ userId: Account.user.id, version, hash: meta.userId === Account.user.id && meta.version === version ? meta.hash : localHash() });
+  Account.sync = 'synced'; Account.syncError = ''; Account.lastSyncedAt = new Date(); Account.conflict = null;
+  renderAccountUI();
+}
+function syncFailed(e) {
+  Account.sync = 'error';
+  Account.syncError = (e && e.message) || 'Network problem';
+  renderAccountUI();
+}
+
+// Called after every local save (from saveData).
+function queueCloudSave() {
+  if (Account.status !== 'ready' || !Account.user || Account.sync === 'conflict') return;
+  clearTimeout(Account.pushTimer);
+  Account.pushTimer = setTimeout(() => pushNow(), 1200);
+}
+
+// Upload this browser's data. Only succeeds if the account hasn't changed since
+// we last saw it (version check); otherwise it stops and asks.
+function pushNow(knownVersion) {
+  if (!Account.user) return Promise.resolve();
+  clearTimeout(Account.pushTimer);
+  const run = async () => {
+    const meta = loadSyncMeta();
+    const hash = localHash();
+    const linked = meta && meta.userId === Account.user.id;
+    if (linked && meta.hash === hash && knownVersion === undefined) return syncDone(meta.version);
+    Account.sync = 'syncing'; renderAccountUI();
+    const base = knownVersion !== undefined ? knownVersion : linked ? meta.version : null;
+    const row = { data: syncPayload(), updated_at: new Date().toISOString() };
+    let res;
+    try {
+      if (base === null || base === undefined) {
+        res = await Account.client.from('ledgers').insert({ user_id: Account.user.id, version: 1, ...row }).select('version').single();
+        if (res.error && /duplicate|conflict|23505/i.test(res.error.message + (res.error.code || ''))) return startSync();
+      } else {
+        res = await Account.client.from('ledgers').update({ ...row, version: base + 1 }).eq('user_id', Account.user.id).eq('version', base).select('version');
+        if (!res.error && (!res.data || !res.data.length)) return startSync(); // someone else saved first
+        if (!res.error) res.data = res.data[0];
+      }
+    } catch (e) { return syncFailed(e); }
+    if (res.error) return syncFailed(res.error);
+    saveSyncMeta({ userId: Account.user.id, version: res.data.version, hash });
+    syncDone(res.data.version);
+  };
+  Account.pushing = (Account.pushing || Promise.resolve()).then(run, run);
+  return Account.pushing;
+}
+
+async function resolveConflict(keep) {
+  const c = Account.conflict;
+  if (!c) return;
+  Account.conflict = null;
+  Account.modalMode = 'signedin';
+  closeOverlay('overlay-account');
+  if (keep === 'cloud') {
+    applyCloud(c.cloud);
+  } else {
+    await pushNow(c.cloud.version);
+  }
+}
+
+async function signOutAccount() {
+  if (!confirm('Sign out? Your data stays in your account and is removed from this browser.')) return;
+  Account.sync = 'syncing'; renderAccountUI();
+  try { await pushNow(); } catch (e) {}
+  if (Account.sync === 'error' || Account.sync === 'conflict') {
+    if (!confirm("Your latest changes haven't reached your account yet. Sign out anyway and lose them?")) { renderAccountUI(); return; }
+  }
+  await Account.client.auth.signOut();
+  Account.user = null;
+  saveSyncMeta(null);
+  resetData();
+  try { localStorage.removeItem(GOAL_KEY); } catch (e) {}
+  document.getElementById('goal-input').value = '';
+  renderAll();
+  hideToast();
+  renderAccountUI();
+}
+
+/* ---------- account UI: sidebar status, Settings panel, sign-in dialog ---------- */
+const timeAgo = d => {
+  if (!d) return '';
+  const s = Math.round((Date.now() - d.getTime()) / 1000);
+  return s < 45 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
+function syncLine() {
+  return Account.sync === 'syncing' ? 'Syncing…'
+    : Account.sync === 'error' ? "Couldn't sync, will retry"
+    : Account.sync === 'conflict' ? 'Choose which data to keep'
+    : Account.lastSyncedAt ? 'Synced ' + timeAgo(Account.lastSyncedAt) : 'Signed in';
+}
+
+function renderAccountUI() {
+  const foot = document.querySelector('.sidebar-foot');
+  const on = Account.status === 'ready';
+  if (foot) {
+    foot.classList.toggle('sync-error', on && !!Account.user && Account.sync === 'error');
+    if (on && Account.user && !saveFailed) {
+      foot.querySelector('.foot-title').textContent = Account.user.email || 'Signed in';
+      document.getElementById('sidebar-backup-note').textContent = syncLine();
+      foot.title = 'Account';
+    } else {
+      renderSaveStatus(true);
+      if (on && !saveFailed) document.getElementById('sidebar-backup-note').textContent = 'Sign in to sync devices';
+      else renderBackupNote();
+      foot.title = on ? 'Sign in' : 'Backup settings';
+    }
+  }
+  document.querySelectorAll('[data-account-signin]').forEach(el => { el.hidden = !(on && !Account.user); });
+  const mob = document.querySelector('.mobile-account');
+  if (mob) { mob.hidden = !on; mob.textContent = Account.user ? 'Account' : 'Sign in'; }
+
+  const panel = document.getElementById('account-panel-body');
+  if (panel) {
+    if (Account.status === 'off') {
+      panel.innerHTML = `<p class="custom-note" style="margin:0">Accounts aren't set up for this copy of Ledgery, so your data is saved in this browser only. The owner can turn them on in a few minutes (see <strong>Accounts</strong> in README.md).</p>`;
+    } else if (Account.status === 'loading') {
+      panel.innerHTML = '<p class="custom-note" style="margin:0">Connecting…</p>';
+    } else if (Account.status === 'unavailable') {
+      panel.innerHTML = `<p class="custom-note" style="margin:0">Accounts can't be reached from here right now (you may be offline, or this preview blocks connections). Your data is still saved in this browser.</p>`;
+    } else if (!Account.user) {
+      panel.innerHTML = `<div class="account-row"><div><strong>Sync across your devices</strong><div class="custom-note" style="margin:4px 0 0">Create a free account to keep your inventory and sales safe and use them on your phone and computer.</div></div>
+        <div class="account-actions"><button type="button" class="btn btn-primary" data-account="signup">Create account</button><button type="button" class="btn" data-account="signin">Sign in</button></div></div>`;
+    } else {
+      panel.innerHTML = `<div class="account-row"><div><div class="account-email"></div><div class="account-sync ${Account.sync === 'error' ? 'bad' : ''}">${esc(syncLine())}${Account.sync === 'error' && Account.syncError ? ` <span class="field-hint">(${esc(Account.syncError)})</span>` : ''}</div></div>
+        <div class="account-actions"><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>`;
+      panel.querySelector('.account-email').textContent = Account.user.email || '';
+    }
+  }
+  if (document.getElementById('overlay-account').classList.contains('open')) renderAccountModal();
+}
+
+function openAccountModal(mode) {
+  if (mode) Account.modalMode = mode;
+  Account.notice = '';
+  if (Account.conflict) Account.modalMode = 'conflict';
+  else if (Account.modalMode === 'conflict') Account.modalMode = 'signedin';
+  if (Account.status !== 'ready') Account.modalMode = 'unavailable';
+  else if (Account.user && !['conflict', 'newpass'].includes(Account.modalMode)) Account.modalMode = 'signedin';
+  renderAccountModal();
+  openOverlay('overlay-account');
+}
+
+function renderAccountModal() {
+  const m = Account.modalMode;
+  const titles = { signin: 'Sign in', signup: 'Create your account', reset: 'Reset your password', newpass: 'Choose a new password', 'check-email': 'Check your email', signedin: 'Your account', conflict: 'Which data should we keep?', unavailable: 'Accounts' };
+  document.getElementById('account-title').textContent = titles[m] || 'Account';
+  const body = document.getElementById('account-body');
+  const notice = Account.notice ? `<div class="account-notice ${Account.notice.startsWith('!') ? 'bad' : ''}" role="alert">${esc(Account.notice.replace(/^!/, ''))}</div>` : '';
+  const emailField = `<div class="field"><label for="acct-email">Email</label><input id="acct-email" name="email" type="email" autocomplete="email" required></div>`;
+  if (m === 'signin' || m === 'signup') {
+    body.innerHTML = `<p class="modal-sub">${m === 'signin' ? 'Welcome back. Your inventory and sales will load from your account.' : 'Free. Your data syncs to every device you sign in on.'}</p>${notice}
+      <form id="account-form" class="account-form" novalidate>${emailField}
+        <div class="field"><label for="acct-password">Password</label><input id="acct-password" name="password" type="password" autocomplete="${m === 'signin' ? 'current-password' : 'new-password'}" minlength="8" required>${m === 'signup' ? '<span class="field-hint">At least 8 characters</span>' : ''}</div>
+        <div class="modal-actions account-modal-actions">
+          ${m === 'signin' ? '<button type="button" class="link-btn" data-account="reset">Forgot password?</button>' : '<span></span>'}
+          <button type="submit" class="btn btn-primary">${m === 'signin' ? 'Sign in' : 'Create account'}</button>
+        </div>
+      </form>
+      <p class="account-switch">${m === 'signin' ? 'New to Ledgery? <button type="button" class="link-btn" data-account="signup">Create an account</button>' : 'Already have an account? <button type="button" class="link-btn" data-account="signin">Sign in</button>'}</p>`;
+  } else if (m === 'reset') {
+    body.innerHTML = `<p class="modal-sub">We'll email you a link to choose a new password.</p>${notice}
+      <form id="account-form" class="account-form" novalidate>${emailField}
+        <div class="modal-actions account-modal-actions"><button type="button" class="link-btn" data-account="signin">Back to sign in</button><button type="submit" class="btn btn-primary">Send link</button></div></form>`;
+  } else if (m === 'newpass') {
+    body.innerHTML = `<p class="modal-sub">Enter a new password for your account.</p>${notice}
+      <form id="account-form" class="account-form" novalidate>
+        <div class="field"><label for="acct-password">New password</label><input id="acct-password" name="password" type="password" autocomplete="new-password" minlength="8" required><span class="field-hint">At least 8 characters</span></div>
+        <div class="modal-actions"><button type="submit" class="btn btn-primary">Save password</button></div></form>`;
+  } else if (m === 'check-email') {
+    body.innerHTML = `${notice}<p class="modal-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it to finish, then come back here and sign in.</p>
+      <div class="modal-actions"><button type="button" class="btn" data-account="signin">Back to sign in</button></div>`;
+    body.querySelector('.acct-sent-to').textContent = Account.sentTo || 'your email';
+  } else if (m === 'signedin') {
+    body.innerHTML = `<p class="modal-sub">Signed in as <strong class="acct-me"></strong>. ${esc(syncLine())}.</p>
+      <div class="modal-actions"><button type="button" class="btn" data-account="signout">Sign out</button><button type="button" class="btn btn-primary" data-close>Done</button></div>`;
+    body.querySelector('.acct-me').textContent = Account.user ? Account.user.email : '';
+  } else if (m === 'conflict') {
+    const c = Account.conflict ? Account.conflict.cloud.data : {};
+    const n = (d, k) => { const c = (d[k] || []).length; return `${c} ${k === 'items' ? 'item' : 'sale'}${c === 1 ? '' : 's'}`; };
+    const here = { items, sales };
+    body.innerHTML = `<p class="modal-sub">This browser and your account have different data. Pick the one to keep; the other will be replaced.</p>
+      <div class="conflict-grid">
+        <button type="button" class="conflict-card" data-account="keep-cloud"><strong>Use my account's data</strong><span>${n(c, 'items')} &middot; ${n(c, 'sales')}</span><em>Recommended if you've used Ledgery on another device</em></button>
+        <button type="button" class="conflict-card" data-account="keep-local"><strong>Use this browser's data</strong><span>${n(here, 'items')} &middot; ${n(here, 'sales')}</span><em>Replaces what's in your account</em></button>
+      </div>
+      <p class="custom-note">Not sure? Download a backup of this browser's data first in Settings → Data &amp; backup.</p>`;
+  } else {
+    body.innerHTML = `<p class="modal-sub">${Account.status === 'off' ? "Accounts aren't set up for this copy of Ledgery yet. Your data is saved in this browser." : "Accounts can't be reached right now. Your data is still saved in this browser."}</p>
+      <div class="modal-actions"><button type="button" class="btn btn-primary" data-close>OK</button></div>`;
+  }
+  body.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeOverlay('overlay-account')));
+  const first = body.querySelector('input');
+  if (first && document.getElementById('overlay-account').classList.contains('open')) first.focus({ preventScroll: true });
+}
+
+const AUTH_ERRORS = [
+  [/invalid login/i, 'That email and password don’t match an account.'],
+  [/email not confirmed/i, 'Please confirm your email first. Check your inbox for the link.'],
+  [/already registered|already exists/i, 'There’s already an account with that email. Try signing in.'],
+  [/rate limit|too many/i, 'Too many tries. Wait a minute and try again.'],
+  [/password/i, 'Please choose a stronger password (at least 8 characters).'],
+  [/fetch|network/i, 'Can’t reach the account service. Check your connection.'],
+];
+const friendlyAuthError = e => { const msg = (e && e.message) || ''; const hit = AUTH_ERRORS.find(([re]) => re.test(msg)); return hit ? hit[1] : (msg || 'Something went wrong. Try again.'); };
+
+document.getElementById('account-body').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target, m = Account.modalMode;
+  const email = form.elements.email ? form.elements.email.value.trim() : '';
+  const password = form.elements.password ? form.elements.password.value : '';
+  if (form.elements.email && !/^\S+@\S+\.\S+$/.test(email)) { Account.notice = '!Enter a valid email address.'; return renderAccountModal(); }
+  if (form.elements.password && password.length < 8 && m !== 'signin') { Account.notice = '!Use at least 8 characters for your password.'; return renderAccountModal(); }
+  if (form.elements.password && !password) { Account.notice = '!Enter your password.'; return renderAccountModal(); }
+  const submit = form.querySelector('[type=submit]');
+  submit.disabled = true; submit.textContent = 'Please wait…';
+  const redirect = location.href.split('#')[0];
+  try {
+    if (m === 'signin') {
+      const { error } = await Account.client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      closeOverlay('overlay-account');
+    } else if (m === 'signup') {
+      const { data, error } = await Account.client.auth.signUp({ email, password, options: { emailRedirectTo: redirect } });
+      if (error) throw error;
+      if (data && data.session) closeOverlay('overlay-account');
+      else { Account.sentTo = email; Account.modalMode = 'check-email'; Account.notice = ''; renderAccountModal(); }
+    } else if (m === 'reset') {
+      const { error } = await Account.client.auth.resetPasswordForEmail(email, { redirectTo: redirect });
+      if (error) throw error;
+      Account.sentTo = email; Account.modalMode = 'check-email'; Account.notice = ''; renderAccountModal();
+    } else if (m === 'newpass') {
+      const { error } = await Account.client.auth.updateUser({ password });
+      if (error) throw error;
+      Account.modalMode = 'signedin'; Account.notice = 'Password updated.'; renderAccountModal();
+    }
+  } catch (err) {
+    Account.notice = '!' + friendlyAuthError(err);
+    renderAccountModal();
+  }
+});
+
+// All account buttons (dialog, Settings panel, sidebar, welcome panel).
+document.body.addEventListener('click', e => {
+  const btn = e.target.closest('[data-account]');
+  if (!btn) return;
+  const a = btn.dataset.account;
+  if (a === 'signin' || a === 'signup' || a === 'reset') {
+    Account.modalMode = a; Account.notice = '';
+    if (document.getElementById('overlay-account').classList.contains('open')) renderAccountModal(); else openAccountModal(a);
+  } else if (a === 'open') openAccountModal();
+  else if (a === 'signout') { closeOverlay('overlay-account'); signOutAccount(); }
+  else if (a === 'sync-now') startSync();
+  else if (a === 'keep-cloud') resolveConflict('cloud');
+  else if (a === 'keep-local') resolveConflict('local');
+});
+document.querySelector('.sidebar-foot').addEventListener('click', e => {
+  if (Account.status === 'ready') { e.stopPropagation(); openAccountModal(); }
+}, true);
+
+// Pick up changes made on another device when you come back, and retry after going offline.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Account.user && Account.sync !== 'syncing' && Account.sync !== 'conflict') startSync(); });
+window.addEventListener('online', () => { if (Account.user && Account.sync === 'error') startSync(); });
+setInterval(() => { if (Account.user && Account.sync === 'synced') renderAccountUI(); }, 60000); // keeps "Synced N min ago" fresh
+
+/* =========================================================
    DASHBOARD PERIOD SWITCH + "go to page" links
    ========================================================= */
 document.querySelectorAll('#period-switch [data-period]').forEach(btn => btn.addEventListener('click', () => {
@@ -5284,7 +5716,7 @@ renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
 document.getElementById('reset-data-btn').addEventListener('click', () => {
-  if (!confirm('Erase all your items and sales?')) return;
+  if (!confirm(Account.user ? 'Erase all your items and sales? This also erases them from your account.' : 'Erase all your items and sales?')) return;
   const before = snapshotData();
   resetData();
   renderAll();
@@ -5316,6 +5748,7 @@ renderFeeRates();
 renderBackupNote();
 renderAll();
 loadPhotos();
+initAccounts();
 if (loadProblem) alert("Your saved data couldn't be read, so Ledgery started empty. A copy of it was kept in this browser. If you have a backup file, restore it in Settings.");
 </script>
 </body>

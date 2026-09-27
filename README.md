@@ -16,6 +16,31 @@ Open `index.html` in a browser — no build step or server required. The app sta
 
 Everything is saved in the browser (items and sales in `localStorage`, photos in IndexedDB), so it stays when you reload but lives only in that browser. Use **Settings → Data & backup** to download a backup file (and restore it on another device), or export CSV files for spreadsheets. **Erase all data** clears everything; deletes and erases can be undone for a few seconds.
 
+## Accounts (optional)
+
+Out of the box, data is saved only in the browser. To let people **create an account, sign in, and sync across devices**, connect a free [Supabase](https://supabase.com) project:
+
+1. **Create a project** at supabase.com (free plan is fine). Pick any name and a strong database password.
+2. **Create the table:** open **SQL Editor → New query**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This also turns on row-level security, so each person can only ever read their own data.
+3. **Copy your keys:** **Project Settings → API**. Copy the **Project URL** and the **anon public** key into `index.html`, near the top of the script:
+   ```js
+   const LEDGERY_SUPABASE = {
+     url: 'https://YOUR-PROJECT.supabase.co',
+     anonKey: 'eyJ...your anon public key...',
+   };
+   ```
+   The anon key is designed to be public; never paste the `service_role` key.
+4. **Host Ledgery on a website** (for example GitHub Pages: repo **Settings → Pages → Deploy from branch**). Accounts need a real web address; they don't work from a file opened on your computer or inside the Claude preview.
+5. **Tell Supabase your address:** **Authentication → URL Configuration**: set **Site URL** to your Ledgery address (e.g. `https://you.github.io/Ledgery/`) and add it under **Redirect URLs**. This is where email confirmation and password-reset links send people.
+
+How it behaves:
+- Sign in / create account from the sidebar (or **Settings → Account** on phones). Email + password, with email confirmation and "Forgot password?".
+- Items, sales, platform fee rates and the monthly goal sync automatically a moment after each change, and pull down when you come back to the tab.
+- If a browser and the account both have different data (e.g. first sign-in on a computer you'd already been using), Ledgery asks which to keep instead of guessing.
+- Two devices can't silently overwrite each other: every save carries a version number, and a stale save stops and re-syncs.
+- Signing out removes the data from that browser (it stays in the account), so shared computers stay private.
+- Photos stay on the device they were added on (they're too large to sync in this version). Theme, font and Ledger chat history are per device too.
+
 ## Brand
 
 The Ledgery logo is an "L" whose foot rises into an arrow: a ledger that grows. Files are in [`brand/`](brand/):

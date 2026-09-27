@@ -1475,6 +1475,8 @@ html.gated, html.gated body { overflow: hidden; }
 .auth-loading { display: flex; align-items: center; gap: 12px; color: var(--ink-muted); padding: 18px 0; }
 .auth-spinner { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--border); border-top-color: var(--accent); animation: auth-spin 0.8s linear infinite; }
 @keyframes auth-spin { to { transform: rotate(360deg); } }
+.auth-waiting { display: flex; align-items: center; gap: 10px; margin: -4px 0 14px; font-size: 0.875rem; color: var(--accent-text); }
+.auth-waiting .auth-spinner { width: 16px; height: 16px; border-width: 2px; }
 .auth-mail { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); margin-bottom: 14px; }
 .auth-mail svg { width: 28px; height: 28px; fill: none; stroke: var(--accent-text); stroke-width: 1.8; stroke-linejoin: round; }
 .auth-foot { margin-top: 28px; font-size: 0.75rem; text-align: center; }
@@ -5273,6 +5275,7 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
 let toastTimer = null, undoSnapshot = null;
 function showUndo(message, snapshot) {
   undoSnapshot = snapshot;
+  document.getElementById('toast-undo').hidden = !snapshot;
   document.getElementById('toast-msg').textContent = message;
   document.getElementById('toast').hidden = false;
   clearTimeout(toastTimer);
@@ -5364,6 +5367,11 @@ const LEDGERY_SUPABASE = {
   requireSignIn: true,                       // show the sign-in page until someone signs in
   providers: { google: false, apple: false }, // set true after switching it on in Supabase (README → Accounts)
 };
+// Read before Supabase tidies the address bar: did we arrive from an email link?
+const AUTH_LANDING = (() => {
+  const q = new URLSearchParams((location.hash || '').replace(/^#/, '') + '&' + location.search.replace(/^\?/, ''));
+  return { type: q.get('type') || '', error: q.get('error_code') || q.get('error') || '' };
+})();
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const SYNC_META_KEY = 'ledgery-sync-meta';
 
@@ -5421,6 +5429,12 @@ async function initAccounts() {
   }
   Account.status = 'ready';
   loadLiveProviders();
+  if (AUTH_LANDING.error) {
+    Account.notice = /expired|otp/i.test(AUTH_LANDING.error)
+      ? '!That link has expired or was already used. If you already confirmed, just sign in.'
+      : '!That link didn’t work. Try signing in, or ask for a new link.';
+    AUTH_LANDING.error = '';
+  }
   Account.client.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') { Account.modalMode = 'newpass'; openAccountModal(); }
     setTimeout(() => handleSession(session), 0); // never await Supabase calls inside this callback
@@ -5437,6 +5451,10 @@ async function handleSession(session) {
   if (!user) { Account.sync = 'idle'; Account.conflict = null; }
   renderAccountUI();
   if (changed) renderDashboard();
+  if (changed && user && AUTH_LANDING.type === 'signup') {
+    AUTH_LANDING.type = '';
+    showUndo('Email confirmed. You’re signed in here, and the device you signed up on will open by itself.', null);
+  }
   if (changed && user) maybeAskProfile();
 }
 
@@ -5749,7 +5767,10 @@ function renderAuthForm(body, titleEl, inGate) {
         <button type="submit" class="btn btn-primary auth-submit">Save password</button></form>`;
   } else if (m === 'check-email') {
     body.innerHTML = `${notice}<div class="auth-mail" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
-      <p class="auth-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it to confirm your email, and you'll be signed in automatically.</p>
+      ${Account.sentKind === 'signup'
+        ? `<p class="auth-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it on any device, even your phone. As soon as you confirm, this page signs you in by itself.</p>
+      <div class="auth-waiting" role="status"><span class="auth-spinner" aria-hidden="true"></span>Waiting for you to confirm…</div>`
+        : `<p class="auth-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it to choose a new password.</p>`}
       <p class="custom-note">Nothing there after a minute? Check your spam folder.</p>
       <p class="account-switch"><button type="button" class="link-btn" data-account="signin">Back to sign in</button></p>`;
     body.querySelector('.acct-sent-to').textContent = Account.sentTo || 'your email';
@@ -5838,11 +5859,11 @@ document.addEventListener('submit', async e => {
       if (error) throw error;
       Account.notice = '';
       if (data && data.session) closeOverlay('overlay-account');
-      else { Account.sentTo = email; Account.modalMode = 'check-email'; renderAuthSurface(); }
+      else { Account.sentTo = email; Account.sentKind = 'signup'; Account.modalMode = 'check-email'; renderAuthSurface(); watchForConfirm(email, password); }
     } else if (m === 'reset') {
       const { error } = await Account.client.auth.resetPasswordForEmail(email, { redirectTo: authRedirect() });
       if (error) throw error;
-      Account.sentTo = email; Account.modalMode = 'check-email'; Account.notice = ''; renderAuthSurface();
+      Account.sentTo = email; Account.sentKind = 'reset'; Account.modalMode = 'check-email'; Account.notice = ''; renderAuthSurface();
     } else if (m === 'newpass') {
       const { error } = await Account.client.auth.updateUser({ password });
       if (error) throw error;
@@ -5867,6 +5888,35 @@ document.addEventListener('submit', async e => {
   renderAccountUI();
   renderDashboard();
 });
+
+// Confirming on another device (say, your phone) only signs in that device. So while
+// this page shows "Check your email", it quietly tries the new password every few
+// seconds and lets you in the moment the email is confirmed. The password is held
+// only in memory for this tab and dropped as soon as we stop watching.
+let confirmWatch = null;
+function watchForConfirm(email, password) {
+  stopConfirmWatch();
+  const w = confirmWatch = { email, password, until: Date.now() + 30 * 60 * 1000, busy: false };
+  const tryNow = async () => {
+    if (confirmWatch !== w || w.busy) return;
+    if (Account.user || Account.modalMode !== 'check-email' || Date.now() > w.until) return stopConfirmWatch();
+    w.busy = true;
+    try {
+      const { error } = await Account.client.auth.signInWithPassword({ email: w.email, password: w.password });
+      if (!error) { stopConfirmWatch(); closeOverlay('overlay-account'); return; } // onAuthStateChange takes it from here
+      if (!/not confirmed|fetch|network|rate limit|too many/i.test(error.message || '')) stopConfirmWatch();
+    } catch (e) { /* offline: try again next tick */ } finally { w.busy = false; }
+  };
+  w.tryNow = tryNow;
+  w.timer = setInterval(tryNow, 4000);
+}
+function stopConfirmWatch() {
+  if (!confirmWatch) return;
+  clearInterval(confirmWatch.timer);
+  confirmWatch = null;
+}
+// Coming back to this tab after tapping the link on your phone: check straight away.
+['focus', 'visibilitychange'].forEach(ev => window.addEventListener(ev, () => { if (confirmWatch && document.visibilityState === 'visible') confirmWatch.tryNow(); }));
 
 async function signInWithProvider(provider) {
   Account.notice = '';

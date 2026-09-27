@@ -43,6 +43,7 @@ Out of the box, data is saved only in the browser. To let people **create an acc
 
 How it behaves:
 - With `requireSignIn: true`, Ledgery opens on a sign-in page and the dashboard appears once you're signed in. Sign up asks for your name and (optionally) your shop name; email sign-ups confirm their address by email; "Forgot password?" sends a reset link. If the account service can't be reached at all, Ledgery falls back to working in the browser so nobody is locked out.
+- You can confirm your email on a different device (e.g. sign up on a laptop, tap the link on your phone). The page that's waiting on "Check your email" keeps checking and signs itself in once you've confirmed (for up to 30 minutes; after that, just sign in).
 - Your name greets you on the dashboard and your shop name shows in the sidebar. Change them in **Settings → Account → Edit profile**.
 - Items, sales, platform fee rates and the monthly goal sync automatically a moment after each change, and pull down when you come back to the tab.
 - If a browser and the account both have different data (e.g. first sign-in on a computer you'd already been using), Ledgery asks which to keep instead of guessing.

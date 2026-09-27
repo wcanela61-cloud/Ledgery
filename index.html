@@ -1064,6 +1064,12 @@ tbody tr:hover { background: var(--bg); }
         </div>
       </div>
 
+      <div class="panel">
+        <div class="panel-head"><h3>Data</h3><span class="page-sub" style="margin:0">Items and sales are saved in this browser</span></div>
+        <div class="panel-body">
+          <button type="button" class="btn" id="reset-data-btn">Reset to sample data</button>
+        </div>
+      </div>
       <div class="panel"><div class="panel-body"><p class="empty-note">Account and currency settings will live here.</p></div></div>
     </section>
 
@@ -1186,6 +1192,9 @@ const items = [
   { id: 14, item_name: 'New Balance 550', category: 'Footwear', size: '9.5', color: 'White/Green', condition: 'New with tags', purchase_cost_cents: money(52), purchase_date: '2026-09-01', supplier: '', storage_location: 'Shelf 2', status: 'sold', notes: '' },
   { id: 15, item_name: 'Carhartt WIP beanie', category: 'Accessories', size: 'One size', color: 'Black', condition: 'New with tags', purchase_cost_cents: money(6), purchase_date: '2026-09-08', supplier: '', storage_location: 'Bin 5', status: 'sold', notes: '' },
   { id: 16, item_name: 'Stussy graphic hoodie', category: 'Tops', size: 'L', color: 'Cream', condition: 'Good', purchase_cost_cents: money(28), purchase_date: '2026-09-12', supplier: '', storage_location: 'Bin 2', status: 'listed', notes: '' },
+  { id: 17, item_name: 'Oakley sunglasses', category: 'Accessories', size: 'One size', color: 'Black', condition: 'Good', purchase_cost_cents: money(9), purchase_date: '2026-09-02', supplier: '', storage_location: 'Bin 5', status: 'sold', notes: '' },
+  { id: 18, item_name: 'Nike Tech Fleece hoodie', category: 'Tops', size: 'M', color: 'Grey', condition: 'Like new', purchase_cost_cents: money(30), purchase_date: '2026-09-04', supplier: '', storage_location: 'Bin 2', status: 'sold', notes: '' },
+  { id: 19, item_name: 'Timberland 6-inch boots', category: 'Footwear', size: '10', color: 'Wheat', condition: 'Good', purchase_cost_cents: money(25), purchase_date: '2026-09-06', supplier: '', storage_location: 'Shelf 1', status: 'sold', notes: '' },
 ];
 nextItemId = items.length + 1;
 
@@ -1201,11 +1210,50 @@ const sales = [
   { id: 9, item_id: 13, platform: 'eBay', sale_price_cents: money(29), platform_fees_cents: money(3.5), shipping_cost_cents: money(5.5), other_costs_cents: money(0), order_number: 'EB-12210', sale_date: '2026-09-03', status: 'completed', notes: '' },
   { id: 10, item_id: 14, platform: 'Depop', sale_price_cents: money(110), platform_fees_cents: money(6), shipping_cost_cents: money(9), other_costs_cents: money(0), order_number: 'DP-88350', sale_date: '2026-09-07', status: 'completed', notes: '' },
   { id: 11, item_id: 15, platform: 'Poshmark', sale_price_cents: money(22), platform_fees_cents: money(2.2), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31090', sale_date: '2026-09-11', status: 'completed', notes: '' },
-  { id: 12, item_id: 15, platform: 'Poshmark', sale_price_cents: money(24), platform_fees_cents: money(2.4), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31091', sale_date: '2026-09-14', status: 'completed', notes: '' },
-  { id: 13, item_id: 9, platform: 'Depop', sale_price_cents: money(90), platform_fees_cents: money(4.8), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'DP-88410', sale_date: '2026-09-16', status: 'completed', notes: '' },
-  { id: 14, item_id: 10, platform: 'Grailed', sale_price_cents: money(68), platform_fees_cents: money(6.8), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'GR-55240', sale_date: '2026-09-18', status: 'completed', notes: '' },
+  { id: 12, item_id: 17, platform: 'Poshmark', sale_price_cents: money(24), platform_fees_cents: money(2.4), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31091', sale_date: '2026-09-14', status: 'completed', notes: '' },
+  { id: 13, item_id: 18, platform: 'Depop', sale_price_cents: money(90), platform_fees_cents: money(4.8), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'DP-88410', sale_date: '2026-09-16', status: 'completed', notes: '' },
+  { id: 14, item_id: 19, platform: 'Grailed', sale_price_cents: money(68), platform_fees_cents: money(6.8), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'GR-55240', sale_date: '2026-09-18', status: 'completed', notes: '' },
 ];
 nextSaleId = sales.length + 1;
+
+/* =========================================================
+   PERSISTENCE
+   Items and sales are saved to localStorage after every
+   change (renderAll) and restored on load. The sample data
+   above is only used the first time, or after a reset.
+   ========================================================= */
+const DATA_STORAGE_KEY = 'ledgerly-data';
+const SAMPLE_ITEMS = JSON.parse(JSON.stringify(items));
+const SAMPLE_SALES = JSON.parse(JSON.stringify(sales));
+
+function replaceData(newItems, newSales) {
+  items.splice(0, items.length, ...newItems);
+  sales.splice(0, sales.length, ...newSales);
+  nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
+  nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(DATA_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed.items) && Array.isArray(parsed.sales)) {
+      replaceData(parsed.items, parsed.sales);
+    }
+  } catch (e) {}
+}
+
+function saveData() {
+  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales })); } catch (e) {}
+}
+
+function resetData() {
+  replaceData(JSON.parse(JSON.stringify(SAMPLE_ITEMS)), JSON.parse(JSON.stringify(SAMPLE_SALES)));
+  try { localStorage.removeItem(DATA_STORAGE_KEY); } catch (e) {}
+}
+
+loadData();
 
 const PLATFORMS = ['Depop', 'Vinted', 'eBay', 'Grailed', 'Poshmark', 'Facebook Marketplace', 'Instagram', 'Other'];
 
@@ -2313,6 +2361,7 @@ document.body.addEventListener('click', e => {
 });
 
 function renderAll() {
+  saveData();
   renderDashboard();
   renderInventory();
   renderSales();
@@ -2323,6 +2372,11 @@ renderVibeGrid();
 renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
+document.getElementById('reset-data-btn').addEventListener('click', () => {
+  if (!confirm('Replace all your items and sales with the sample data? This cannot be undone.')) return;
+  resetData();
+  renderAll();
+});
 document.getElementById('font-scale-slider').addEventListener('input', (e) => setFontScale(parseFloat(e.target.value)));
 renderAll();
 </script>

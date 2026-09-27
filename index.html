@@ -1575,6 +1575,36 @@ html.gated, html.gated body { overflow: hidden; }
 }
 @media (max-width: 420px) { .field-pair { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .auth-spinner { animation-duration: 2.4s; } }
+/* ---------- Dashboard polish ---------- */
+.dash-icon, .hero-icon, .stat-icon, .ph-icon { display: inline-grid; place-items: center; flex: none; }
+:is(.dash-icon, .hero-icon, .stat-icon, .ph-icon) svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hero-label { display: inline-flex; align-items: center; gap: 10px; }
+.hero-icon { width: 30px; height: 30px; padding: 7px; border-radius: 9px; color: var(--accent-text); background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent); }
+.hero-card.profit .hero-icon { color: var(--success-text); background: color-mix(in srgb, var(--success) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--success) 28%, transparent); }
+.hero-value { font-size: 3.25rem; }
+.hero-chip { display: inline-flex; align-items: center; padding: 2px 8px; margin-right: 4px; border-radius: 99px; font-family: var(--font-num); font-weight: 600; font-size: 0.75rem; color: var(--success-text); background: var(--success-soft); }
+.hero-card { transition: transform 200ms ease, box-shadow 200ms ease; }
+.hero-card:hover { transform: translateY(-2px); box-shadow: var(--highlight), var(--shadow-lg); }
+.hero-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent); opacity: .7; }
+.hero-card.profit::before { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--success) 60%, transparent), transparent); }
+.stat-label { display: flex; align-items: center; gap: 8px; }
+.stat-icon { width: 24px; height: 24px; padding: 5px; border-radius: 7px; color: var(--tile, var(--accent)); background: color-mix(in srgb, var(--tile, var(--accent)) 14%, transparent); }
+.stat-tile { transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease; }
+.stat-tile:hover { transform: translateY(-2px); box-shadow: var(--highlight), var(--shadow-lg); border-color: color-mix(in srgb, var(--tile, var(--accent)) 35%, var(--hairline)); }
+button.stat-tile { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
+.stat-fix { margin-top: 6px; font-size: 0.75rem; font-weight: 600; color: var(--danger-text); }
+.panel-head { align-items: center; padding-top: 18px; }
+.panel-head :is(h2, h3) { display: inline-flex; align-items: center; gap: 10px; }
+.ph-icon { width: 26px; height: 26px; padding: 6px; border-radius: 8px; color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+.view-all { border: none; background: none; padding: 4px 2px; font: inherit; font-size: 0.7812rem; font-weight: 600; color: var(--accent-text); cursor: pointer; border-radius: 6px; }
+.view-all:hover { text-decoration: underline; }
+.view-all:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#view-dashboard .page-title { font-size: clamp(1.75rem, 2.6vw, 2.25rem); }
+#view-dashboard .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6875rem; font-weight: 600; color: var(--accent-text); }
+#aging-inventory .row-title, #recent-sales .row-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .hero-card:hover, .stat-tile:hover { transform: none; } }
+@media (max-width: 480px) { .stat-icon { display: none; } .stat-fix { font-size: 0.7188rem; } }
 </style>
 </head>
 <body>
@@ -1620,8 +1650,8 @@ html.gated, html.gated body { overflow: hidden; }
       <div class="page-header">
         <div>
           <div class="eyebrow" id="dash-eyebrow"></div>
-          <h1 class="page-title">Dashboard</h1>
-          <div class="page-sub">Your inventory and sales at a glance</div>
+          <h1 class="page-title" id="dash-title">Dashboard</h1>
+          <div class="page-sub">Here&rsquo;s how your shop is doing.</div>
         </div>
         <div class="header-actions">
           <div class="seg" id="period-switch" role="group" aria-label="Dashboard period">
@@ -1657,33 +1687,33 @@ html.gated, html.gated body { overflow: hidden; }
       <div class="panel-grid">
         <div>
           <div class="panel">
-            <div class="panel-head"><h2>Revenue &amp; profit</h2><span class="page-sub" style="margin:0">last 14 sales</span></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg></span>Revenue &amp; profit</h2><span class="page-sub" style="margin:0">last 14 sales</span></div>
             <div class="panel-body"><div id="trend-chart"></div></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Recent sales</h2></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>Recent sales</h2><button type="button" class="view-all" data-goto="sales">View all<span aria-hidden="true"> &rarr;</span></button></div>
             <div class="panel-body" id="recent-sales"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Platform breakdown</h2><span class="page-sub" style="margin:0">by profit</span></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>Platform breakdown</h2><span class="page-sub" style="margin:0">by profit</span></div>
             <div class="panel-body" id="platform-breakdown"></div>
           </div>
         </div>
         <div>
           <div class="panel" id="goal-panel">
-            <div class="panel-head"><h2>Monthly goal</h2><span class="page-sub" style="margin:0" id="goal-month"></span></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></span>Monthly goal</h2><span class="page-sub" style="margin:0" id="goal-month"></span></div>
             <div class="panel-body" id="goal-body"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Top sellers</h2><span class="page-sub" style="margin:0" id="top-period"></span></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></span>Top sellers</h2><span class="page-sub" style="margin:0" id="top-period"></span></div>
             <div class="panel-body" id="top-sellers"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Inventory status</h2></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg></span>Inventory status</h2></div>
             <div class="panel-body"><div id="inventory-donut"></div></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Aging inventory</h2><span class="page-sub" style="margin:0">60+ days unsold</span></div>
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9"/></svg></span>Aging inventory</h2><span class="page-sub" style="margin:0">60+ days unsold</span></div>
             <div class="panel-body" id="aging-inventory"></div>
           </div>
         </div>
@@ -2538,6 +2568,23 @@ function buildSparkline(values, colorVar, cls = 'hero-spark') {
   </svg>`;
 }
 
+const DASH_ICONS = {
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',
+  receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  bars: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+  pie: '<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>',
+  hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9"/>',
+  dollar: '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  up: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  tag: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  box: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  avg: '<path d="M4 19h16"/><path d="M6 15l4-5 4 3 4-6"/>',
+  alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/>',
+};
+const dashIcon = (name, cls = 'dash-icon') => `<span class="${cls}" aria-hidden="true"><svg viewBox="0 0 24 24">${DASH_ICONS[name]}</svg></span>`;
+
 function renderHero(periodSales, prevSales) {
   const chrono = [...periodSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date));
   const profitOf = s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : 0; };
@@ -2546,6 +2593,9 @@ function renderHero(periodSales, prevSales) {
 
   const totalRevenue = sumRevenue(chrono);
   const totalProfit = sumProfit(chrono);
+  // Margin only over sales whose profit is known, so missing costs don't drag it down.
+  const completeRevenue = chrono.filter(s => calcProfit(s, itemById(s.item_id)).isComplete).reduce((t, s) => t + s.sale_price_cents, 0);
+  const margin = completeRevenue > 0 ? Math.round((totalProfit / completeRevenue) * 100) : null;
 
   // Trend: this period so far vs. the same point in the previous one.
   const pctChange = (now, prev) => (prev === 0 ? null : Math.round(((now - prev) / Math.abs(prev)) * 100));
@@ -2561,7 +2611,7 @@ function renderHero(periodSales, prevSales) {
     <div class="hero-card revenue">
       <div class="hero-shape"></div>
       <div class="hero-top">
-        <span class="hero-label">Revenue &middot; ${periodName}</span>
+        <span class="hero-label">${dashIcon('dollar', 'hero-icon')}Revenue &middot; ${periodName}</span>
         ${trendBadge(revTrend)}
       </div>
       <div class="hero-value" id="hero-revenue"></div>
@@ -2571,11 +2621,11 @@ function renderHero(periodSales, prevSales) {
     <div class="hero-card profit">
       <div class="hero-shape"></div>
       <div class="hero-top">
-        <span class="hero-label">Net profit &middot; ${periodName}</span>
+        <span class="hero-label">${dashIcon('up', 'hero-icon')}Net profit &middot; ${periodName}</span>
         ${trendBadge(profTrend)}
       </div>
       <div class="hero-value" id="hero-profit"></div>
-      <div class="hero-sub">complete sales only</div>
+      <div class="hero-sub">${margin === null ? 'complete sales only' : `<span class="hero-chip">${margin}% margin</span> on complete sales`}</div>
       ${buildSparkline(chrono.map(s => profitOf(s) / 100), '--success')}
     </div>
   `;
@@ -2590,7 +2640,7 @@ function renderTrendChart(completedSales) {
   if (chrono.length < 2) { container.innerHTML = '<div class="empty-note">Not enough sales yet for a trend line.</div>'; return; }
 
   // Draw at the real on-screen width (falls back while the page is hidden).
-  const w = Math.max(300, Math.round(container.clientWidth) || 640), h = 210, padL = 6, padR = 6, padT = 14, padB = 28;
+  const w = Math.max(300, Math.round(container.clientWidth) || 640), h = 210, padL = 40, padR = 6, padT = 14, padB = 28;
   const revenues = chrono.map(s => s.sale_price_cents);
   // Incomplete sales have no profit — leave a gap rather than plot $0.
   const profits = chrono.map(s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : null; });
@@ -2615,8 +2665,9 @@ function renderTrendChart(completedSales) {
   const profAreas = profRuns.filter(r => r.length > 1).map(r => smoothPath(r) + ` L${r[r.length - 1][0].toFixed(1)},${y(0).toFixed(1)} L${r[0][0].toFixed(1)},${y(0).toFixed(1)} Z`);
   const revFill = fadeGradient('--ink-faint', 0.14), profFill = fadeGradient('--accent', 0.3);
 
-  const gridLines = [0.25, 0.5, 0.75].map(f => `<line x1="${padL}" y1="${y(maxVal * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal * f).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"></line>`).join('')
-    + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`;
+  const gridLines = [0.5, 1].map(f => `<line x1="${padL}" y1="${y(maxVal / 1.08 * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal / 1.08 * f).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"></line>`).join('')
+    + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`
+    + [0, 0.5, 1].map(f => { const v = maxVal / 1.08 * f; return `<text class="trend-axis-label" x="${padL - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">$${v >= 100000 ? (v / 100000).toFixed(1).replace(/\.0$/, '') + 'k' : Math.round(v / 100)}</text>`; }).join('');
 
   const labelEvery = Math.max(1, Math.ceil(chrono.length / Math.max(2, Math.floor(w / 110))));
   const last = chrono.length - 1;
@@ -2822,8 +2873,8 @@ function renderDashboard() {
 
   document.getElementById('welcome-panel').hidden = !(items.length === 0 && sales.length === 0);
   const now = new Date(), hour = now.getHours();
-  document.getElementById('dash-eyebrow').textContent =
-    `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${greetName()} · ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+  document.getElementById('dash-eyebrow').textContent = `Dashboard · ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+  document.getElementById('dash-title').textContent = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${greetName()}`;
   document.querySelectorAll('#period-switch [data-period]').forEach(b => { b.classList.toggle('active', b.dataset.period === dashPeriod); b.setAttribute('aria-pressed', b.dataset.period === dashPeriod); });
 
   let completeCount = 0, incompleteCount = 0, totalProfitCheck = 0;
@@ -2857,19 +2908,19 @@ function renderDashboard() {
   const pct = (a, b) => (b === null || b === undefined || a === null || b === 0 ? null : Math.round(((a - b) / Math.abs(b)) * 100));
   const lastPeriodDay = prevRange ? prevRange.end : null;
   const tiles = [
-    { label: 'Items sold', value: periodSales.length, plain: true, trend: prevRange ? pct(periodSales.length, prevSales.length) : null, series: soldSeries, color: '--accent' },
-    { label: 'Active inventory', value: activeInventory, plain: true, trend: prevRange ? pct(activeInventory, activeInventoryAt(lastPeriodDay)) : null, series: activeSeries, color: '--info-text', neutral: true },
-    { label: 'Avg profit / sale', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit), trend: prevRange ? pct(avgProfit, prevAvg) : null, series: avgSeries, color: '--success' },
+    { label: 'Items sold', icon: 'tag', value: periodSales.length, plain: true, trend: prevRange ? pct(periodSales.length, prevSales.length) : null, series: soldSeries, color: '--accent' },
+    { label: 'Active inventory', icon: 'box', value: activeInventory, plain: true, trend: prevRange ? pct(activeInventory, activeInventoryAt(lastPeriodDay)) : null, series: activeSeries, color: '--info-text', neutral: true },
+    { label: 'Avg profit / sale', icon: 'avg', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit), trend: prevRange ? pct(avgProfit, prevAvg) : null, series: avgSeries, color: '--success' },
   ];
   const vsLabel = dashPeriod === 'month' ? 'vs. same point last month' : 'vs. same point last year';
   const trendPill = (t, neutral) => t === null ? ''
     : `<span class="stat-trend ${t === 0 || neutral ? 'flat' : t > 0 ? 'up' : 'down'}" title="${vsLabel}">${t > 0 ? '&#9650;' : t < 0 ? '&#9660;' : ''} ${Math.abs(t)}%</span>`;
   document.getElementById('stat-grid').innerHTML = tiles.map(t => `
-    <div class="stat-tile">
-      <div class="stat-top"><div class="stat-label">${t.label}</div>${trendPill(t.trend, t.neutral)}</div>
+    <div class="stat-tile" style="--tile:var(${t.color})">
+      <div class="stat-top"><div class="stat-label">${dashIcon(t.icon, 'stat-icon')}${t.label}</div>${trendPill(t.trend, t.neutral)}</div>
       <div class="stat-value ${t.plain ? '' : 'mono'}">${t.value}</div>
       ${buildSparkline(t.series, t.color, 'tile-spark')}
-    </div>`).join('') + (incompleteCount ? `<div class="stat-tile warn"><div class="stat-label">Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div></div>` : '');
+    </div>`).join('') + (incompleteCount ? `<button type="button" class="stat-tile warn" data-goto="sales" style="--tile:var(--danger)"><div class="stat-label">${dashIcon('alert', 'stat-icon')}Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div><div class="stat-fix">Missing costs · Review<span aria-hidden="true"> &rarr;</span></div></button>` : '');
 
   renderGoal();
   renderTopSellers(periodSales);

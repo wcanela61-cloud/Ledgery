@@ -885,28 +885,60 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 
 .font-size-row { display: flex; align-items: center; gap: 12px; }
 .font-a-small { font-size: 0.75rem; color: var(--ink-faint); font-weight: 500; user-select: none; }
-.font-a-large { font-size: 1.125rem; color: var(--ink-faint); font-weight: 500; user-select: none; }
+.font-a-large { font-size: 1.25rem; color: var(--ink-faint); font-weight: 500; user-select: none; }
 .font-scale-val { font-family: var(--font-num); font-size: 0.7188rem; color: var(--ink-muted); width: 44px; text-align: right; flex-shrink: 0; }
 .range-slider {
   -webkit-appearance: none; appearance: none;
-  flex: 1; height: 4px; border-radius: 999px; background: var(--border); outline: none; cursor: pointer;
+  flex: 1; height: 6px; border-radius: 999px; outline: none; cursor: pointer;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--border) var(--fill, 50%));
 }
+.range-slider:focus-visible { box-shadow: 0 0 0 3px var(--glow); }
 .range-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: grab;
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 5px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: grab;
 }
 .range-slider::-webkit-slider-thumb:active { cursor: grabbing; }
 .range-slider::-moz-range-thumb {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: grab;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #fff; border: 5px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: grab;
 }
 
 .view { display: none; }
 .view.active { display: block; }
 
-#font-family-select {
-  min-height: 38px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg); color: var(--ink);
+/* Font panel */
+.font-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.font-card { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 6px 6px 12px; text-align: left; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-2); color: var(--ink); cursor: pointer; font: inherit; transition: border-color 160ms ease, box-shadow 200ms ease, transform 200ms ease; }
+.font-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: var(--shadow); transform: translateY(-2px); }
+.font-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 28px -12px color-mix(in srgb, var(--accent) 60%, transparent); }
+.font-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.font-sample { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; height: 64px; padding: 8px 10px; margin-bottom: 8px; border-radius: calc(var(--radius-lg) - 4px); font-family: var(--ff); background: linear-gradient(160deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 30%, var(--surface-2))); border: 1px solid var(--hairline); overflow: hidden; }
+.font-aa { font-size: 2.1rem; line-height: 0.95; font-weight: 600; letter-spacing: -0.02em; }
+.font-digits { font-size: 0.8125rem; font-weight: 600; color: var(--accent-text); font-variant-numeric: tabular-nums; padding-bottom: 3px; }
+.font-name { font-family: var(--ff); font-size: 0.875rem; font-weight: 600; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
+.font-default { font-family: var(--font-sans); font-size: 0.625rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); border: 1px solid var(--border); border-radius: 99px; padding: 1px 6px; }
+.font-desc { font-size: 0.7188rem; line-height: 1.35; color: var(--ink-muted); padding: 0 6px; }
+.font-check { top: 12px; right: 12px; }
+.font-card.selected .font-check { opacity: 1; transform: scale(1); }
+.type-studio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); align-items: start; }
+.size-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg); }
+.size-presets button { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; min-height: 56px; padding: 6px 4px; border: none; border-radius: var(--radius); background: none; color: var(--ink-muted); font: inherit; font-size: 0.6875rem; font-weight: 600; cursor: pointer; transition: background 160ms ease, color 160ms ease; }
+.size-presets button span { font-family: var(--font-display); font-weight: 600; line-height: 1; color: var(--ink); }
+.size-presets button:hover { background: var(--surface-2); color: var(--ink); }
+.size-presets button.selected { background: var(--surface-2); color: var(--accent-text); box-shadow: var(--shadow-sm), inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent); }
+.size-presets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.type-preview { padding: 16px 18px; border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: var(--card-bg); box-shadow: var(--shadow), var(--highlight); }
+.tp-eyebrow { font-size: 0.6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+.tp-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 10px; }
+.tp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tp-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); min-width: 0; }
+.tp-stats em { font-style: normal; font-size: 0.6875rem; color: var(--ink-muted); }
+.tp-stats strong { font-family: var(--font-num); font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-pos { color: var(--success-text); }
+.tp-body { margin: 10px 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--ink-muted); }
+@media (max-width: 720px) {
+  .type-studio { grid-template-columns: 1fr; }
+  .font-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .eyebrow { font-size: 0.8125rem; color: var(--ink-faint); font-weight: 500; margin-bottom: 6px; }
@@ -1811,21 +1843,39 @@ html.gated, html.gated body { overflow: hidden; }
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h2>Font</h2><span class="page-sub" style="margin:0">Size and family</span></div>
+        <div class="panel-head"><h2>Font</h2><span class="page-sub" style="margin:0">Typeface and text size</span></div>
         <div class="panel-body">
-          <div class="field-hint" style="margin-bottom:10px">Font size</div>
-          <div class="font-size-row">
-            <span class="font-a-small">A</span>
-            <input type="range" class="range-slider" id="font-scale-slider" aria-label="Font size" min="0.85" max="1.25" step="0.025" value="1">
-            <span class="font-a-large">A</span>
-            <span class="font-scale-val" id="font-scale-val">100%</span>
+          <div class="appear-label" id="typeface-label">Typeface</div>
+          <div class="font-grid" id="font-grid" role="group" aria-labelledby="typeface-label"></div>
+
+          <div class="type-studio">
+            <div class="type-controls">
+              <div class="studio-sub" id="size-label" style="margin-top:0">Text size</div>
+              <div class="size-presets" id="size-presets" role="group" aria-labelledby="size-label">
+                <button type="button" data-size="0.9"><span style="font-size:0.8rem">Aa</span>Compact</button>
+                <button type="button" data-size="1"><span style="font-size:0.95rem">Aa</span>Default</button>
+                <button type="button" data-size="1.1"><span style="font-size:1.1rem">Aa</span>Comfortable</button>
+                <button type="button" data-size="1.2"><span style="font-size:1.25rem">Aa</span>Large</button>
+              </div>
+              <div class="font-size-row">
+                <span class="font-a-small" aria-hidden="true">A</span>
+                <input type="range" class="range-slider" id="font-scale-slider" aria-label="Font size" min="0.85" max="1.25" step="0.025" value="1">
+                <span class="font-a-large" aria-hidden="true">A</span>
+                <span class="font-scale-val" id="font-scale-val">100%</span>
+              </div>
+              <div class="custom-note">Scales all text and most spacing, like browser zoom, within limits that keep the layout intact.</div>
+            </div>
+            <div class="type-preview" aria-hidden="true">
+              <div class="tp-eyebrow">Preview · <span id="tp-font-name">Inter</span></div>
+              <div class="tp-title">This month</div>
+              <div class="tp-stats">
+                <div><em>Net profit</em><strong class="tp-pos">$1,284.50</strong></div>
+                <div><em>Items sold</em><strong>36</strong></div>
+              </div>
+              <p class="tp-body">Vintage Levi&rsquo;s 501 sold on Depop for $58.00 after $5.80 in fees.</p>
+            </div>
           </div>
-          <div class="custom-note" style="margin-top:10px">Drag to resize all text and most spacing app-wide, similar to browser zoom. Capped in both directions so the layout can't break.</div>
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-            <div class="field-hint" style="margin-bottom:10px">Font family</div>
-            <select id="font-family-select" aria-label="Font family" style="width:100%;max-width:420px"></select>
-            <div class="custom-note" style="margin-top:10px">Applies to all text in the app, including prices. (The Terminal vibe always uses monospace for numbers.)</div>
-          </div>
+          <div class="custom-note" id="font-terminal-note" hidden>The Terminal vibe keeps numbers in monospace so columns line up.</div>
         </div>
       </div>
 
@@ -4566,20 +4616,43 @@ function renderFontScaleControl() {
   const settings = getThemeSettings();
   const slider = document.getElementById('font-scale-slider');
   const val = document.getElementById('font-scale-val');
-  if (slider) slider.value = settings.fontScale;
+  if (slider) {
+    slider.value = settings.fontScale;
+    slider.style.setProperty('--fill', ((settings.fontScale - FONT_SCALE_MIN) / (FONT_SCALE_MAX - FONT_SCALE_MIN) * 100).toFixed(1) + '%');
+  }
   if (val) val.textContent = Math.round(settings.fontScale * 100) + '%';
+  document.querySelectorAll('#size-presets [data-size]').forEach(b => {
+    const on = Math.abs(parseFloat(b.dataset.size) - settings.fontScale) < 0.001;
+    b.classList.toggle('selected', on); b.setAttribute('aria-pressed', on);
+  });
 }
 
 function renderFontFamilyControl() {
   const settings = getThemeSettings();
-  const select = document.getElementById('font-family-select');
-  if (!select) return;
-  select.innerHTML = FONT_FAMILY_OPTIONS.map(o =>
-    `<option value="${o.id === 'inter' ? '' : o.id}" style="font-family:${o.css}">${o.label} — ${o.desc}</option>`
-  ).join('');
-  select.value = settings.fontFamily || '';
-  select.addEventListener('change', (e) => setFontFamily(e.target.value));
+  const grid = document.getElementById('font-grid');
+  if (!grid) return;
+  const current = settings.fontFamily || 'inter';
+  grid.innerHTML = FONT_FAMILY_OPTIONS.map(o => `
+    <button type="button" class="font-card ${o.id === current ? 'selected' : ''}" data-font="${o.id}" aria-pressed="${o.id === current}" style="--ff:${o.css.replace(/"/g, '&quot;')}">
+      <span class="font-sample" aria-hidden="true"><span class="font-aa">Aa</span><span class="font-digits">$1,284</span></span>
+      <span class="font-name">${o.label.replace(' (default)', '')}${o.id === 'inter' ? ' <span class="font-default">Default</span>' : ''}</span>
+      <span class="font-desc">${o.desc}</span>
+      <span class="vibe-check font-check" aria-hidden="true">${CHECK_SVG}</span>
+    </button>`).join('');
+  const opt = FONT_FAMILY_OPTIONS.find(o => o.id === current);
+  document.getElementById('tp-font-name').textContent = opt ? opt.label.replace(' (default)', '') : 'Inter';
+  document.getElementById('font-terminal-note').hidden = settings.vibe !== 'terminal';
 }
+document.getElementById('font-grid').addEventListener('click', e => {
+  const card = e.target.closest('[data-font]');
+  if (!card) return;
+  setFontFamily(card.dataset.font === 'inter' ? '' : card.dataset.font);
+  renderFontFamilyControl();
+});
+document.getElementById('size-presets').addEventListener('click', e => {
+  const b = e.target.closest('[data-size]');
+  if (b) setFontScale(parseFloat(b.dataset.size));
+});
 
 function setVibe(vibe) {
   // Overrides are layered on top of whichever vibe is selected, so
@@ -4590,6 +4663,7 @@ function setVibe(vibe) {
   applyTheme(settings);
   renderVibeGrid();
   renderColorControls();
+  renderFontFamilyControl();
 }
 
 function setColorOverride(key, value, rerender) {

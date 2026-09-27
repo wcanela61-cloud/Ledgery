@@ -958,6 +958,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
   background: color-mix(in srgb, var(--ink) 3%, transparent);
 }
 .field select + input { margin-top: 6px; }
+.field select:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* Visible focus for keyboard users on every control. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -1213,7 +1214,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
         </div>
       </div>
       <div class="toolbar">
-        <input type="text" id="inv-search" placeholder="Search name, category, size, color…">
+        <input type="text" id="inv-search" placeholder="Search name, category, size, color, order…">
         <select id="inv-status-filter">
           <option value="">All statuses</option>
           <option value="unsold">Not listed</option>
@@ -1408,19 +1409,22 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
         <legend>Product</legend>
         <div class="field-grid">
           <div class="field full"><label>Name *</label><input required name="item_name" placeholder="Carhartt Detroit jacket"></div>
-          <div class="field"><label>Brand</label><input name="brand" list="brand-options" placeholder="Carhartt" autocomplete="off"></div>
-          <div class="field"><label>Category</label><input name="category" list="category-options" placeholder="Outerwear" autocomplete="off"></div>
-          <div class="field"><label>Size</label>
-            <select name="size_choice" id="ai-size-select">
-              <option value="">Select</option>
-              <optgroup label="Adult"><option value="XXS">XXS</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="XXXL">XXXL</option><option value="One size">One size</option></optgroup>
-              <optgroup label="Kids"><option value="Kids 4">4</option><option value="Kids 5">5</option><option value="Kids 6">6</option><option value="Kids 7">7</option><option value="Kids 8">8</option><option value="Kids 10">10</option><option value="Kids 12">12</option><option value="Kids 14">14</option><option value="Kids 16">16</option><option value="Kids 18">18</option></optgroup>
-              <optgroup label="Toddler"><option value="2T">2T</option><option value="3T">3T</option><option value="4T">4T</option><option value="5T">5T</option></optgroup>
-              <optgroup label="Baby"><option value="0-3M">0–3M</option><option value="3-6M">3–6M</option><option value="6-9M">6–9M</option><option value="9-12M">9–12M</option><option value="12-18M">12–18M</option><option value="18-24M">18–24M</option></optgroup>
-              <option value="__other">Other (shoe size, waist…)</option>
-            </select>
-            <input name="size_other" placeholder="e.g. 10, 32x32" hidden>
+          <div class="field full"><label>Department</label>
+            <div class="seg seg-radio" id="ai-dept-choice" role="radiogroup" aria-label="Department">
+              <label><input type="radio" name="department" value="Men"><span>Men's</span></label>
+              <label><input type="radio" name="department" value="Women"><span>Women's</span></label>
+              <label><input type="radio" name="department" value="Kids"><span>Kids</span></label>
+            </div>
           </div>
+          <div class="field"><label>Category</label>
+            <select name="category_choice" id="ai-category-select"></select>
+            <input name="category_other" placeholder="e.g. Swimwear" hidden>
+          </div>
+          <div class="field"><label>Size</label>
+            <select name="size_choice" id="ai-size-select"></select>
+            <input name="size_other" placeholder="e.g. 32x32" hidden>
+          </div>
+          <div class="field"><label>Brand</label><input name="brand" list="brand-options" placeholder="Carhartt" autocomplete="off"></div>
           <div class="field"><label>Color</label><input name="color" placeholder="Brown"></div>
           <div class="field full"><label>Condition</label>
             <select name="condition"><option value="">Select</option><option>New with tags</option><option>New without tags</option><option>Like new</option><option>Good</option><option>Fair</option></select>
@@ -1467,7 +1471,6 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
       </fieldset>
 
       <datalist id="brand-options"></datalist>
-      <datalist id="category-options"></datalist>
       <div class="modal-actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn btn-primary" id="add-item-submit-btn">Save item</button>
@@ -1611,6 +1614,7 @@ function normalizeItem(item) {
   if (item.listed_date === undefined) item.listed_date = null;
   if (!Array.isArray(item.photo_ids)) item.photo_ids = [];
   if (item.purchase_time === undefined) item.purchase_time = null;
+  if (item.department === undefined) item.department = '';
   if (!item.purchase_order) item.purchase_order = newOrderNumber(item.purchase_date, item.purchase_time);
   return item;
 }
@@ -2280,7 +2284,7 @@ function renderInventory() {
 
   rows = rows.filter(({ item, sale }) => {
     if (search) {
-      const haystack = [item.item_name, item.brand, item.category, item.size, item.color, item.purchase_order, item.purchase_name, item.storage_location].join(' ').toLowerCase();
+      const haystack = [item.item_name, item.brand, DEPARTMENTS[item.department], item.category, item.size, item.color, item.purchase_order, item.purchase_name, item.storage_location].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     if (statusFilter && item.status !== statusFilter) return false;
@@ -2300,7 +2304,7 @@ function renderInventory() {
   const emptyMsg = items.length ? 'No items match your filters.' : 'No items yet. Use "Add item" or "Add bundle" to add what you bought.';
 
   document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr data-item-id="${item.id}"${highlightItemIds.has(item.id) ? ' class="row-new"' : ''}>
-      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${[item.brand, item.category, item.size].filter(Boolean).map(esc).join(' &middot; ')}</div></div></div></td>
+      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${[item.brand, DEPARTMENTS[item.department], item.category, item.size].filter(Boolean).map(esc).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${sale ? esc(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
       <td data-label="Status">${statusBadge(item.status)}</td>
@@ -2486,14 +2490,83 @@ function updateItemCostEach() {
   hint.textContent = qty > 1 ? `Adds ${qty} separate items${parts[0] !== parts[parts.length - 1] ? ' (a few get 1¢ more)' : ''}` : 'Worked out automatically';
 }
 
-// Size: a dropdown of standard sizes, plus "Other" for anything else.
-const SIZE_OPTIONS = new Set([...document.querySelectorAll('#ai-size-select option')].map(o => o.value).filter(v => v && v !== '__other'));
-function setSizeField(size) {
+// Department → Category → Size. Each dropdown opens up once the one before it is chosen,
+// and the size list matches what was picked (shoe sizes for footwear, kids sizes for kids…).
+const DEPARTMENTS = { Men: "Men's", Women: "Women's", Kids: 'Kids' };
+const CATEGORIES = {
+  Men: ['Tops', 'Bottoms', 'Outerwear', 'Activewear', 'Suits & blazers', 'Footwear', 'Bags', 'Accessories'],
+  Women: ['Tops', 'Bottoms', 'Dresses', 'Skirts', 'Outerwear', 'Activewear', 'Footwear', 'Bags', 'Accessories', 'Jewelry'],
+  Kids: ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'One-pieces', 'Activewear', 'Footwear', 'Accessories'],
+};
+const ALL_CATEGORIES = [...new Set(Object.values(CATEGORIES).flat())];
+const range = (from, to, step = 1) => { const out = []; for (let n = from; n <= to + 1e-9; n += step) out.push(n); return out; };
+const opt = (value, label = value) => ({ value, label });
+const SIZE_GROUPS = {
+  letters: ['Sizes', ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size'].map(v => opt(v))],
+  kids: ['Kids', [4, 5, 6, 7, 8, 10, 12, 14, 16, 18].map(n => opt('Kids ' + n, String(n)))],
+  toddler: ['Toddler', ['2T', '3T', '4T', '5T'].map(v => opt(v))],
+  baby: ['Baby', ['0-3M', '3-6M', '6-9M', '9-12M', '12-18M', '18-24M'].map(v => opt(v, v.replace('-', '–')))],
+  oneSize: ['Sizes', [opt('One size')]],
+  waist: ['Waist', range(28, 44).filter(n => n <= 34 || n % 2 === 0).map(n => opt('W' + n, n + '"'))],
+  womenNumeric: ['Numeric', ['00', ...range(0, 20, 2).map(String)].map(v => opt('Size ' + v, v))],
+  menShoes: ["Men's shoes (US)", range(6, 15, 0.5).map(n => opt('US ' + n, String(n)))],
+  womenShoes: ["Women's shoes (US)", range(5, 12, 0.5).map(n => opt('US ' + n, String(n)))],
+  toddlerShoes: ['Toddler shoes', range(4, 13).map(n => opt(n + 'C'))],
+  youthShoes: ['Youth shoes', range(1, 7).map(n => opt(n + 'Y'))],
+};
+function sizeGroupsFor(dept, category) {
+  const g = SIZE_GROUPS;
+  if (category === 'Footwear') return dept === 'Men' ? [g.menShoes] : dept === 'Women' ? [g.womenShoes] : dept === 'Kids' ? [g.toddlerShoes, g.youthShoes] : [g.menShoes, g.womenShoes, g.toddlerShoes, g.youthShoes];
+  if (category === 'Bags' || category === 'Jewelry') return [g.oneSize];
+  if (dept === 'Kids') return category === 'Accessories' ? [g.oneSize, g.kids] : [g.kids, g.toddler, g.baby];
+  if (dept === 'Men') return category === 'Bottoms' ? [g.letters, g.waist] : [g.letters];
+  if (dept === 'Women') return ['Bottoms', 'Dresses', 'Skirts'].includes(category) ? [g.letters, g.womenNumeric] : [g.letters];
+  return [g.letters, g.kids, g.toddler, g.baby]; // older items with no department
+}
+const optionsHtml = list => list.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+
+// Rebuild both dropdowns from the current department/category, keeping values that still fit.
+function refreshProductChoices(keepCategory, keepSize) {
   const form = document.getElementById('add-item-form');
-  const known = !size || SIZE_OPTIONS.has(size);
-  form.elements.size_choice.value = known ? (size || '') : '__other';
-  form.elements.size_other.value = known ? '' : size;
-  form.elements.size_other.hidden = known;
+  const dept = form.elements.department.value;
+  const catSel = form.elements.category_choice, catOther = form.elements.category_other;
+  const sizeSel = form.elements.size_choice, sizeOther = form.elements.size_other;
+
+  const cats = dept ? CATEGORIES[dept] : ALL_CATEGORIES;
+  const catOtherMode = keepCategory === undefined && catSel.value === '__other';
+  let category = keepCategory ?? (catOtherMode ? catOther.value.trim() : catSel.value);
+  // Switching department drops a category it doesn't have; a saved item keeps its own.
+  if (keepCategory === undefined && !catOtherMode && !cats.includes(category)) category = '';
+  const catKnown = !catOtherMode && (!category || cats.includes(category));
+  // Older items can have a category but no department — keep that editable.
+  catSel.disabled = !dept && !category && !catOtherMode;
+  catSel.innerHTML = `<option value="">${catSel.disabled ? "Choose Men's, Women's or Kids first" : 'Select'}</option>${optionsHtml(cats.map(c => opt(c)))}<option value="__other">Other…</option>`;
+  catSel.value = catKnown ? category : '__other';
+  catOther.value = catKnown ? '' : category;
+  catOther.hidden = catKnown;
+
+  const groups = sizeGroupsFor(dept, catKnown ? category : '');
+  const sizes = new Set(groups.flatMap(([, list]) => list.map(o => o.value)));
+  const sizeOtherMode = keepSize === undefined && sizeSel.value === '__other';
+  let size = keepSize ?? (sizeOtherMode ? sizeOther.value.trim() : sizeSel.value);
+  if (keepSize === undefined && !sizeOtherMode && !sizes.has(size)) size = '';
+  const sizeKnown = !sizeOtherMode && (!size || sizes.has(size));
+  sizeSel.disabled = !category && !catOtherMode && !size && !sizeOtherMode;
+  sizeSel.innerHTML = `<option value="">${sizeSel.disabled ? 'Choose a category first' : 'Select'}</option>`
+    + groups.map(([label, list]) => `<optgroup label="${esc(label)}">${optionsHtml(list)}</optgroup>`).join('')
+    + '<option value="__other">Other…</option>';
+  sizeSel.value = sizeKnown ? size : '__other';
+  sizeOther.value = sizeKnown ? '' : size;
+  sizeOther.hidden = sizeKnown;
+}
+function setProductFields(dept, category, size) {
+  const form = document.getElementById('add-item-form');
+  form.querySelectorAll('input[name=department]').forEach(r => { r.checked = r.value === dept; });
+  refreshProductChoices(category || '', size || '');
+}
+function getCategoryField() {
+  const form = document.getElementById('add-item-form');
+  return form.elements.category_choice.value === '__other' ? form.elements.category_other.value.trim() : form.elements.category_choice.value;
 }
 function getSizeField() {
   const form = document.getElementById('add-item-form');
@@ -2519,17 +2592,22 @@ function updateListingFields() {
   if (listed && !locked && !form.elements.listed_date.value) form.elements.listed_date.value = isoDate(new Date());
 }
 
-// Suggestions for brand / category / purchase name from what's already entered.
+// Brand suggestions from what's already entered.
 function fillItemSuggestions() {
   const uniq = (vals, extra = []) => [...new Set([...vals, ...extra].map(v => (v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const opts = list => list.map(v => `<option value="${esc(v)}"></option>`).join('');
   document.getElementById('brand-options').innerHTML = opts(uniq(items.map(i => i.brand)));
-  document.getElementById('category-options').innerHTML = opts(uniq(items.map(i => i.category), ['Tops', 'Bottoms', 'Outerwear', 'Dresses', 'Footwear', 'Bags', 'Accessories']));
 }
 
 document.getElementById('add-item-form').addEventListener('input', e => {
   if (e.target.name === 'total_spent' || e.target.name === 'quantity') updateItemCostEach();
   if (e.target.name === 'status') updateListingFields();
+  if (e.target.name === 'department') refreshProductChoices();
+  if (e.target.name === 'category_choice') {
+    // A new category means a new size list; "Other" opens a text box.
+    refreshProductChoices();
+    if (e.target.value === '__other') e.currentTarget.elements.category_other.focus();
+  }
   if (e.target.name === 'size_choice') {
     const other = e.target.value === '__other';
     e.currentTarget.elements.size_other.hidden = !other;
@@ -2559,7 +2637,8 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
   const fields = {
     item_name: fd.get('item_name').trim(),
     brand: (fd.get('brand') || '').trim(),
-    category: (fd.get('category') || '').trim(),
+    department: fd.get('department') || '',
+    category: getCategoryField(),
     size: getSizeField(),
     color: (fd.get('color') || '').trim(),
     condition: fd.get('condition') || '',
@@ -3388,7 +3467,7 @@ function resetAddItemFormForCreate() {
   form.elements.purchase_date.value = isoDate(new Date());
   form.elements.purchase_time.value = nowTime();
   showOrderNumber(form, 'ai-order-no', newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value));
-  setSizeField('');
+  setProductFields('', '', '');
   form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = false; });
   formPhotos = [];
   fillItemSuggestions();
@@ -3407,8 +3486,7 @@ function editItem(item, originEl) {
   form.elements.editing_id.value = item.id;
   form.elements.item_name.value = item.item_name || '';
   form.elements.brand.value = item.brand || '';
-  form.elements.category.value = item.category || '';
-  setSizeField(item.size || '');
+  setProductFields(item.department || '', item.category || '', item.size || '');
   form.elements.color.value = item.color || '';
   form.elements.condition.value = item.condition || '';
   showOrderNumber(form, 'ai-order-no', item.purchase_order);
@@ -3792,8 +3870,8 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
   const kind = btn.dataset.export;
   let csv;
   if (kind === 'inventory') {
-    csv = toCsv(['ID', 'Item', 'Brand', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
-      items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
+    csv = toCsv(['ID', 'Item', 'Brand', 'Department', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
+      items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(DEPARTMENTS[i.department] || ''), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
         csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {

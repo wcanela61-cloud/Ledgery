@@ -858,6 +858,70 @@ tbody tr:hover { background: var(--bg); }
 .view { display: none; }
 .view.active { display: block; }
 
+/* The hidden attribute must win over component display rules (flex/grid). */
+[hidden] { display: none !important; }
+
+/* ---------- Added: header actions, period switch, welcome ---------- */
+.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 2px; }
+.seg button { border: none; background: none; color: var(--ink-muted); font-size: 0.7812rem; font-weight: 500; padding: 5px 10px; border-radius: calc(var(--radius) - 2px); }
+.seg button.active { background: var(--accent-soft); color: var(--accent-text); }
+.welcome { border-color: var(--accent); }
+.welcome .panel-body { padding: 18px 20px; }
+.welcome-title { margin: 0 0 4px; font-size: 1.0625rem; font-weight: 600; }
+.welcome-sub { color: var(--ink-muted); font-size: 0.8125rem; margin: 0 0 12px; }
+.welcome-steps { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 0.8438rem; }
+.welcome-steps li div { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+.link-btn { background: none; border: none; padding: 0; color: var(--accent-text); text-decoration: underline; font-size: inherit; cursor: pointer; }
+.badge-returned { background: var(--warning-soft); color: var(--warning-text); }
+.badge-cancelled { background: var(--bg); color: var(--ink-faint); border: 1px solid var(--border); }
+.btn-danger-outline { color: var(--danger); border-color: var(--danger); }
+.btn-danger-outline:hover { background: var(--danger-soft); border-color: var(--danger); }
+.data-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Sortable table headers */
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--ink); }
+th[data-sort].sorted { color: var(--accent-text); }
+th[data-sort].sorted::after { content: ' \25B2'; font-size: 0.6rem; }
+th[data-sort].sorted.desc::after { content: ' \25BC'; }
+table.table-narrow { min-width: 560px; }
+
+/* Undo toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ink); color: var(--bg);
+  padding: 10px 12px 10px 16px; border-radius: var(--radius);
+  font-size: 0.8125rem; box-shadow: 0 6px 24px rgba(0,0,0,0.25); max-width: calc(100vw - 32px);
+}
+.toast-undo { background: none; border: 1px solid currentColor; color: inherit; border-radius: var(--radius); padding: 4px 10px; font-weight: 600; font-size: 0.7812rem; }
+
+/* Platform fee editor */
+.fee-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; margin-top: 6px; }
+.fee-row { display: flex; align-items: center; gap: 6px; font-size: 0.7812rem; }
+.fee-row .fee-name { flex: 1; min-width: 0; }
+.fee-row input { width: 64px; padding: 5px 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--ink); font-family: var(--font-mono); font-size: 0.75rem; }
+.fee-row .fee-unit { color: var(--ink-faint); font-size: 0.7188rem; }
+
+/* Analytics */
+.an-chart { position: relative; }
+.an-chart svg { width: 100%; height: 240px; display: block; }
+.an-axis { font-size: 0.6875rem; fill: var(--ink-faint); font-family: var(--font-sans); }
+.an-tip {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px 10px; font-size: 0.75rem; color: var(--ink); white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.an-tip .tip-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-family: var(--font-mono); }
+.an-tip .tip-key { width: 8px; height: 8px; border-radius: 2px; }
+.an-details summary { cursor: pointer; font-size: 0.75rem; color: var(--ink-muted); margin-top: 10px; }
+.mini-table { width: 100%; min-width: 0; border-collapse: collapse; }
+.mini-table th, .mini-table td { padding: 7px 8px; font-size: 0.75rem; }
+.mini-table td.num, .mini-table th.num { text-align: right; font-family: var(--font-mono); }
+.table-scroll { overflow-x: auto; }
+
 @media (max-width: 720px) {
   /* Sidebar becomes a bottom tab bar so every page stays reachable. */
   .sidebar {
@@ -868,11 +932,34 @@ tbody tr:hover { background: var(--bg); }
   }
   .brand, .nav-active-pill { display: none; }
   .nav-item {
-    flex: 1 0 auto; width: auto; min-width: 54px;
-    flex-direction: column; gap: 2px; padding: 6px 4px;
-    font-size: 0.6875rem; text-align: center;
+    flex: 1 1 0; width: auto; min-width: 0;
+    flex-direction: column; gap: 2px; padding: 6px 2px;
+    font-size: 0.625rem; line-height: 1.2; text-align: center;
   }
   .nav-item.active { background: var(--accent-soft); }
+  .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Big tables become one card per row, each cell labelled. */
+  .table-wrap { background: none; border: none; overflow: visible; }
+  .table-wrap table, table.table-narrow { min-width: 0; }
+  .table-wrap thead { display: none; }
+  .table-wrap tbody tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .table-wrap tbody tr:hover { background: var(--surface); }
+  .table-wrap td { border: none; padding: 0; white-space: normal; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+  .table-wrap td::before { content: attr(data-label); font-size: 0.6562rem; color: var(--ink-faint); font-family: var(--font-sans); }
+  .table-wrap td.cell-title { grid-column: 1 / -1; }
+  .table-wrap td.cell-title::before { display: none; }
+  .table-wrap td.cell-action { grid-column: auto; flex-direction: row; justify-content: flex-start; }
+  .table-wrap td.cell-action::before { display: none; }
+  .table-wrap td.empty-note { grid-column: 1 / -1; text-align: center; }
+  .table-wrap tbody tr:has(td.empty-note) { display: block; }
+  .header-actions { width: 100%; }
+  .toolbar input[type="text"] { min-width: 0; flex: 1 1 100%; }
+  .toolbar select { flex: 1 1 0; min-width: 0; }
   .main { padding: 20px 16px calc(88px + env(safe-area-inset-bottom, 0px)); }
   .field-grid { grid-template-columns: 1fr; }
   .preview-grid { grid-template-columns: 1fr; }
@@ -892,11 +979,12 @@ tbody tr:hover { background: var(--bg); }
 <div class="app">
 
   <nav class="sidebar">
-    <div class="brand"><span class="brand-mark">Rs</span>Ledgerly</div>
+    <div class="brand"><span class="brand-mark">L</span>Ledgerly</div>
     <div class="nav-active-pill" id="nav-active-pill"></div>
     <button class="nav-item active" data-view="dashboard"><span class="nav-icon">&#9632;</span>Dashboard</button>
     <button class="nav-item" data-view="inventory"><span class="nav-icon">&#9638;</span>Inventory</button>
     <button class="nav-item" data-view="sales"><span class="nav-icon">&#9670;</span>Sales</button>
+    <button class="nav-item" data-view="expenses"><span class="nav-icon">&#9660;</span>Expenses</button>
     <button class="nav-item" data-view="smart-entry"><span class="nav-icon">&#9998;</span>Smart Entry</button>
     <button class="nav-item" data-view="analytics"><span class="nav-icon">&#9776;</span>Analytics</button>
     <button class="nav-item" data-view="settings"><span class="nav-icon">&#9881;</span>Settings</button>
@@ -911,7 +999,30 @@ tbody tr:hover { background: var(--bg); }
           <h1 class="page-title">Dashboard</h1>
           <div class="page-sub">Your inventory and sales at a glance</div>
         </div>
-        <button class="btn btn-primary" data-open="record-sale">Record sale</button>
+        <div class="header-actions">
+          <div class="seg" id="period-switch" role="group" aria-label="Dashboard period">
+            <button type="button" data-period="month">This month</button>
+            <button type="button" data-period="year">This year</button>
+            <button type="button" data-period="all">All time</button>
+          </div>
+          <button class="btn btn-primary" data-open="record-sale">Record sale</button>
+        </div>
+      </div>
+
+      <div class="panel welcome" id="welcome-panel" hidden>
+        <div class="panel-body">
+          <h2 class="welcome-title">Welcome to Ledgerly</h2>
+          <p class="welcome-sub">Track what you buy, what you sell, and what you actually make. Everything is saved in this browser.</p>
+          <ol class="welcome-steps">
+            <li><strong>Add something you bought.</strong> Put in what you paid, so profit can be worked out when it sells.
+              <div><button type="button" class="btn btn-sm btn-primary" data-open="add-item">Add your first item</button>
+              <button type="button" class="btn btn-sm" data-open="add-bundle">Add a bundle</button></div></li>
+            <li><strong>Record a sale.</strong> Fees are estimated for you. You can also add a new item right in the sale form.
+              <div><button type="button" class="btn btn-sm" data-open="record-sale">Record a sale</button></div></li>
+            <li><strong>Log business costs</strong> like packaging and shipping supplies on the Expenses page, so your profit is real.</li>
+          </ol>
+          <p class="welcome-sub">Coming from another device? <button type="button" class="link-btn" data-goto="settings">Restore a backup in Settings</button>.</p>
+        </div>
       </div>
 
       <div class="hero-grid" id="hero-grid"></div>
@@ -953,7 +1064,10 @@ tbody tr:hover { background: var(--bg); }
           <h1 class="page-title">Inventory</h1>
           <div class="page-sub"><span id="inv-count"></span> items</div>
         </div>
-        <button class="btn btn-primary" data-open="add-item">Add item</button>
+        <div class="header-actions">
+          <button class="btn" data-open="add-bundle">Add bundle</button>
+          <button class="btn btn-primary" data-open="add-item">Add item</button>
+        </div>
       </div>
       <div class="toolbar">
         <input type="text" id="inv-search" placeholder="Search name, category, size, color…">
@@ -969,11 +1083,11 @@ tbody tr:hover { background: var(--bg); }
         </select>
       </div>
       <div class="table-wrap">
-        <table>
+        <table id="inv-table">
           <thead>
             <tr>
-              <th>Item</th><th>Platform</th><th>Category</th><th>Size</th>
-              <th>Purchase cost</th><th>Status</th><th>Sale price</th><th>Profit</th><th>Date</th><th></th><th></th>
+              <th data-sort="name">Item</th><th data-sort="platform">Platform</th><th data-sort="category">Category</th><th data-sort="size">Size</th>
+              <th data-sort="cost">Purchase cost</th><th data-sort="status">Status</th><th data-sort="price">Sale price</th><th data-sort="profit">Profit</th><th data-sort="date">Date</th><th></th><th></th>
             </tr>
           </thead>
           <tbody id="inv-tbody"></tbody>
@@ -986,16 +1100,49 @@ tbody tr:hover { background: var(--bg); }
       <div class="page-header">
         <div>
           <h1 class="page-title">Sales</h1>
-          <div class="page-sub">Every recorded sale, newest first</div>
+          <div class="page-sub"><span id="sales-count"></span> sales &middot; click a column to sort</div>
         </div>
         <button class="btn btn-primary" data-open="record-sale">Record sale</button>
       </div>
+      <div class="toolbar">
+        <input type="text" id="sales-search" placeholder="Search item, platform, order number…">
+        <select id="sales-status-filter">
+          <option value="">All statuses</option>
+          <option value="completed">Completed</option>
+          <option value="returned">Returned</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select id="sales-platform-filter"><option value="">All platforms</option></select>
+      </div>
       <div class="table-wrap">
-        <table>
+        <table id="sales-table">
           <thead>
-            <tr><th>Item</th><th>Platform</th><th>Sale price</th><th>Costs</th><th>Net profit</th><th>Margin</th><th>Date</th><th>Status</th><th></th><th></th></tr>
+            <tr><th data-sort="name">Item</th><th data-sort="platform">Platform</th><th data-sort="price">Sale price</th><th data-sort="costs">Costs</th><th data-sort="profit">Net profit</th><th data-sort="margin">Margin</th><th data-sort="date">Date</th><th data-sort="status">Status</th><th></th><th></th></tr>
           </thead>
           <tbody id="sales-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section class="view" id="view-expenses">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Expenses</h1>
+          <div class="page-sub">Business costs not tied to one item. They're subtracted from your profit on the Dashboard.</div>
+        </div>
+        <button class="btn btn-primary" data-open="expense">Add expense</button>
+      </div>
+      <div class="stat-grid" id="expense-stats"></div>
+      <div class="toolbar">
+        <input type="text" id="exp-search" placeholder="Search description or category…">
+      </div>
+      <div class="table-wrap">
+        <table id="expenses-table" class="table-narrow">
+          <thead>
+            <tr><th data-sort="description">Description</th><th data-sort="category">Category</th><th data-sort="date">Date</th><th data-sort="amount">Amount</th><th></th><th></th></tr>
+          </thead>
+          <tbody id="exp-tbody"></tbody>
         </table>
       </div>
     </section>
@@ -1011,11 +1158,11 @@ tbody tr:hover { background: var(--bg); }
 
       <div class="se-box">
         <textarea id="se-input" placeholder="e.g. Sold Patagonia fleece on Depop for $65. Bought it for $30. Fees were $4. Shipping was $7. Sold September 21."></textarea>
-        <div class="se-examples">This uses a mocked parser for the preview — swap in a real model later without touching the rest of the app.</div>
+        <div class="se-examples">This is a basic text reader, not AI — it looks for words like "sold", "bought", "fees" and "shipping". Always check the fields before saving. Missing fees are estimated from the platform.</div>
         <button class="btn btn-primary" id="se-parse-btn">Parse entry</button>
         <div class="se-flow-note">
           <span class="flow-step">Your text</span><span class="flow-arrow">&rarr;</span>
-          <span class="flow-step">Parser (mock)</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">Text reader</span><span class="flow-arrow">&rarr;</span>
           <span class="flow-step">Draft</span><span class="flow-arrow">&rarr;</span>
           <span class="flow-step">Validate</span><span class="flow-arrow">&rarr;</span>
           <span class="flow-step">You review</span><span class="flow-arrow">&rarr;</span>
@@ -1041,13 +1188,27 @@ tbody tr:hover { background: var(--bg); }
 
     <!-- ANALYTICS (stub) -->
     <section class="view" id="view-analytics">
-      <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">Not built yet</div></div></div>
-      <div class="panel"><div class="panel-body"><p class="empty-note">Deeper trend analysis comes after the core tracking flow is solid.</p></div></div>
+      <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">All-time performance across your sales, inventory and expenses</div></div></div>
+      <div class="stat-grid" id="an-stats"></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Revenue and net profit by month</h3><span class="page-sub" style="margin:0">last 12 months &middot; net profit is after expenses</span></div>
+        <div class="panel-body"><div id="an-monthly"></div></div>
+      </div>
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-head"><h3>By platform</h3><span class="page-sub" style="margin:0">completed sales</span></div>
+          <div class="panel-body table-scroll" id="an-platforms"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>By category</h3><span class="page-sub" style="margin:0">completed sales</span></div>
+          <div class="panel-body table-scroll" id="an-categories"></div>
+        </div>
+      </div>
     </section>
 
     <!-- SETTINGS -->
     <section class="view" id="view-settings">
-      <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Account, currency, and appearance</div></div></div>
+      <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Appearance, platform fees, and your data</div></div></div>
 
       <div class="panel">
         <div class="panel-head"><h3>Appearance</h3><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
@@ -1078,12 +1239,34 @@ tbody tr:hover { background: var(--bg); }
       </div>
 
       <div class="panel">
-        <div class="panel-head"><h3>Data</h3><span class="page-sub" style="margin:0">Items and sales are saved in this browser</span></div>
+        <div class="panel-head"><h3>Platform fees</h3><span class="page-sub" style="margin:0">Used to pre-fill fees when you record a sale</span></div>
         <div class="panel-body">
-          <button type="button" class="btn" id="reset-data-btn">Erase all data</button>
+          <div id="fee-rate-rows" class="fee-rows"></div>
+          <div class="custom-note">Starting values are US rates as of September 2026. Platforms change fees often, so check yours and edit these. Poshmark charges a flat $2.95 on sales under $15. You can always overwrite the fee on any sale.</div>
+          <div style="margin-top:12px"><button type="button" class="reset-link" id="reset-fee-rates">Reset to starting values</button></div>
         </div>
       </div>
-      <div class="panel"><div class="panel-body"><p class="empty-note">Account and currency settings will live here.</p></div></div>
+
+      <div class="panel" id="data-panel">
+        <div class="panel-head"><h3>Data &amp; backup</h3><span class="page-sub" style="margin:0" id="last-backup-note"></span></div>
+        <div class="panel-body">
+          <p class="custom-note" style="margin-top:4px">Your data lives only in this browser. Clearing browser data, using a private window or switching devices will lose it, so download a backup now and then.</p>
+          <div class="data-actions">
+            <button type="button" class="btn btn-primary" id="backup-btn">Download backup</button>
+            <button type="button" class="btn" id="restore-btn">Restore from backup</button>
+            <input type="file" id="restore-file" accept=".json,application/json" hidden>
+          </div>
+          <div class="field-hint" style="margin:14px 0 8px">Spreadsheet exports (CSV)</div>
+          <div class="data-actions">
+            <button type="button" class="btn btn-sm" data-export="inventory">Inventory</button>
+            <button type="button" class="btn btn-sm" data-export="sales">Sales</button>
+            <button type="button" class="btn btn-sm" data-export="expenses">Expenses</button>
+          </div>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+            <button type="button" class="btn btn-danger-outline" id="reset-data-btn">Erase all data</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -1134,6 +1317,8 @@ tbody tr:hover { background: var(--bg); }
       <input type="hidden" name="editing_id">
       <div class="field-grid">
         <div class="field full"><label>Item *</label><select required name="item_id" id="rs-item-select"></select></div>
+        <div class="field" data-new-item hidden><label>New item name *</label><input name="new_item_name" placeholder="Black tracksuit"></div>
+        <div class="field" data-new-item hidden><label>What you paid</label><input name="new_item_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
         <div class="field"><label>Platform *</label>
           <select required name="platform">
             <option value="">Select</option>
@@ -1142,7 +1327,7 @@ tbody tr:hover { background: var(--bg); }
           </select>
         </div>
         <div class="field"><label>Sale price *</label><input required name="sale_price" type="number" step="0.01" min="0"></div>
-        <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
+        <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"><span class="field-hint" id="rs-fee-hint"></span></div>
         <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
         <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
         <div class="field"><label>Order number</label><input name="order_number"></div>
@@ -1164,7 +1349,60 @@ tbody tr:hover { background: var(--bg); }
   </div>
 </div>
 
-<!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
+<!-- EXPENSE MODAL -->
+<div class="overlay" id="overlay-expense">
+  <div class="modal">
+    <div class="modal-head"><h3 id="expense-modal-title">Add expense</h3><button class="close-x" data-close>&times;</button></div>
+    <p class="modal-sub">A business cost that isn't part of one item's purchase price.</p>
+    <form id="expense-form">
+      <input type="hidden" name="editing_id">
+      <div class="field-grid">
+        <div class="field"><label>Date *</label><input required name="expense_date" type="date"></div>
+        <div class="field"><label>Amount *</label><input required name="amount" type="number" step="0.01" min="0"></div>
+        <div class="field full"><label>Category</label>
+          <select name="category">
+            <option>Shipping supplies</option><option>Packaging</option><option>Subscriptions &amp; tools</option>
+            <option>Boosts &amp; promotion</option><option>Mileage &amp; travel</option><option>Equipment</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field full"><label>Description</label><input name="description" placeholder="Poly mailers, 100 pack"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="expense-submit-btn">Save expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- BUNDLE MODAL — one purchase, cost split across several items -->
+<div class="overlay" id="overlay-add-bundle">
+  <div class="modal">
+    <div class="modal-head"><h3>Add bundle</h3><button class="close-x" data-close>&times;</button></div>
+    <p class="modal-sub">Bought several items together for one price? The total is split evenly across them.</p>
+    <form id="bundle-form">
+      <div class="field-grid">
+        <div class="field"><label>Total paid *</label><input required name="total_cost" type="number" step="0.01" min="0"></div>
+        <div class="field"><label>Purchase date</label><input name="purchase_date" type="date"></div>
+        <div class="field"><label>Supplier</label><input name="supplier" placeholder="Estate sale"></div>
+        <div class="field"><label>Storage location</label><input name="storage_location" placeholder="Bin 3"></div>
+        <div class="field full"><label>Items * <span class="field-hint">one per line</span></label><textarea required name="item_names" rows="5" placeholder="Levi's 501 jeans&#10;Champion hoodie&#10;Nike Air Max 90"></textarea></div>
+      </div>
+      <div class="calc-box" id="bundle-calc"><div class="calc-item"><div class="calc-label">Each item's cost</div><div class="calc-val" id="bundle-each">&mdash;</div></div></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Add items</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span id="toast-msg"></span>
+  <button type="button" class="toast-undo" id="toast-undo">Undo</button>
+</div>
+
+<!-- DELETE CONFIRM MODAL — shared by Inventory, Sales and Expenses -->
 <div class="overlay" id="overlay-confirm-delete">
   <div class="modal confirm-modal">
     <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button class="close-x" data-close>&times;</button></div>
@@ -1191,6 +1429,9 @@ function money(dollars) { return Math.round(dollars * 100); }
 // Everyone starts with an empty ledger; items and sales are added in the app.
 const items = [];
 const sales = [];
+// Business costs not tied to one item (supplies, subscriptions, mileage…).
+const expenses = [];
+let nextExpenseId = 1;
 
 /* =========================================================
    PERSISTENCE
@@ -1200,11 +1441,13 @@ const sales = [];
 // v2: a new key so browsers that saved the old sample data start empty.
 const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
-function replaceData(newItems, newSales) {
+function replaceData(newItems, newSales, newExpenses) {
   items.splice(0, items.length, ...newItems);
   sales.splice(0, sales.length, ...newSales);
+  expenses.splice(0, expenses.length, ...(newExpenses || []));
   nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
+  nextExpenseId = expenses.reduce((max, x) => Math.max(max, x.id), 0) + 1;
 }
 
 function loadData() {
@@ -1213,21 +1456,73 @@ function loadData() {
     if (!raw) return;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed.items) && Array.isArray(parsed.sales)) {
-      replaceData(parsed.items, parsed.sales);
+      replaceData(parsed.items, parsed.sales, Array.isArray(parsed.expenses) ? parsed.expenses : []);
     }
   } catch (e) {}
 }
 
 function saveData() {
-  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales })); } catch (e) {}
+  try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ items, sales, expenses })); } catch (e) {}
 }
 
 function resetData() {
-  replaceData([], []);
+  replaceData([], [], []);
   try { localStorage.removeItem(DATA_STORAGE_KEY); } catch (e) {}
 }
 
+// A deep copy of everything, used to undo a delete or an erase.
+function snapshotData() {
+  return JSON.parse(JSON.stringify({ items, sales, expenses }));
+}
+
 loadData();
+
+/* =========================================================
+   PLATFORM FEE ESTIMATES
+   Pre-fills the fee field when recording a sale. US rates as of
+   Sept 2026 — platforms change these often, so every rate is
+   editable in Settings and the fee field can always be overwritten.
+   pct = % of sale price, fixed = flat cents per order.
+   Poshmark charges a flat $2.95 below $15 instead of its percentage.
+   ========================================================= */
+const DEFAULT_FEE_RATES = {
+  'Depop': { pct: 3.3, fixed: 45 },            // no selling fee, payment processing only
+  'Vinted': { pct: 0, fixed: 0 },              // buyer pays the fees
+  'eBay': { pct: 13.6, fixed: 40 },
+  'Grailed': { pct: 12.49, fixed: 49 },        // 9% commission + ~3.49% + $0.49 processing
+  'Poshmark': { pct: 20, fixed: 0, flatBelow: 1500, flatFee: 295 },
+  'Facebook Marketplace': { pct: 5, fixed: 0 }, // shipped orders; local pickup is free
+  'Instagram': { pct: 0, fixed: 0 },
+  'Other': { pct: 0, fixed: 0 },
+};
+const FEE_RATES_STORAGE_KEY = 'ledgerly-fee-rates';
+
+function getFeeRates() {
+  const rates = JSON.parse(JSON.stringify(DEFAULT_FEE_RATES));
+  try {
+    const saved = JSON.parse(localStorage.getItem(FEE_RATES_STORAGE_KEY) || 'null');
+    if (saved) Object.keys(rates).forEach(p => { if (saved[p]) Object.assign(rates[p], saved[p]); });
+  } catch (e) {}
+  return rates;
+}
+function saveFeeRates(rates) {
+  try { localStorage.setItem(FEE_RATES_STORAGE_KEY, JSON.stringify(rates)); } catch (e) {}
+}
+
+// Estimated fee in cents, or null when there's nothing to estimate.
+function estimateFeeCents(platform, salePriceCents) {
+  const rate = getFeeRates()[platform];
+  if (!rate || !salePriceCents || salePriceCents <= 0) return null;
+  if (rate.flatBelow && salePriceCents < rate.flatBelow) return rate.flatFee;
+  return Math.round(salePriceCents * rate.pct / 100) + (rate.fixed || 0);
+}
+function describeFeeRate(platform) {
+  const rate = getFeeRates()[platform];
+  if (!rate) return '';
+  let text = `${rate.pct}%` + (rate.fixed ? ` + $${(rate.fixed / 100).toFixed(2)}` : '');
+  if (rate.flatBelow) text += ` ($${(rate.flatFee / 100).toFixed(2)} flat under $${(rate.flatBelow / 100).toFixed(0)})`;
+  return text;
+}
 
 const PLATFORMS = ['Depop', 'Vinted', 'eBay', 'Grailed', 'Poshmark', 'Facebook Marketplace', 'Instagram', 'Other'];
 
@@ -1271,6 +1566,43 @@ function daysSince(d) {
   const dt = new Date(d + 'T00:00:00');
   return Math.floor((Date.now() - dt.getTime()) / 86400000);
 }
+function daysBetween(from, to) {
+  return Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / 86400000);
+}
+// YYYY-MM-DD from a Date, using the local calendar (not UTC).
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* =========================================================
+   DASHBOARD PERIOD — This month / This year / All time.
+   periodRange(p, 0) is the current period (to its end, so a
+   sale dated later this month still counts); periodRange(p, 1)
+   is the previous one only up to the same point, so trends
+   compare like with like.
+   ========================================================= */
+const PERIOD_LABELS = { month: 'This month', year: 'This year', all: 'All time' };
+const PERIOD_STORAGE_KEY = 'ledgerly-dash-period';
+let dashPeriod = 'all';
+try { const saved = localStorage.getItem(PERIOD_STORAGE_KEY); if (PERIOD_LABELS[saved]) dashPeriod = saved; } catch (e) {}
+
+function periodRange(period, back) {
+  if (period === 'all') return null;
+  const now = new Date();
+  const clampDay = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+  if (period === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    const end = back === 0
+      ? new Date(start.getFullYear(), start.getMonth() + 1, 0)
+      : clampDay(start.getFullYear(), start.getMonth(), now.getDate());
+    return { start: isoDate(start), end: isoDate(end) };
+  }
+  const y = now.getFullYear() - back;
+  return { start: `${y}-01-01`, end: back === 0 ? `${y}-12-31` : isoDate(clampDay(y, now.getMonth(), now.getDate())) };
+}
+function inRange(date, range) {
+  return !range || (!!date && date >= range.start && date <= range.end);
+}
 function itemById(id) { return items.find(i => i.id === id); }
 
 // Escape user-entered text before it goes into innerHTML, so names
@@ -1313,49 +1645,46 @@ function buildSparkline(values, colorVar) {
   </svg>`;
 }
 
-function renderHero(completedSales) {
-  const chrono = [...completedSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date));
-  const withProfit = chrono.map(s => ({ sale: s, r: calcProfit(s, itemById(s.item_id)) }));
+function renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents) {
+  const chrono = [...periodSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date));
+  const profitOf = s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : 0; };
+  const sumRevenue = list => list.reduce((t, s) => t + s.sale_price_cents, 0);
+  const sumProfit = list => list.reduce((t, s) => t + profitOf(s), 0);
 
-  const revenueSeries = chrono.map(s => s.sale_price_cents / 100);
-  const profitSeries = withProfit.map(x => (x.r.isComplete ? x.r.netProfitCents : 0) / 100);
+  const totalRevenue = sumRevenue(chrono);
+  const salesProfit = sumProfit(chrono);
+  const totalProfit = salesProfit - periodExpenseCents;
 
-  // Trend: last 30 days vs. the 30 days before that, by sale date.
-  const revOf = x => x.sale.sale_price_cents;
-  const profOf = x => (x.r.isComplete ? x.r.netProfitCents : 0);
-  const sumBetween = (fromDays, toDays, valueOf) => withProfit
-    .filter(x => { const d = daysSince(x.sale.sale_date); return d < toDays && (fromDays === null || d >= fromDays); })
-    .reduce((total, x) => total + valueOf(x), 0);
-  // No sales in the prior window means there's nothing to compare to.
+  // Trend: this period so far vs. the same point in the previous one.
   const pctChange = (now, prev) => (prev === 0 ? null : Math.round(((now - prev) / Math.abs(prev)) * 100));
-  const revTrend = pctChange(sumBetween(null, 30, revOf), sumBetween(30, 60, revOf));
-  const profTrend = pctChange(sumBetween(null, 30, profOf), sumBetween(30, 60, profOf));
+  const hasTrend = dashPeriod !== 'all';
+  const revTrend = hasTrend ? pctChange(totalRevenue, sumRevenue(prevSales)) : null;
+  const profTrend = hasTrend ? pctChange(totalProfit, sumProfit(prevSales) - prevExpenseCents) : null;
+  const vsText = dashPeriod === 'month' ? 'vs. same point last month' : 'vs. same point last year';
   const trendBadge = t => (t === null ? ''
-    : `<span class="hero-trend ${t >= 0 ? 'up' : 'down'}" title="Last 30 days vs. the 30 days before">${t >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(t)}%</span>`);
-
-  const totalRevenue = withProfit.reduce((total, x) => total + revOf(x), 0);
-  const totalProfit = withProfit.reduce((total, x) => total + profOf(x), 0);
+    : `<span class="hero-trend ${t >= 0 ? 'up' : 'down'}" title="${vsText}">${t >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(t)}%</span>`);
+  const periodName = PERIOD_LABELS[dashPeriod];
 
   document.getElementById('hero-grid').innerHTML = `
     <div class="hero-card revenue">
       <div class="hero-shape"></div>
       <div class="hero-top">
-        <span class="hero-label">Total revenue</span>
+        <span class="hero-label">Revenue &middot; ${periodName}</span>
         ${trendBadge(revTrend)}
       </div>
       <div class="hero-value">${fmtCents(totalRevenue)}</div>
-      <div class="hero-sub">${chrono.length} sales &middot; trend is last 30 days vs. prior 30</div>
-      ${buildSparkline(revenueSeries, '--accent')}
+      <div class="hero-sub">${chrono.length} sale${chrono.length === 1 ? '' : 's'}${hasTrend ? ' &middot; badge is ' + vsText : ''}</div>
+      ${buildSparkline(chrono.map(s => s.sale_price_cents / 100), '--accent')}
     </div>
     <div class="hero-card profit">
       <div class="hero-shape"></div>
       <div class="hero-top">
-        <span class="hero-label">Net profit</span>
+        <span class="hero-label">Net profit &middot; ${periodName}</span>
         ${trendBadge(profTrend)}
       </div>
       <div class="hero-value">${fmtCents(totalProfit)}</div>
-      <div class="hero-sub">complete sales only &middot; trend is last 30 days vs. prior 30</div>
-      ${buildSparkline(profitSeries, '--success')}
+      <div class="hero-sub">${periodExpenseCents ? `sales profit ${fmtCents(salesProfit)} &minus; expenses ${fmtCents(periodExpenseCents)}` : 'complete sales only &middot; no expenses logged'}</div>
+      ${buildSparkline(chrono.map(s => profitOf(s) / 100), '--success')}
     </div>
   `;
   return { totalRevenue, totalProfit };
@@ -1394,8 +1723,10 @@ function renderTrendChart(completedSales) {
     + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1" opacity="0.5"></line>`;
 
   const labelEvery = Math.ceil(chrono.length / 6);
-  const labels = chrono.map((s, i) => i % labelEvery === 0 || i === chrono.length - 1
-    ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${fmtDate(s.sale_date).replace('&mdash;', '').split(',')[0]}</text>`
+  const last = chrono.length - 1;
+  // Label every Nth sale plus the last one, skipping any that would crowd the last label.
+  const labels = chrono.map((s, i) => (i % labelEvery === 0 && (i === 0 || last - i >= labelEvery)) || i === last
+    ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="${i === 0 ? 'start' : i === chrono.length - 1 ? 'end' : 'middle'}">${fmtDate(s.sale_date).replace('&mdash;', '').split(',')[0]}</text>`
     : '').join('');
 
   const dots = chrono.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(revenues[i]).toFixed(1)}" r="2.5" fill="var(--accent)"></circle>`).join('')
@@ -1458,9 +1789,20 @@ function renderInventoryDonut() {
 }
 
 function renderDashboard() {
+  const range = periodRange(dashPeriod, 0);
+  const prevRange = dashPeriod === 'all' ? null : periodRange(dashPeriod, 1);
   const completedSales = sales.filter(s => s.status === 'completed');
+  const periodSales = completedSales.filter(s => inRange(s.sale_date, range));
+  const prevSales = prevRange ? completedSales.filter(s => inRange(s.sale_date, prevRange)) : [];
+  const expenseTotal = r => expenses.filter(x => inRange(x.expense_date, r)).reduce((t, x) => t + x.amount_cents, 0);
+  const periodExpenseCents = expenseTotal(range);
+  const prevExpenseCents = prevRange ? expenseTotal(prevRange) : 0;
+
+  document.getElementById('welcome-panel').hidden = !(items.length === 0 && sales.length === 0 && expenses.length === 0);
+  document.querySelectorAll('#period-switch [data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === dashPeriod));
+
   let completeCount = 0, incompleteCount = 0, totalProfitCheck = 0;
-  completedSales.forEach(s => {
+  periodSales.forEach(s => {
     const r = calcProfit(s, itemById(s.item_id));
     if (r.isComplete) { completeCount++; totalProfitCheck += r.netProfitCents; }
     else incompleteCount++;
@@ -1468,14 +1810,15 @@ function renderDashboard() {
   const avgProfit = completeCount ? Math.round(totalProfitCheck / completeCount) : null;
   const activeInventory = items.filter(i => i.status === 'unsold' || i.status === 'listed').length;
 
-  renderHero(completedSales);
-  renderTrendChart(completedSales);
+  renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents);
+  renderTrendChart(periodSales);
   renderInventoryDonut();
 
   const tiles = [
-    { label: 'Items sold', value: completedSales.length, plain: true },
+    { label: 'Items sold', value: periodSales.length, plain: true },
     { label: 'Active inventory', value: activeInventory, plain: true },
     { label: 'Avg profit / sale', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit) },
+    { label: 'Expenses', value: fmtCents(periodExpenseCents) },
   ];
   document.getElementById('stat-grid').innerHTML = tiles.map(t => `
     <div class="stat-tile">
@@ -1483,7 +1826,7 @@ function renderDashboard() {
       <div class="stat-value ${t.plain ? '' : 'mono'}">${t.value}</div>
     </div>`).join('') + (incompleteCount ? `<div class="stat-tile warn"><div class="stat-label">Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div></div>` : '');
 
-  // Recent sales
+  // Recent sales (always the latest five, whatever the period)
   const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date)).slice(0, 5);
   document.getElementById('recent-sales').innerHTML = recent.length ? recent.map(s => {
     const item = itemById(s.item_id);
@@ -1491,15 +1834,15 @@ function renderDashboard() {
     return `<div class="row-line">
       <div>
         <div class="row-title">${item ? esc(item.item_name) : 'Unknown item'}</div>
-        <div class="row-sub">${esc(s.platform)} &middot; ${fmtDate(s.sale_date)}</div>
+        <div class="row-sub">${esc(s.platform)} &middot; ${fmtDate(s.sale_date)}${s.status !== 'completed' ? ' &middot; ' + esc(s.status) : ''}</div>
       </div>
       <div class="row-amt ${r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
     </div>`;
   }).join('') : '<div class="empty-note">No sales recorded yet.</div>';
 
-  // Platform breakdown (by profit, complete sales only)
+  // Platform breakdown (by profit, complete sales in the period)
   const byPlatform = {};
-  completedSales.forEach(s => {
+  periodSales.forEach(s => {
     const r = calcProfit(s, itemById(s.item_id));
     if (!r.isComplete) return;
     byPlatform[s.platform] = (byPlatform[s.platform] || 0) + r.netProfitCents;
@@ -1511,7 +1854,7 @@ function renderDashboard() {
       <div class="bar-label">${esc(p)}</div>
       <div class="bar-track"><div class="bar-fill" data-target-width="${Math.max(4, (val / maxVal) * 100)}" style="width:0%"></div></div>
       <div class="bar-val">${fmtCents(val)}</div>
-    </div>`).join('') : '<div class="empty-note">No complete sales yet.</div>';
+    </div>`).join('') : `<div class="empty-note">No complete sales ${dashPeriod === 'all' ? 'yet' : PERIOD_LABELS[dashPeriod].toLowerCase()}.</div>`;
   requestAnimationFrame(() => {
     document.querySelectorAll('#platform-breakdown .bar-fill').forEach(el => {
       el.style.width = el.dataset.targetWidth + '%';
@@ -1532,8 +1875,42 @@ function renderDashboard() {
 }
 
 /* =========================================================
-   INVENTORY PAGE
+   TABLE SORTING — shared by Inventory, Sales and Expenses.
+   Click a column header to sort; click again to flip. Blank
+   values always sort last.
    ========================================================= */
+const sortState = {
+  inv: { key: 'date', dir: 'desc' },
+  sales: { key: 'date', dir: 'desc' },
+  exp: { key: 'date', dir: 'desc' },
+};
+function sortRows(rows, valueOf, state) {
+  const dir = state.dir === 'asc' ? 1 : -1;
+  return rows.sort((a, b) => {
+    const va = valueOf(a, state.key), vb = valueOf(b, state.key);
+    const aBlank = va === null || va === undefined || va === '', bBlank = vb === null || vb === undefined || vb === '';
+    if (aBlank || bBlank) return aBlank === bBlank ? 0 : (aBlank ? 1 : -1);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb), undefined, { sensitivity: 'base', numeric: true }) * dir;
+  });
+}
+function markSortHeaders(tableId, state) {
+  document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+    th.classList.toggle('sorted', th.dataset.sort === state.key);
+    th.classList.toggle('desc', th.dataset.sort === state.key && state.dir === 'desc');
+    th.setAttribute('aria-sort', th.dataset.sort === state.key ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+  });
+}
+function wireSortHeaders(tableId, state, rerender) {
+  document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+    th.addEventListener('click', () => {
+      if (state.key === th.dataset.sort) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+      else { state.key = th.dataset.sort; state.dir = ['name', 'platform', 'category', 'size', 'status', 'description'].includes(th.dataset.sort) ? 'asc' : 'desc'; }
+      rerender();
+    });
+  });
+}
+
 function statusBadge(status) {
   return `<span class="badge badge-${esc(status)}">${esc(status.charAt(0).toUpperCase() + status.slice(1))}</span>`;
 }
@@ -1544,8 +1921,9 @@ function renderInventory() {
   const platformFilter = document.getElementById('inv-platform-filter').value;
 
   let rows = items.map(item => {
-    const sale = sales.find(s => s.item_id === item.id);
-    return { item, sale };
+    // Prefer the completed sale; fall back to a returned/cancelled one.
+    const sale = sales.find(s => s.item_id === item.id && s.status === 'completed') || sales.find(s => s.item_id === item.id);
+    return { item, sale, r: sale ? calcProfit(sale, item) : null };
   });
 
   rows = rows.filter(({ item, sale }) => {
@@ -1558,32 +1936,40 @@ function renderInventory() {
     return true;
   });
 
-  document.getElementById('inv-count').textContent = rows.length;
+  const valueOf = ({ item, sale, r }, key) => ({
+    name: item.item_name, platform: sale && sale.platform, category: item.category, size: item.size,
+    cost: item.purchase_cost_cents, status: item.status, price: sale && sale.sale_price_cents,
+    profit: r && r.isComplete ? r.netProfitCents : null, date: sale ? sale.sale_date : item.purchase_date,
+  })[key];
+  sortRows(rows, valueOf, sortState.inv);
+  markSortHeaders('inv-table', sortState.inv);
 
-  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale }) => {
-    const r = sale ? calcProfit(sale, item) : null;
-    return `<tr>
-      <td><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${esc(item.category || '')}${item.size ? ' &middot; ' + esc(item.size) : ''}</div></td>
-      <td>${sale ? esc(sale.platform) : '&mdash;'}</td>
-      <td>${item.category ? esc(item.category) : '&mdash;'}</td>
-      <td>${item.size ? esc(item.size) : '&mdash;'}</td>
-      <td class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
-      <td>${statusBadge(item.status)}</td>
-      <td class="num">${sale ? fmtCents(sale.sale_price_cents) : '&mdash;'}</td>
-      <td class="num">${sale ? (r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
-      <td>${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
-      <td><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
-      <td><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="11" class="empty-note">No items match your filters.</td></tr>`;
+  document.getElementById('inv-count').textContent = rows.length;
+  const emptyMsg = items.length ? 'No items match your filters.' : 'No items yet. Use "Add item" or "Add bundle" to add what you bought.';
+
+  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr>
+      <td class="cell-title"><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${esc(item.category || '')}${item.size ? ' &middot; ' + esc(item.size) : ''}</div></td>
+      <td data-label="Platform">${sale ? esc(sale.platform) : '&mdash;'}</td>
+      <td data-label="Category">${item.category ? esc(item.category) : '&mdash;'}</td>
+      <td data-label="Size">${item.size ? esc(item.size) : '&mdash;'}</td>
+      <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
+      <td data-label="Status">${statusBadge(item.status)}</td>
+      <td data-label="Sale price" class="num">${sale ? fmtCents(sale.sale_price_cents) : '&mdash;'}</td>
+      <td data-label="Profit" class="num">${sale ? (r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
+      <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
+    </tr>`).join('') : `<tr><td colspan="11" class="empty-note">${emptyMsg}</td></tr>`;
 }
 
 function populatePlatformFilter() {
-  const sel = document.getElementById('inv-platform-filter');
-  PLATFORMS.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p; opt.textContent = p;
-    sel.appendChild(opt);
+  ['inv-platform-filter', 'sales-platform-filter'].forEach(id => {
+    const sel = document.getElementById(id);
+    PLATFORMS.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
   });
 }
 
@@ -1591,24 +1977,46 @@ function populatePlatformFilter() {
    SALES PAGE
    ========================================================= */
 function renderSales() {
-  const rows = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date));
-  document.getElementById('sales-tbody').innerHTML = rows.length ? rows.map(s => {
+  const search = document.getElementById('sales-search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('sales-status-filter').value;
+  const platformFilter = document.getElementById('sales-platform-filter').value;
+
+  let rows = sales.map(s => {
     const item = itemById(s.item_id);
-    const r = calcProfit(s, item);
     const costsKnown = [s.platform_fees_cents, s.shipping_cost_cents, s.other_costs_cents].every(c => c !== null);
-    return `<tr>
-      <td class="item-name">${item ? esc(item.item_name) : 'Unknown'}</td>
-      <td>${esc(s.platform)}</td>
-      <td class="num">${fmtCents(s.sale_price_cents)}</td>
-      <td class="num">${costsKnown ? fmtCents(s.platform_fees_cents + s.shipping_cost_cents + s.other_costs_cents) : '<span class="badge badge-incomplete">Partial</span>'}</td>
-      <td class="num">${r.isComplete ? fmtCents(r.netProfitCents) : '&mdash;'}</td>
-      <td class="num">${r.isComplete ? fmtBps(r.marginBps) : '&mdash;'}</td>
-      <td>${fmtDate(s.sale_date)}</td>
-      <td style="text-transform:capitalize">${esc(s.status)}</td>
-      <td><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
-      <td><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="10" class="empty-note">No sales yet.</td></tr>`;
+    return { s, item, r: calcProfit(s, item), costs: costsKnown ? s.platform_fees_cents + s.shipping_cost_cents + s.other_costs_cents : null };
+  }).filter(({ s, item }) => {
+    if (search) {
+      const haystack = [item ? item.item_name : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    if (statusFilter && s.status !== statusFilter) return false;
+    if (platformFilter && s.platform !== platformFilter) return false;
+    return true;
+  });
+
+  const valueOf = ({ s, item, r, costs }, key) => ({
+    name: item ? item.item_name : null, platform: s.platform, price: s.sale_price_cents, costs,
+    profit: r.isComplete ? r.netProfitCents : null, margin: r.isComplete ? r.marginBps : null,
+    date: s.sale_date, status: s.status,
+  })[key];
+  sortRows(rows, valueOf, sortState.sales);
+  markSortHeaders('sales-table', sortState.sales);
+  document.getElementById('sales-count').textContent = rows.length;
+
+  const emptyMsg = sales.length ? 'No sales match your filters.' : 'No sales yet. Use "Record sale" when something sells.';
+  document.getElementById('sales-tbody').innerHTML = rows.length ? rows.map(({ s, item, r, costs }) => `<tr>
+      <td class="cell-title item-name">${item ? esc(item.item_name) : 'Unknown'}</td>
+      <td data-label="Platform">${esc(s.platform)}</td>
+      <td data-label="Sale price" class="num">${fmtCents(s.sale_price_cents)}</td>
+      <td data-label="Costs" class="num">${costs !== null ? fmtCents(costs) : '<span class="badge badge-incomplete">Partial</span>'}</td>
+      <td data-label="Net profit" class="num">${r.isComplete ? fmtCents(r.netProfitCents) : '&mdash;'}</td>
+      <td data-label="Margin" class="num">${r.isComplete ? fmtBps(r.marginBps) : '&mdash;'}</td>
+      <td data-label="Date">${fmtDate(s.sale_date)}</td>
+      <td data-label="Status"><span class="badge badge-${s.status === 'completed' ? 'sold' : esc(s.status)}">${esc(s.status.charAt(0).toUpperCase() + s.status.slice(1))}</span></td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
+    </tr>`).join('') : `<tr><td colspan="10" class="empty-note">${emptyMsg}</td></tr>`;
 }
 
 /* =========================================================
@@ -1690,16 +2098,52 @@ function populateItemSelect(includeItemId) {
   // listed inventory), but editing an existing sale must still show its
   // own item even though recording that sale is what marked it sold.
   const sel = document.getElementById('rs-item-select');
-  sel.innerHTML = '<option value="">Select an item</option>' + items
-    .filter(i => i.status !== 'sold' || i.id === includeItemId)
-    .map(i => `<option value="${i.id}">${esc(i.item_name)}</option>`).join('');
+  const choices = items.filter(i => i.status !== 'sold' || i.id === includeItemId);
+  sel.innerHTML = '<option value="">Select an item</option>'
+    + '<option value="__new__">+ New item (not in inventory yet)</option>'
+    + choices.map(i => `<option value="${i.id}">${esc(i.item_name)}</option>`).join('');
+  // Nothing to pick from yet: go straight to creating the item here.
+  if (!choices.length) sel.value = '__new__';
+  toggleNewItemFields();
+}
+
+// Shows the "new item" fields when "+ New item" is picked in the sale form.
+function toggleNewItemFields() {
+  const form = document.getElementById('record-sale-form');
+  const isNew = form.elements.item_id.value === '__new__';
+  form.querySelectorAll('[data-new-item]').forEach(el => { el.hidden = !isNew; });
+  form.elements.new_item_name.required = isNew;
+}
+
+// Pre-fills the fee from the platform's rate until the user types their
+// own fee (clearing the field hands it back to the estimate).
+function autoFillFee() {
+  const form = document.getElementById('record-sale-form');
+  const feeInput = form.elements.platform_fees;
+  const platform = form.elements.platform.value;
+  const priceRaw = form.elements.sale_price.value;
+  const hint = document.getElementById('rs-fee-hint');
+  const rateText = platform ? describeFeeRate(platform) : '';
+  if (feeInput.dataset.manual === '1') {
+    hint.textContent = rateText ? `${platform} is usually ${rateText}` : '';
+    return;
+  }
+  const est = priceRaw === '' ? null : estimateFeeCents(platform, money(parseFloat(priceRaw)));
+  feeInput.value = est === null ? '' : (est / 100).toFixed(2);
+  hint.textContent = est === null ? (platform ? `Enter the sale price to estimate ${platform}'s fee` : '')
+    : `Estimated: ${platform} ${rateText}. Change it if yours was different.`;
 }
 
 function updateSaleCalc() {
   const form = document.getElementById('record-sale-form');
   const fd = new FormData(form);
-  const itemId = parseInt(fd.get('item_id'), 10);
-  const item = itemById(itemId);
+  let item;
+  if (fd.get('item_id') === '__new__') {
+    const cost = fd.get('new_item_cost');
+    item = { purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)) };
+  } else {
+    item = itemById(parseInt(fd.get('item_id'), 10));
+  }
   const salePrice = fd.get('sale_price');
   const fees = fd.get('platform_fees');
   const shipping = fd.get('shipping_cost');
@@ -1718,11 +2162,29 @@ function updateSaleCalc() {
   document.getElementById('rs-margin').innerHTML = r.isComplete ? fmtBps(r.marginBps) : '&mdash;';
 }
 
-document.getElementById('record-sale-form').addEventListener('input', updateSaleCalc);
+document.getElementById('record-sale-form').addEventListener('input', e => {
+  const name = e.target.name;
+  if (name === 'item_id') toggleNewItemFields();
+  if (name === 'platform_fees') e.target.dataset.manual = e.target.value === '' ? '0' : '1';
+  if (name === 'platform' || name === 'sale_price' || name === 'platform_fees') autoFillFee();
+  updateSaleCalc();
+});
 document.getElementById('record-sale-form').addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  const itemId = parseInt(fd.get('item_id'), 10);
+  let itemId = parseInt(fd.get('item_id'), 10);
+  if (fd.get('item_id') === '__new__') {
+    const name = (fd.get('new_item_name') || '').trim();
+    if (!name) return;
+    const cost = fd.get('new_item_cost');
+    const newItem = {
+      id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
+      purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)), purchase_date: null,
+      supplier: '', storage_location: '', status: 'unsold', notes: '',
+    };
+    items.push(newItem);
+    itemId = newItem.id;
+  }
   if (!itemId) return;
   const editingId = fd.get('editing_id');
   const fees = fd.get('platform_fees'), shipping = fd.get('shipping_cost'), other = fd.get('other_costs');
@@ -1765,6 +2227,10 @@ function resetRecordSaleFormForCreate() {
   const form = document.getElementById('record-sale-form');
   form.reset();
   form.elements.editing_id.value = '';
+  form.elements.sale_date.value = isoDate(new Date());
+  form.elements.other_costs.value = '0.00'; // most sales have none; still editable
+  form.elements.platform_fees.dataset.manual = '0';
+  document.getElementById('rs-fee-hint').textContent = '';
   populateItemSelect();
   document.getElementById('record-sale-modal-title').textContent = 'Record sale';
   document.getElementById('record-sale-modal-sub').textContent = "Profit and margin are calculated by the app as you type — they're not editable fields.";
@@ -1786,6 +2252,9 @@ function editSale(sale, originEl) {
   form.elements.sale_date.value = sale.sale_date || '';
   form.elements.status.value = sale.status || 'completed';
   form.elements.notes.value = sale.notes || '';
+  // Keep the fee that was saved; only show the usual rate as a hint.
+  form.elements.platform_fees.dataset.manual = '1';
+  autoFillFee();
   document.getElementById('record-sale-modal-title').textContent = 'Edit sale';
   document.getElementById('record-sale-modal-sub').textContent = 'Update this sale’s details. Profit and margin are still calculated automatically.';
   document.getElementById('record-sale-submit-btn').textContent = 'Save changes';
@@ -1820,40 +2289,84 @@ function askDeleteSale(sale, originEl) {
 function mockParseSmartEntry(text) {
   const lower = text.toLowerCase();
 
-  const platform = PLATFORMS.find(p => lower.includes(p.toLowerCase())) || null;
+  // Platform, including common nicknames.
+  const PLATFORM_ALIASES = [
+    ['Facebook Marketplace', /\b(facebook|fb marketplace|fb|marketplace)\b/],
+    ['Poshmark', /\b(poshmark|posh)\b/],
+    ['Instagram', /\b(instagram|insta|ig)\b/],
+    ['eBay', /\bebay\b/], ['Depop', /\bdepop\b/], ['Vinted', /\bvinted\b/], ['Grailed', /\bgrailed\b/],
+  ];
+  const platformHit = PLATFORM_ALIASES.find(([, re]) => re.test(lower));
+  const platform = platformHit ? platformHit[0] : null;
 
-  const priceMatch = text.match(/for\s*\$?(\d+(?:\.\d{1,2})?)/i);
-  const costMatch = text.match(/(?:bought|cost)\s*(?:it\s*)?(?:for\s*)?\$?(\d+(?:\.\d{1,2})?)/i);
-  const feesMatch = text.match(/fees?\s*(?:were|was|of)?\s*\$?(\d+(?:\.\d{1,2})?)/i);
-  const shippingMatch = text.match(/shipping\s*(?:was|cost|of)?\s*\$?(\d+(?:\.\d{1,2})?)/i);
+  // Read the text one clause at a time, so "bought it for $30, sold on
+  // Depop for $65" keeps the two prices apart. Split on sentence ends
+  // (a "." not inside a number like $4.50), semicolons, commas, "and".
+  const clauses = text.split(/\.(?!\d)|[;\n]|,\s*|\s+and\s+|\s+but\s+/i).map(c => c.trim()).filter(Boolean);
+  const amountIn = clause => {
+    const m = clause.match(/\$\s*(\d+(?:\.\d{1,2})?)/)
+      || clause.match(/\b(?:for|at|was|were|of|paid|cost|is|are)\s+(\d+(?:\.\d{1,2})?)\b(?!\s*(?:st|nd|rd|th)\b)/i)
+      || clause.match(/\b(\d+(?:\.\d{1,2})?)\s*(?:dollars|bucks|usd)\b/i)
+      || clause.match(/\b(?:shipping|postage|fees?)\s+(?:cost\s+|costs\s+)?(\d+(?:\.\d{1,2})?)\b/i);
+    return m ? parseFloat(m[1]) : null;
+  };
+  let salePrice = null, purchaseCost = null, fees = null, shipping = null;
+  clauses.forEach(clause => {
+    const c = clause.toLowerCase();
+    const amount = amountIn(clause);
+    if (amount === null) return;
+    if (/\b(bought|paid|purchased|cost me|got it|picked it up|picked up)\b/.test(c)) { if (purchaseCost === null) purchaseCost = amount; }
+    else if (/\bfees?\b/.test(c)) { if (fees === null) fees = amount; }
+    else if (/\bship/.test(c) || /\bpostage\b/.test(c)) { if (shipping === null) shipping = amount; }
+    else if (/\b(sold|sell|for|price|went for)\b/.test(c)) { if (salePrice === null) salePrice = amount; }
+  });
 
-  const dateMatch = text.match(/(sold|on)\s+([A-Za-z]+\s+\d{1,2})(?:,?\s*(\d{4}))?/i);
+  // Sale date: "today", "yesterday", "September 21", "Sep 21st", "9/21".
   let saleDate = null;
-  if (dateMatch) {
-    const year = dateMatch[3] || new Date().getFullYear();
-    const parsed = new Date(`${dateMatch[2]}, ${year}`);
-    // Build YYYY-MM-DD from local parts — toISOString() converts to UTC,
-    // which shifts the date back a day in timezones ahead of UTC.
-    if (!isNaN(parsed)) saleDate = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+  const today = new Date();
+  if (/\btoday\b/.test(lower)) saleDate = isoDate(today);
+  else if (/\byesterday\b/.test(lower)) saleDate = isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+  else {
+    const named = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?/i);
+    const numeric = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    let parsed = null;
+    if (named) {
+      const year = named[3] || today.getFullYear();
+      parsed = new Date(`${named[1].slice(0, 3)} ${named[2]}, ${year}`);
+    } else if (numeric) {
+      let year = numeric[3] ? parseInt(numeric[3], 10) : today.getFullYear();
+      if (year < 100) year += 2000;
+      parsed = new Date(year, parseInt(numeric[1], 10) - 1, parseInt(numeric[2], 10));
+    }
+    if (parsed && !isNaN(parsed)) saleDate = isoDate(parsed);
   }
 
-  const nameMatch = text.match(/sold\s+(?:an?\s+|the\s+)?(.+?)\s+(?:on|for)\s/i);
-  const itemName = nameMatch ? nameMatch[1].replace(/^(a|an|the)\s+/i, '') : null;
+  // Item name: "sold (a/the/my) <name> on/for/to/at…", skipping "sold on Depop".
+  const nameMatch = text.match(/\bsold\s+(?!on\b|for\b|to\b|at\b|it\b|yesterday\b|today\b)(?:an?\s+|the\s+|my\s+)?(.+?)\s+(?:on|for|to|at|via|through)\b/i);
+  const itemName = nameMatch ? nameMatch[1].trim() : null;
+
+  // No fee in the text: estimate it from the platform's rate.
+  let feesEstimated = false;
+  if (fees === null && platform && salePrice !== null) {
+    const est = estimateFeeCents(platform, money(salePrice));
+    if (est !== null) { fees = est / 100; feesEstimated = true; }
+  }
 
   const missing = [];
   if (!itemName) missing.push('item name');
   if (!platform) missing.push('platform');
-  if (!priceMatch) missing.push('sale price');
-  if (!costMatch) missing.push('purchase cost');
+  if (salePrice === null) missing.push('sale price');
+  if (purchaseCost === null) missing.push('purchase cost');
   if (!saleDate) missing.push('sale date');
 
   return {
     item_name: itemName ? itemName.charAt(0).toUpperCase() + itemName.slice(1) : null,
     platform,
-    sale_price: priceMatch ? parseFloat(priceMatch[1]) : null,
-    purchase_cost: costMatch ? parseFloat(costMatch[1]) : null,
-    fees: feesMatch ? parseFloat(feesMatch[1]) : null,
-    shipping: shippingMatch ? parseFloat(shippingMatch[1]) : null,
+    sale_price: salePrice,
+    purchase_cost: purchaseCost,
+    fees,
+    fees_estimated: feesEstimated,
+    shipping,
     other: null,
     sale_date: saleDate,
     missing,
@@ -1878,7 +2391,7 @@ function renderSmartEntryPreview(draft, editing) {
     ['Platform', draft.platform || null, 'platform', 'select'],
     ['Sale price', draft.sale_price !== null ? '$' + draft.sale_price.toFixed(2) : null, 'sale_price', 'number'],
     ['Purchase cost', draft.purchase_cost !== null ? '$' + draft.purchase_cost.toFixed(2) : null, 'purchase_cost', 'number'],
-    ['Platform fees', draft.fees !== null ? '$' + draft.fees.toFixed(2) : 'Not detected', 'fees', 'number'],
+    ['Platform fees', draft.fees !== null ? '$' + draft.fees.toFixed(2) + (draft.fees_estimated ? ' (estimated)' : '') : 'Not detected', 'fees', 'number'],
     ['Shipping', draft.shipping !== null ? '$' + draft.shipping.toFixed(2) : 'Not detected', 'shipping', 'number'],
     ['Sale date', draft.sale_date ? fmtDate(draft.sale_date).replace('&mdash;','') : null, 'sale_date', 'date'],
   ];
@@ -1923,7 +2436,9 @@ function syncDraftFromEditFields() {
   const sh = document.getElementById('ef-shipping').value;
   currentDraft.sale_price = sp === '' ? null : parseFloat(sp);
   currentDraft.purchase_cost = pc === '' ? null : parseFloat(pc);
-  currentDraft.fees = fe === '' ? null : parseFloat(fe);
+  const newFees = fe === '' ? null : parseFloat(fe);
+  if (newFees !== currentDraft.fees) currentDraft.fees_estimated = false;
+  currentDraft.fees = newFees;
   currentDraft.shipping = sh === '' ? null : parseFloat(sh);
   currentDraft.sale_date = document.getElementById('ef-sale_date').value || null;
   updateSmartEntryCalc(currentDraft);
@@ -2284,6 +2799,8 @@ document.querySelectorAll('[data-open]').forEach(btn => {
     const target = btn.dataset.open;
     if (target === 'record-sale') { resetRecordSaleFormForCreate(); updateSaleCalc(); }
     if (target === 'add-item') { resetAddItemFormForCreate(); }
+    if (target === 'expense') { resetExpenseForm(); }
+    if (target === 'add-bundle') { resetBundleForm(); }
     openOverlay('overlay-' + target, btn);
   });
 });
@@ -2356,9 +2873,21 @@ function askDeleteItem(item, originEl) {
   openOverlay('overlay-confirm-delete', originEl);
 }
 
+function askDeleteExpense(x, originEl) {
+  pendingDelete = { kind: 'expense', id: x.id };
+  document.getElementById('confirm-delete-title').textContent = 'Delete expense?';
+  document.getElementById('confirm-delete-item-name').textContent = x.description || x.category;
+  openOverlay('overlay-confirm-delete', originEl);
+}
+
 document.getElementById('confirm-delete-btn').addEventListener('click', () => {
   if (!pendingDelete) return;
-  if (pendingDelete.kind === 'item') {
+  const before = snapshotData();
+  const deletedName = document.getElementById('confirm-delete-item-name').textContent;
+  if (pendingDelete.kind === 'expense') {
+    const idx = expenses.findIndex(x => x.id === pendingDelete.id);
+    if (idx !== -1) expenses.splice(idx, 1);
+  } else if (pendingDelete.kind === 'item') {
     const idx = items.findIndex(i => i.id === pendingDelete.id);
     if (idx !== -1) items.splice(idx, 1);
     // Remove its sales too, so none are left pointing at a missing item.
@@ -2377,6 +2906,7 @@ document.getElementById('confirm-delete-btn').addEventListener('click', () => {
   pendingDelete = null;
   closeOverlay('overlay-confirm-delete');
   renderAll();
+  showUndo(`Deleted ${deletedName}`, before);
 });
 
 document.body.addEventListener('click', e => {
@@ -2402,14 +2932,481 @@ document.body.addEventListener('click', e => {
   if (deleteSaleBtn) {
     const sale = saleById(parseInt(deleteSaleBtn.dataset.deleteSale, 10));
     if (sale) askDeleteSale(sale, deleteSaleBtn);
+    return;
+  }
+  const editExpenseBtn = e.target.closest('[data-edit-expense]');
+  if (editExpenseBtn) {
+    const x = expenseById(parseInt(editExpenseBtn.dataset.editExpense, 10));
+    if (x) editExpense(x, editExpenseBtn);
+    return;
+  }
+  const deleteExpenseBtn = e.target.closest('[data-delete-expense]');
+  if (deleteExpenseBtn) {
+    const x = expenseById(parseInt(deleteExpenseBtn.dataset.deleteExpense, 10));
+    if (x) askDeleteExpense(x, deleteExpenseBtn);
   }
 });
+
+/* =========================================================
+   EXPENSES — business costs not tied to one item. Subtracted
+   from sales profit on the Dashboard and in Analytics.
+   ========================================================= */
+function renderExpenses() {
+  const sumIn = range => expenses.filter(x => inRange(x.expense_date, range)).reduce((t, x) => t + x.amount_cents, 0);
+  document.getElementById('expense-stats').innerHTML = [
+    ['This month', sumIn(periodRange('month', 0))],
+    ['This year', sumIn(periodRange('year', 0))],
+    ['All time', sumIn(null)],
+  ].map(([label, cents]) => `<div class="stat-tile"><div class="stat-label">${label}</div><div class="stat-value mono">${fmtCents(cents)}</div></div>`).join('');
+
+  const search = document.getElementById('exp-search').value.trim().toLowerCase();
+  const rows = expenses.filter(x => !search || [x.category, x.description].join(' ').toLowerCase().includes(search));
+  const valueOf = (x, key) => ({ date: x.expense_date, category: x.category, description: x.description || x.category, amount: x.amount_cents })[key];
+  sortRows(rows, valueOf, sortState.exp);
+  markSortHeaders('expenses-table', sortState.exp);
+
+  const emptyMsg = expenses.length ? 'No expenses match your search.' : 'No expenses yet. Add things like packaging, shipping supplies and subscriptions.';
+  document.getElementById('exp-tbody').innerHTML = rows.length ? rows.map(x => `<tr>
+      <td class="cell-title item-name">${esc(x.description || x.category)}</td>
+      <td data-label="Category">${esc(x.category)}</td>
+      <td data-label="Date">${fmtDate(x.expense_date)}</td>
+      <td data-label="Amount" class="num">${fmtCents(x.amount_cents)}</td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-expense="${x.id}">Edit</button></td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-expense="${x.id}" title="Delete expense" aria-label="Delete expense">&times;</button></td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-note">${emptyMsg}</td></tr>`;
+}
+
+function expenseById(id) { return expenses.find(x => x.id === id); }
+
+function resetExpenseForm() {
+  const form = document.getElementById('expense-form');
+  form.reset();
+  form.elements.editing_id.value = '';
+  form.elements.expense_date.value = isoDate(new Date());
+  document.getElementById('expense-modal-title').textContent = 'Add expense';
+  document.getElementById('expense-submit-btn').textContent = 'Save expense';
+}
+
+function editExpense(x, originEl) {
+  const form = document.getElementById('expense-form');
+  form.reset();
+  form.elements.editing_id.value = x.id;
+  form.elements.expense_date.value = x.expense_date || '';
+  form.elements.amount.value = (x.amount_cents / 100).toFixed(2);
+  form.elements.category.value = x.category || 'Other';
+  form.elements.description.value = x.description || '';
+  document.getElementById('expense-modal-title').textContent = 'Edit expense';
+  document.getElementById('expense-submit-btn').textContent = 'Save changes';
+  openOverlay('overlay-expense', originEl);
+}
+
+document.getElementById('expense-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const fields = {
+    expense_date: fd.get('expense_date'),
+    amount_cents: money(parseFloat(fd.get('amount'))),
+    category: fd.get('category') || 'Other',
+    description: (fd.get('description') || '').trim(),
+  };
+  const editingId = fd.get('editing_id');
+  if (editingId) {
+    const existing = expenseById(parseInt(editingId, 10));
+    if (existing) Object.assign(existing, fields);
+  } else {
+    expenses.push(Object.assign({ id: nextExpenseId++ }, fields));
+  }
+  closeOverlay('overlay-expense');
+  renderAll();
+});
+
+/* =========================================================
+   ANALYTICS — all-time view: headline metrics, a 12-month
+   revenue vs. net-profit bar chart (with a table view), and
+   per-platform / per-category breakdowns.
+   ========================================================= */
+function renderAnalytics() {
+  const completed = sales.filter(s => s.status === 'completed').map(s => {
+    const item = itemById(s.item_id);
+    return { s, item, r: calcProfit(s, item) };
+  });
+  const complete = completed.filter(x => x.r.isComplete);
+  const totalExpenses = expenses.reduce((t, x) => t + x.amount_cents, 0);
+  const salesProfit = complete.reduce((t, x) => t + x.r.netProfitCents, 0);
+  const soldItems = items.filter(i => i.status === 'sold').length;
+  const sellDays = completed.filter(x => x.item && x.item.purchase_date && x.s.sale_date)
+    .map(x => daysBetween(x.item.purchase_date, x.s.sale_date)).filter(d => d >= 0);
+  const feesPaid = completed.reduce((t, x) => t + (x.s.platform_fees_cents || 0), 0);
+  const avgMargin = complete.length ? Math.round(complete.reduce((t, x) => t + (x.r.marginBps || 0), 0) / complete.length) : null;
+
+  const stats = [
+    ['Net profit (after expenses)', fmtCents(salesProfit - totalExpenses)],
+    ['Sell-through', items.length ? Math.round((soldItems / items.length) * 100) + '%' : '&mdash;', `${soldItems} of ${items.length} items sold`],
+    ['Avg days to sell', sellDays.length ? Math.round(sellDays.reduce((a, b) => a + b, 0) / sellDays.length) : '&mdash;', sellDays.length ? `from ${sellDays.length} sales with a purchase date` : 'needs purchase dates'],
+    ['Avg margin', fmtBps(avgMargin)],
+    ['Platform fees paid', fmtCents(feesPaid)],
+  ];
+  document.getElementById('an-stats').innerHTML = stats.map(([label, value, hint]) => `
+    <div class="stat-tile"><div class="stat-label">${label}</div><div class="stat-value mono">${value}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}</div>`).join('');
+
+  renderMonthlyChart(completed);
+
+  // By platform
+  const byPlatform = {};
+  completed.forEach(({ s, r }) => {
+    const p = byPlatform[s.platform] || (byPlatform[s.platform] = { n: 0, revenue: 0, profit: 0, complete: 0, marginSum: 0, fees: 0 });
+    p.n++; p.revenue += s.sale_price_cents; p.fees += s.platform_fees_cents || 0;
+    if (r.isComplete) { p.complete++; p.profit += r.netProfitCents; p.marginSum += r.marginBps || 0; }
+  });
+  const platformRows = Object.entries(byPlatform).sort((a, b) => b[1].profit - a[1].profit);
+  document.getElementById('an-platforms').innerHTML = platformRows.length ? `<table class="mini-table">
+    <thead><tr><th>Platform</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Avg profit</th><th class="num">Avg margin</th><th class="num">Fees</th></tr></thead>
+    <tbody>${platformRows.map(([name, p]) => `<tr><td>${esc(name)}</td><td class="num">${p.n}</td><td class="num">${fmtCents(p.revenue)}</td>
+      <td class="num">${p.complete ? fmtCents(Math.round(p.profit / p.complete)) : '&mdash;'}</td>
+      <td class="num">${p.complete ? fmtBps(Math.round(p.marginSum / p.complete)) : '&mdash;'}</td><td class="num">${fmtCents(p.fees)}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty-note">No completed sales yet.</div>';
+
+  // By category
+  const byCategory = {};
+  completed.forEach(({ s, item, r }) => {
+    const key = (item && item.category) || 'Uncategorized';
+    const c = byCategory[key] || (byCategory[key] = { n: 0, revenue: 0, profit: 0, days: [] });
+    c.n++; c.revenue += s.sale_price_cents;
+    if (r.isComplete) c.profit += r.netProfitCents;
+    if (item && item.purchase_date) { const d = daysBetween(item.purchase_date, s.sale_date); if (d >= 0) c.days.push(d); }
+  });
+  const categoryRows = Object.entries(byCategory).sort((a, b) => b[1].profit - a[1].profit);
+  document.getElementById('an-categories').innerHTML = categoryRows.length ? `<table class="mini-table">
+    <thead><tr><th>Category</th><th class="num">Sold</th><th class="num">Revenue</th><th class="num">Profit</th><th class="num">Days to sell</th></tr></thead>
+    <tbody>${categoryRows.map(([name, c]) => `<tr><td>${esc(name)}</td><td class="num">${c.n}</td><td class="num">${fmtCents(c.revenue)}</td>
+      <td class="num">${fmtCents(c.profit)}</td><td class="num">${c.days.length ? Math.round(c.days.reduce((a, b) => a + b, 0) / c.days.length) : '&mdash;'}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty-note">No completed sales yet.</div>';
+}
+
+function renderMonthlyChartOnly() {
+  renderMonthlyChart(sales.filter(s => s.status === 'completed').map(s => {
+    const item = itemById(s.item_id);
+    return { s, item, r: calcProfit(s, item) };
+  }));
+}
+
+function renderMonthlyChart(completed) {
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key: isoDate(d).slice(0, 7),
+      label: d.toLocaleDateString('en-US', { month: 'short' }),
+      longLabel: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      n: 0, revenue: 0, salesProfit: 0, expenses: 0,
+    });
+  }
+  const byKey = Object.fromEntries(months.map(m => [m.key, m]));
+  completed.forEach(({ s, r }) => {
+    const m = byKey[(s.sale_date || '').slice(0, 7)];
+    if (!m) return;
+    m.n++; m.revenue += s.sale_price_cents;
+    if (r.isComplete) m.salesProfit += r.netProfitCents;
+  });
+  expenses.forEach(x => { const m = byKey[(x.expense_date || '').slice(0, 7)]; if (m) m.expenses += x.amount_cents; });
+  months.forEach(m => { m.net = m.salesProfit - m.expenses; });
+
+  const container = document.getElementById('an-monthly');
+  if (!months.some(m => m.n || m.expenses)) {
+    container.innerHTML = '<div class="empty-note">No sales or expenses in the last 12 months yet.</div>';
+    return;
+  }
+
+  // One axis: both series are dollars. Revenue is neutral, net profit is the accent.
+  // Draw at the real on-screen width so text isn't squashed on phones.
+  const w = Math.max(300, Math.round(container.clientWidth) || 720), h = 240, padL = 48, padR = 6, padT = 12, padB = 26;
+  // Round the top of the axis up to a "nice" step so ticks read $50, $100, $150…
+  const rawMax = Math.max(100, ...months.map(m => Math.max(m.revenue, m.net)));
+  const mag = Math.pow(10, Math.floor(Math.log10(rawMax / 4)));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(v => v * 4 >= rawMax);
+  const maxVal = step * 4;
+  const minVal = Math.min(0, ...months.map(m => m.net));
+  const y = v => padT + ((maxVal - v) / (maxVal - minVal)) * (h - padT - padB);
+  const slot = (w - padL - padR) / months.length;
+  const barW = Math.max(4, Math.min(18, (slot - 10) / 2));
+  const bar = (x, v, color) => {
+    if (!v) return '';
+    const top = Math.min(y(v), y(0)), height = Math.max(1, Math.abs(y(v) - y(0)));
+    return `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${height.toFixed(1)}" rx="3" fill="${color}"></rect>`;
+  };
+  const ticks = [0.25, 0.5, 0.75, 1].map(f => maxVal * f);
+  const money0 = c => '$' + Math.round(c / 100).toLocaleString('en-US');
+
+  const grid = ticks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>
+      <text class="an-axis" x="${padL - 6}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${money0(t)}</text>`).join('')
+    + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1"></line>
+      <text class="an-axis" x="${padL - 6}" y="${(y(0) + 4).toFixed(1)}" text-anchor="end">$0</text>`;
+  const bars = months.map((m, i) => {
+    const cx = padL + slot * i + slot / 2;
+    return bar(cx - barW - 1, m.revenue, 'var(--ink-faint)') + bar(cx + 1, m.net, 'var(--accent)')
+      + (slot >= 34 || i % 2 === (months.length - 1) % 2 ? `<text class="an-axis" x="${cx.toFixed(1)}" y="${h - 8}" text-anchor="middle">${m.label}</text>` : '')
+      + `<rect class="an-hit" data-month="${i}" x="${(padL + slot * i).toFixed(1)}" y="${padT}" width="${slot.toFixed(1)}" height="${h - padT - padB}" fill="transparent"></rect>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="an-chart">
+      <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Revenue and net profit by month, last 12 months">${grid}${bars}</svg>
+      <div class="an-tip" hidden></div>
+    </div>
+    <div class="trend-legend">
+      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--ink-faint)"></span>Revenue</div>
+      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Net profit (after expenses)</div>
+    </div>
+    <details class="an-details"><summary>Show as a table</summary>
+      <div class="table-scroll"><table class="mini-table">
+        <thead><tr><th>Month</th><th class="num">Sales</th><th class="num">Revenue</th><th class="num">Sales profit</th><th class="num">Expenses</th><th class="num">Net profit</th></tr></thead>
+        <tbody>${[...months].reverse().map(m => `<tr><td>${m.longLabel}</td><td class="num">${m.n}</td><td class="num">${fmtCents(m.revenue)}</td><td class="num">${fmtCents(m.salesProfit)}</td><td class="num">${fmtCents(m.expenses)}</td><td class="num">${fmtCents(m.net)}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </details>`;
+
+  // Hover / tap tooltip for each month
+  const chart = container.querySelector('.an-chart');
+  const tip = chart.querySelector('.an-tip');
+  chart.querySelectorAll('.an-hit').forEach(hit => {
+    const show = () => {
+      const m = months[+hit.dataset.month];
+      tip.innerHTML = `<strong>${m.longLabel}</strong>
+        <div class="tip-row"><span class="tip-key" style="background:var(--ink-faint)"></span>Revenue ${fmtCents(m.revenue)}</div>
+        <div class="tip-row"><span class="tip-key" style="background:var(--accent)"></span>Net profit ${fmtCents(m.net)}</div>
+        <div class="tip-row" style="color:var(--ink-muted)">${m.n} sale${m.n === 1 ? '' : 's'}${m.expenses ? ' &middot; expenses ' + fmtCents(m.expenses) : ''}</div>`;
+      tip.hidden = false;
+      const hr = hit.getBoundingClientRect(), cr = chart.getBoundingClientRect();
+      const left = Math.min(Math.max(0, hr.left - cr.left + hr.width / 2 - tip.offsetWidth / 2), cr.width - tip.offsetWidth);
+      tip.style.left = left + 'px';
+      tip.style.top = '4px';
+    };
+    hit.addEventListener('mouseenter', show);
+    hit.addEventListener('click', show);
+    hit.addEventListener('mouseleave', () => { tip.hidden = true; });
+  });
+}
+
+/* =========================================================
+   PLATFORM FEE EDITOR (Settings)
+   ========================================================= */
+function renderFeeRates() {
+  const rates = getFeeRates();
+  document.getElementById('fee-rate-rows').innerHTML = PLATFORMS.map(p => `
+    <label class="fee-row">
+      <span class="fee-name">${esc(p)}</span>
+      <input type="number" step="0.01" min="0" data-fee-pct="${esc(p)}" value="${rates[p].pct}" aria-label="${esc(p)} percentage fee">
+      <span class="fee-unit">% + $</span>
+      <input type="number" step="0.01" min="0" data-fee-fixed="${esc(p)}" value="${((rates[p].fixed || 0) / 100).toFixed(2)}" aria-label="${esc(p)} flat fee per order">
+    </label>`).join('');
+}
+document.getElementById('fee-rate-rows').addEventListener('change', e => {
+  const rates = getFeeRates();
+  const pctFor = e.target.dataset.feePct, fixedFor = e.target.dataset.feeFixed;
+  const val = Math.max(0, parseFloat(e.target.value) || 0);
+  if (pctFor && rates[pctFor]) rates[pctFor].pct = val;
+  if (fixedFor && rates[fixedFor]) rates[fixedFor].fixed = money(val);
+  saveFeeRates(rates);
+});
+document.getElementById('reset-fee-rates').addEventListener('click', () => {
+  try { localStorage.removeItem(FEE_RATES_STORAGE_KEY); } catch (e) {}
+  renderFeeRates();
+});
+
+/* =========================================================
+   BACKUP, RESTORE & CSV EXPORT (Settings → Data & backup)
+   ========================================================= */
+const LAST_BACKUP_KEY = 'ledgerly-last-backup';
+
+function downloadFile(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+
+function renderBackupNote() {
+  let last = null;
+  try { last = localStorage.getItem(LAST_BACKUP_KEY); } catch (e) {}
+  document.getElementById('last-backup-note').textContent = last ? 'Last backup: ' + fmtDate(last) : 'No backup downloaded yet';
+}
+
+document.getElementById('backup-btn').addEventListener('click', () => {
+  const backup = { app: 'ledgerly', version: 1, exported_at: new Date().toISOString(), items, sales, expenses, feeRates: getFeeRates() };
+  downloadFile(`ledgerly-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
+  try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
+  renderBackupNote();
+});
+
+function isValidBackup(b) {
+  return b && Array.isArray(b.items) && Array.isArray(b.sales)
+    && b.items.every(i => i && typeof i.id === 'number' && typeof i.item_name === 'string')
+    && b.sales.every(s => s && typeof s.id === 'number' && typeof s.item_id === 'number' && typeof s.sale_price_cents === 'number')
+    && (b.expenses === undefined || (Array.isArray(b.expenses) && b.expenses.every(x => x && typeof x.id === 'number' && typeof x.amount_cents === 'number')));
+}
+
+document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-file').click());
+document.getElementById('restore-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  file.text().then(text => {
+    let backup = null;
+    try { backup = JSON.parse(text); } catch (err) {}
+    if (!isValidBackup(backup)) { alert("That file isn't a Ledgerly backup, so nothing was changed."); return; }
+    const count = (i, s, x) => `${i} items, ${s} sales and ${x} expenses`;
+    const ok = confirm(`Replace your current data (${count(items.length, sales.length, expenses.length)}) with this backup (${count(backup.items.length, backup.sales.length, (backup.expenses || []).length)})?`);
+    if (!ok) return;
+    const before = snapshotData();
+    replaceData(backup.items, backup.sales, backup.expenses || []);
+    if (backup.feeRates) { saveFeeRates(backup.feeRates); renderFeeRates(); }
+    renderAll();
+    showUndo('Backup restored', before);
+  });
+});
+
+// CSV helpers. Text cells that start with = + - @ get a leading ' so
+// spreadsheet apps don't run them as formulas.
+function csvText(v) {
+  let str = v === null || v === undefined ? '' : String(v);
+  if (/^[=+\-@]/.test(str)) str = "'" + str;
+  return /[",\n\r]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+}
+function csvMoney(cents) { return cents === null || cents === undefined ? '' : (cents / 100).toFixed(2); }
+function toCsv(header, rows) {
+  return '﻿' + [header.map(csvText).join(','), ...rows.map(r => r.join(','))].join('\r\n');
+}
+
+document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('click', () => {
+  const kind = btn.dataset.export;
+  let csv;
+  if (kind === 'inventory') {
+    csv = toCsv(['ID', 'Item', 'Category', 'Size', 'Color', 'Condition', 'Purchase cost', 'Purchase date', 'Supplier', 'Storage location', 'Status', 'Notes'],
+      items.map(i => [i.id, csvText(i.item_name), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition), csvMoney(i.purchase_cost_cents),
+        csvText(i.purchase_date), csvText(i.supplier), csvText(i.storage_location), csvText(i.status), csvText(i.notes)]));
+  } else if (kind === 'sales') {
+    csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Notes'],
+      sales.map(s => {
+        const item = itemById(s.item_id);
+        const r = calcProfit(s, item);
+        return [s.id, csvText(s.sale_date), csvText(item ? item.item_name : ''), csvText(s.platform), csvMoney(s.sale_price_cents), csvMoney(s.platform_fees_cents),
+          csvMoney(s.shipping_cost_cents), csvMoney(s.other_costs_cents), csvMoney(item ? item.purchase_cost_cents : null),
+          r.isComplete ? csvMoney(r.netProfitCents) : '', r.isComplete && r.marginBps !== null ? (r.marginBps / 100).toFixed(2) : '',
+          csvText(s.order_number), csvText(s.status), csvText(s.notes)];
+      }));
+  } else {
+    csv = toCsv(['ID', 'Date', 'Category', 'Description', 'Amount'],
+      expenses.map(x => [x.id, csvText(x.expense_date), csvText(x.category), csvText(x.description), csvMoney(x.amount_cents)]));
+  }
+  downloadFile(`ledgerly-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');
+}));
+
+/* =========================================================
+   UNDO — deletes, erase and restore show a toast for 8 seconds
+   with an Undo button that puts the previous data back.
+   ========================================================= */
+let toastTimer = null, undoSnapshot = null;
+function showUndo(message, snapshot) {
+  undoSnapshot = snapshot;
+  document.getElementById('toast-msg').textContent = message;
+  document.getElementById('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 8000);
+}
+function hideToast() {
+  document.getElementById('toast').hidden = true;
+  undoSnapshot = null;
+}
+document.getElementById('toast-undo').addEventListener('click', () => {
+  if (undoSnapshot) {
+    replaceData(undoSnapshot.items, undoSnapshot.sales, undoSnapshot.expenses);
+    renderAll();
+  }
+  hideToast();
+});
+
+/* =========================================================
+   BUNDLE — one purchase price split evenly across several
+   items. Leftover cents go one each to the first few items so
+   the parts always add up to the total.
+   ========================================================= */
+function splitCents(totalCents, n) {
+  const base = Math.floor(totalCents / n), extra = totalCents - base * n;
+  return Array.from({ length: n }, (_, i) => base + (i < extra ? 1 : 0));
+}
+function bundleNames(form) {
+  return form.elements.item_names.value.split('\n').map(l => l.trim()).filter(Boolean);
+}
+function updateBundleCalc() {
+  const form = document.getElementById('bundle-form');
+  const names = bundleNames(form);
+  const totalRaw = form.elements.total_cost.value;
+  const out = document.getElementById('bundle-each');
+  if (!names.length || totalRaw === '') { out.innerHTML = '&mdash;'; return; }
+  const parts = splitCents(money(parseFloat(totalRaw)), names.length);
+  out.innerHTML = `${names.length} item${names.length === 1 ? '' : 's'} &times; ${fmtCents(parts[parts.length - 1])}`
+    + (parts[0] !== parts[parts.length - 1] ? ` <span class="field-hint">(first ${parts.filter(v => v === parts[0]).length} get 1&cent; more)</span>` : '');
+}
+function resetBundleForm() {
+  const form = document.getElementById('bundle-form');
+  form.reset();
+  form.elements.purchase_date.value = isoDate(new Date());
+  updateBundleCalc();
+}
+document.getElementById('bundle-form').addEventListener('input', updateBundleCalc);
+document.getElementById('bundle-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const form = e.target;
+  const names = bundleNames(form);
+  if (!names.length) return;
+  const totalCents = money(parseFloat(form.elements.total_cost.value));
+  const parts = splitCents(totalCents, names.length);
+  const supplier = form.elements.supplier.value.trim();
+  names.forEach((name, i) => items.push({
+    id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
+    purchase_cost_cents: parts[i], purchase_date: form.elements.purchase_date.value || null,
+    supplier, storage_location: form.elements.storage_location.value.trim(), status: 'unsold',
+    notes: `Part of a ${names.length}-item bundle, ${fmtCents(totalCents)} total`,
+  }));
+  closeOverlay('overlay-add-bundle');
+  renderAll();
+});
+
+/* =========================================================
+   DASHBOARD PERIOD SWITCH + "go to page" links
+   ========================================================= */
+document.querySelectorAll('#period-switch [data-period]').forEach(btn => btn.addEventListener('click', () => {
+  dashPeriod = btn.dataset.period;
+  try { localStorage.setItem(PERIOD_STORAGE_KEY, dashPeriod); } catch (e) {}
+  renderDashboard();
+}));
+// The monthly chart sizes itself to its container, which has no width
+// while the Analytics page is hidden, so redraw it when shown or resized.
+document.querySelector('.nav-item[data-view="analytics"]').addEventListener('click', renderAnalytics);
+// Only on width changes: phones fire resize when the address bar hides
+// while scrolling, and redrawing then would replay the fade-in.
+let analyticsResizeTimer = null, lastViewportWidth = window.innerWidth;
+window.addEventListener('resize', () => {
+  if (window.innerWidth === lastViewportWidth) return;
+  lastViewportWidth = window.innerWidth;
+  clearTimeout(analyticsResizeTimer);
+  analyticsResizeTimer = setTimeout(() => {
+    if (document.getElementById('view-analytics').classList.contains('active')) renderMonthlyChartOnly();
+  }, 150);
+});
+document.querySelectorAll('[data-goto]').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelector(`.nav-item[data-view="${btn.dataset.goto}"]`).click();
+}));
 
 function renderAll() {
   saveData();
   renderDashboard();
   renderInventory();
   renderSales();
+  renderExpenses();
+  renderAnalytics();
 }
 
 populatePlatformFilter();
@@ -2418,11 +3415,22 @@ renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
 document.getElementById('reset-data-btn').addEventListener('click', () => {
-  if (!confirm('Erase all your items and sales? This cannot be undone.')) return;
+  if (!confirm('Erase all your items, sales and expenses?')) return;
+  const before = snapshotData();
   resetData();
   renderAll();
+  showUndo('All data erased', before);
 });
 document.getElementById('font-scale-slider').addEventListener('input', (e) => setFontScale(parseFloat(e.target.value)));
+wireSortHeaders('inv-table', sortState.inv, renderInventory);
+wireSortHeaders('sales-table', sortState.sales, renderSales);
+wireSortHeaders('expenses-table', sortState.exp, renderExpenses);
+document.getElementById('sales-search').addEventListener('input', renderSales);
+document.getElementById('sales-status-filter').addEventListener('change', renderSales);
+document.getElementById('sales-platform-filter').addEventListener('change', renderSales);
+document.getElementById('exp-search').addEventListener('input', renderExpenses);
+renderFeeRates();
+renderBackupNote();
 renderAll();
 </script>
 </body>

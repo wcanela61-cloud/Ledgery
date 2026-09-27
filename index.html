@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ledgerly — Reseller Dashboard</title>
+<title>Ledgery — Reseller Dashboard</title>
 <script>
 (function () {
   var VALID = ['notepad', 'midnight', 'clean', 'terminal', 'paper'];
@@ -77,12 +77,15 @@
   } catch (e) { /* storage unavailable — falls back to default notepad vibe */ }
 })();
 </script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E %3Cdefs%3E%3ClinearGradient id="lgGrad" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="#5CC495"/%3E%3Cstop offset="1" stop-color="#1F6F54"/%3E%3C/linearGradient%3E%3C/defs%3E %3Crect width="64" height="64" rx="16" fill="url%28#lgGrad%29"/%3E %3Crect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/%3E %3Cg transform="translate%28-1.5 2.5%29" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"%3E %3Cpath d="M18 13v33h18l11-17" stroke-width="7"/%3E %3Cpath d="M40.5 29.7l7.6-2.4 1 7.9" stroke-width="5"/%3E %3C/g%3E %3C/svg%3E ">
+<link rel="apple-touch-icon" href="brand/ledgery-icon-180.png">
+<meta name="theme-color" content="#14161A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
-   LEDGERLY THEME SYSTEM
+   LEDGERY THEME SYSTEM
    Centralized design tokens. Every component below reads
    these CSS variables — nothing is hardcoded per-component.
    Switching [data-vibe] on <html> is the only thing that
@@ -402,15 +405,13 @@ tr { transition: background-color 150ms ease; }
   font-size: 1.125rem;
   letter-spacing: -0.02em;
 }
-.brand-mark {
-  width: 30px; height: 30px;
-  border-radius: calc(var(--radius) + 2px);
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--success)));
-  color: white;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.9375rem; font-weight: 700;
-  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+.brand-logo {
+  width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px;
+  box-shadow: 0 6px 16px -4px rgba(31, 111, 84, 0.55);
 }
+.mobile-brand { display: none; }
+.welcome-title { display: flex; align-items: center; gap: 12px; }
+.welcome-title .brand-logo { width: 36px; height: 36px; border-radius: 10px; }
 /* Sliding highlight behind whichever nav item is active. JS sets
    top/height to match the active button's actual position, so it
    works regardless of spacing changes — see updateNavPill(). */
@@ -952,6 +953,11 @@ table.table-narrow { min-width: 560px; }
     border-right: none; border-top: 1px solid var(--border);
   }
   .brand, .nav-active-pill, .sidebar-foot { display: none; }
+  .mobile-brand {
+    display: flex; align-items: center; gap: 9px; margin-bottom: 18px;
+    font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem; letter-spacing: -0.02em;
+  }
+  .mobile-brand .brand-logo { width: 28px; height: 28px; border-radius: 8px; }
   .nav-item {
     flex: 1 1 0; width: auto; min-width: 0;
     flex-direction: column; gap: 2px; padding: 6px 2px;
@@ -993,10 +999,22 @@ table.table-narrow { min-width: 560px; }
 </head>
 <body>
 <div class="page-bg" aria-hidden="true"></div>
+<!-- Ledgery mark: an "L" whose foot rises into an arrow (ledger + growth). Source: brand/ledgery-mark.svg -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ledgery-mark" viewBox="0 0 64 64">
+  <defs><linearGradient id="ledgeryMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5CC495"/><stop offset="1" stop-color="#1F6F54"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="url(#ledgeryMarkGrad)"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/>
+  <g transform="translate(-1.5 2.5)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 13v33h18l11-17" stroke-width="7"/>
+    <path d="M40.5 29.7l7.6-2.4 1 7.9" stroke-width="5"/>
+  </g>
+  </symbol>
+</svg>
 <div class="app">
 
   <nav class="sidebar">
-    <div class="brand"><span class="brand-mark">L</span>Ledgerly</div>
+    <div class="brand"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Ledgery</div>
     <div class="nav-active-pill" id="nav-active-pill"></div>
     <button class="nav-item active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
     <button class="nav-item" data-view="inventory"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Inventory</button>
@@ -1012,6 +1030,7 @@ table.table-narrow { min-width: 560px; }
   </nav>
 
   <main class="main">
+    <div class="mobile-brand"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Ledgery</div>
 
     <!-- DASHBOARD -->
     <section class="view active" id="view-dashboard">
@@ -1033,7 +1052,7 @@ table.table-narrow { min-width: 560px; }
 
       <div class="panel welcome" id="welcome-panel" hidden>
         <div class="panel-body">
-          <h2 class="welcome-title">Welcome to Ledgerly</h2>
+          <h2 class="welcome-title"><svg class="brand-logo" aria-hidden="true"><use href="#ledgery-mark"/></svg>Welcome to Ledgery</h2>
           <p class="welcome-sub">Track what you buy, what you sell, and what you actually make. Everything is saved in this browser.</p>
           <ol class="welcome-steps">
             <li><strong>Add something you bought.</strong> Put in what you paid, so profit can be worked out when it sells.
@@ -1462,6 +1481,8 @@ let nextExpenseId = 1;
    change (renderAll) and restored on load.
    ========================================================= */
 // v2: a new key so browsers that saved the old sample data start empty.
+// Storage keys keep the app's earlier "ledgerly-" prefix on purpose:
+// renaming them would hide everyone's saved data.
 const DATA_STORAGE_KEY = 'ledgerly-data-v2';
 
 function replaceData(newItems, newSales, newExpenses) {
@@ -1683,6 +1704,25 @@ function fmtMoneyParts(cents) {
   return `<span class="money-whole">${whole}</span><span class="money-dec">.${dec}</span>`;
 }
 
+// Headline numbers count up: from zero when the Dashboard opens or the
+// period changes (heroShown is cleared), otherwise from the previous value.
+let heroShown = {};
+function animateMoney(el, key, target) {
+  const from = heroShown[key] === undefined ? 0 : heroShown[key];
+  heroShown[key] = target;
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || from === target) { el.innerHTML = fmtMoneyParts(target); return; }
+  el.innerHTML = fmtMoneyParts(from);
+  const start = performance.now(), duration = 900;
+  const step = now => {
+    if (!el.isConnected) return; // re-rendered meanwhile; the new element animates instead
+    const t = Math.min(1, (now - start) / duration), eased = 1 - Math.pow(1 - t, 3);
+    el.innerHTML = fmtMoneyParts(Math.round(from + (target - from) * eased));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function buildSparkline(values, colorVar) {
   if (values.length < 2) return '';
   const w = 100, h = 32, pad = 3;
@@ -1729,7 +1769,7 @@ function renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents
         <span class="hero-label">Revenue &middot; ${periodName}</span>
         ${trendBadge(revTrend)}
       </div>
-      <div class="hero-value">${fmtMoneyParts(totalRevenue)}</div>
+      <div class="hero-value" id="hero-revenue"></div>
       <div class="hero-sub">${chrono.length} sale${chrono.length === 1 ? '' : 's'}${hasTrend ? ' &middot; badge is ' + vsText : ''}</div>
       ${buildSparkline(chrono.map(s => s.sale_price_cents / 100), '--accent')}
     </div>
@@ -1739,11 +1779,13 @@ function renderHero(periodSales, prevSales, periodExpenseCents, prevExpenseCents
         <span class="hero-label">Net profit &middot; ${periodName}</span>
         ${trendBadge(profTrend)}
       </div>
-      <div class="hero-value">${fmtMoneyParts(totalProfit)}</div>
+      <div class="hero-value" id="hero-profit"></div>
       <div class="hero-sub">${periodExpenseCents ? `sales profit ${fmtCents(salesProfit)} &minus; expenses ${fmtCents(periodExpenseCents)}` : 'complete sales only &middot; no expenses logged'}</div>
       ${buildSparkline(chrono.map(s => profitOf(s) / 100), '--success')}
     </div>
   `;
+  animateMoney(document.getElementById('hero-revenue'), 'revenue', totalRevenue);
+  animateMoney(document.getElementById('hero-profit'), 'profit', totalProfit);
   return { totalRevenue, totalProfit };
 }
 
@@ -3347,8 +3389,8 @@ function renderBackupNote() {
 }
 
 document.getElementById('backup-btn').addEventListener('click', () => {
-  const backup = { app: 'ledgerly', version: 1, exported_at: new Date().toISOString(), items, sales, expenses, feeRates: getFeeRates() };
-  downloadFile(`ledgerly-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
+  const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, expenses, feeRates: getFeeRates() };
+  downloadFile(`ledgery-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
   try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
   renderBackupNote();
 });
@@ -3368,7 +3410,7 @@ document.getElementById('restore-file').addEventListener('change', e => {
   file.text().then(text => {
     let backup = null;
     try { backup = JSON.parse(text); } catch (err) {}
-    if (!isValidBackup(backup)) { alert("That file isn't a Ledgerly backup, so nothing was changed."); return; }
+    if (!isValidBackup(backup)) { alert("That file isn't a Ledgery backup, so nothing was changed."); return; }
     const count = (i, s, x) => `${i} items, ${s} sales and ${x} expenses`;
     const ok = confirm(`Replace your current data (${count(items.length, sales.length, expenses.length)}) with this backup (${count(backup.items.length, backup.sales.length, (backup.expenses || []).length)})?`);
     if (!ok) return;
@@ -3413,7 +3455,7 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
     csv = toCsv(['ID', 'Date', 'Category', 'Description', 'Amount'],
       expenses.map(x => [x.id, csvText(x.expense_date), csvText(x.category), csvText(x.description), csvMoney(x.amount_cents)]));
   }
-  downloadFile(`ledgerly-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');
+  downloadFile(`ledgery-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');
 }));
 
 /* =========================================================
@@ -3493,12 +3535,13 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
 document.querySelectorAll('#period-switch [data-period]').forEach(btn => btn.addEventListener('click', () => {
   dashPeriod = btn.dataset.period;
   try { localStorage.setItem(PERIOD_STORAGE_KEY, dashPeriod); } catch (e) {}
+  heroShown = {};
   renderDashboard();
 }));
 // The monthly chart sizes itself to its container, which has no width
 // while the Analytics page is hidden, so redraw it when shown or resized.
 document.querySelector('.nav-item[data-view="analytics"]').addEventListener('click', renderAnalytics);
-document.querySelector('.nav-item[data-view="dashboard"]').addEventListener('click', renderDashboard);
+document.querySelector('.nav-item[data-view="dashboard"]').addEventListener('click', () => { heroShown = {}; renderDashboard(); });
 // Only on width changes: phones fire resize when the address bar hides
 // while scrolling, and redrawing then would replay the fade-in.
 let analyticsResizeTimer = null, lastViewportWidth = window.innerWidth;

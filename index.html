@@ -1204,16 +1204,17 @@ td .empty-state { white-space: normal; }
 /* =========================================================
    LEDGER — the pencil assistant
    ========================================================= */
-.ledger-wrap { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
+.ledger-wrap { display: grid; grid-template-columns: 330px 1fr; gap: 24px; align-items: start; }
 .ledger-hero { position: sticky; top: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
 .ledger-stage {
-  width: 100%; aspect-ratio: 1 / 1.05; display: flex; align-items: center; justify-content: center; border-radius: 22px;
+  width: 100%; aspect-ratio: 1 / 1.2; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3%; border-radius: 22px;
   background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 62%), var(--card-bg);
   border: 1px solid var(--hairline); box-shadow: var(--highlight), var(--shadow); overflow: hidden; position: relative;
 }
 .ledger-stage::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: repeating-linear-gradient(transparent 0 17px, color-mix(in srgb, var(--info-text) 16%, transparent) 17px 18px); mask: linear-gradient(transparent, #000 40%); pointer-events: none; }
-.ledger-stage .pencil { width: 62%; height: 90%; position: relative; z-index: 1; }
-.ledger-intro .page-sub { max-width: 260px; margin: 2px auto 10px; }
+.ledger-stage .pencil { width: 80%; height: 80%; position: relative; z-index: 1; }
+.ledger-intro { display: flex; flex-direction: column; align-items: center; }
+.ledger-intro .page-sub { max-width: 300px; margin: 2px auto 10px; }
 .ledger-mode { display: inline-flex; align-items: center; gap: 7px; font-size: 0.7188rem; color: var(--ink-muted); padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); margin-bottom: 8px; }
 .ledger-mode-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
 .ledger-mode.ai .ledger-mode-dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
@@ -1249,36 +1250,103 @@ td .empty-state { white-space: normal; }
 .ledger-send { width: 42px; height: 42px; padding: 0; border-radius: 12px; }
 .ledger-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
-/* The pencil. States: idle (bob + blink), thinking (scribbles), happy (hop). */
+/* The pencil. Moods (class on the svg): idle, mood-think, mood-happy, mood-surprised,
+   mood-sad, mood-sleepy, mood-tickled. Pupils follow the pointer from JS. */
 .pencil { overflow: visible; }
 .pencil .p-body { transform-origin: 60px 190px; animation: pencil-bob 3.2s ease-in-out infinite; }
-.pencil .p-eyes { transform-origin: 60px 84px; animation: pencil-blink 4.6s infinite; }
-.pencil .p-arm-l { transform-origin: 37px 112px; animation: pencil-wave 3.2s ease-in-out infinite; }
+.pencil .p-eyes { transform-origin: 60px 83px; animation: pencil-blink 4.6s infinite; }
+.pencil .p-pupils { transition: transform 120ms ease-out; }
+.pencil .p-arm-l { transform-origin: 37px 112px; transform-box: view-box; animation: pencil-wave 3.2s ease-in-out infinite; }
+.pencil .p-arm-r { transform-origin: 83px 112px; transform-box: view-box; transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pencil .p-brow { transform-box: fill-box; transform-origin: center; transition: transform 250ms ease; }
+.pencil .p-cheek { opacity: 0.4; transition: opacity 300ms ease; }
 .pencil .p-scribble { stroke-dasharray: 130; stroke-dashoffset: 130; opacity: 0; }
-.pencil.thinking .p-body { animation: pencil-write 0.55s ease-in-out infinite; }
-.pencil.thinking .p-scribble { opacity: 1; animation: pencil-scribble 1.6s linear infinite; }
-.pencil.thinking .p-mouth-idle, .pencil:not(.thinking) .p-mouth-think { display: none; }
-.pencil.happy .p-body { animation: pencil-hop 700ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pencil .p-sparks, .pencil .p-zzz, .pencil .p-sweat, .pencil .e-arc, .pencil .e-shut, .pencil .m { display: none; }
+.pencil .m-smile { display: inline; }
+.pencil .p-sparks path { transform-box: fill-box; transform-origin: center; }
+/* thinking: scribbles, looks up, one brow raised */
+.pencil.mood-think .p-body { animation: pencil-write 0.55s ease-in-out infinite; }
+.pencil.mood-think .p-scribble { opacity: 1; animation: pencil-scribble 1.6s linear infinite; }
+.pencil.mood-think .m-smile { display: none; } .pencil.mood-think .m-think { display: inline; }
+.pencil.mood-think .p-brow-l { transform: translateY(-3px) rotate(-10deg); }
+.pencil.mood-think .p-arm-r { transform: rotate(-38deg); }
+/* happy: squinty grin, sparkles, arms up */
+.pencil.mood-happy .e-open, .pencil.mood-tickled .e-open { display: none; }
+.pencil.mood-happy .e-arc, .pencil.mood-tickled .e-arc { display: inline; }
+.pencil.mood-happy .m-smile, .pencil.mood-tickled .m-smile { display: none; }
+.pencil.mood-happy .m-grin, .pencil.mood-tickled .m-grin { display: inline; }
+.pencil.mood-happy .p-cheek, .pencil.mood-tickled .p-cheek { opacity: 0.75; }
+.pencil.mood-happy .p-brow { transform: translateY(-2.5px); }
+.pencil.mood-happy .p-arm-r { transform: rotate(-70deg); }
+.pencil.mood-happy .p-sparks { display: inline; }
+.pencil.mood-happy .p-sparks path { animation: pencil-spark 900ms ease-in-out infinite alternate; }
+.pencil.mood-happy .p-sparks path:nth-child(2) { animation-delay: 200ms; } .pencil.mood-happy .p-sparks path:nth-child(3) { animation-delay: 400ms; }
+.pencil.hop .p-body { animation: pencil-hop 700ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* tickled (poked): squish and giggle */
+.pencil.mood-tickled .p-body { animation: pencil-giggle 600ms ease-in-out; }
+.pencil.mood-tickled .p-brow { transform: translateY(-2px); }
+/* surprised: brows up, O mouth, sweat drop */
+.pencil.mood-surprised .p-brow { transform: translateY(-4px); }
+.pencil.mood-surprised .m-smile { display: none; } .pencil.mood-surprised .m-o, .pencil.mood-surprised .p-sweat { display: inline; }
+.pencil.mood-surprised .p-body { animation: pencil-jolt 380ms ease-out; }
+/* sad: worried brows, frown, droop */
+.pencil.mood-sad .p-brow-l { transform: translateY(1px) rotate(-14deg); }
+.pencil.mood-sad .p-brow-r { transform: translateY(1px) rotate(14deg); }
+.pencil.mood-sad .m-smile { display: none; } .pencil.mood-sad .m-sad { display: inline; }
+.pencil.mood-sad .p-body { animation: none; transform: rotate(-4deg) translateY(3px); transition: transform 400ms ease; }
+.pencil.mood-sad .p-arm-l { animation: none; transform: rotate(40deg); }
+/* sleepy: eyes shut, zzz, slow sway */
+.pencil.mood-sleepy .e-open { display: none; } .pencil.mood-sleepy .e-shut { display: inline; }
+.pencil.mood-sleepy .m-smile { display: none; } .pencil.mood-sleepy .m-sleep { display: inline; }
+.pencil.mood-sleepy .p-eyes { animation: none; }
+.pencil.mood-sleepy .p-arm-l { animation: none; transform: rotate(35deg); }
+.pencil.mood-sleepy .p-body { animation: pencil-sway 4.5s ease-in-out infinite; }
+.pencil.mood-sleepy .p-brow { transform: translateY(2px); }
+.pencil.mood-sleepy .p-zzz { display: inline; }
+.pencil.mood-sleepy .p-zzz text { animation: pencil-z 2.4s ease-in-out infinite; }
+.pencil.mood-sleepy .p-zzz text:nth-child(2) { animation-delay: 0.4s; } .pencil.mood-sleepy .p-zzz text:nth-child(3) { animation-delay: 0.8s; }
+.pencil.wiggle .p-body { animation: pencil-giggle 600ms ease-in-out; }
 @keyframes pencil-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-1.5deg); } }
 @keyframes pencil-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
 @keyframes pencil-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
 @keyframes pencil-write { 0%, 100% { transform: rotate(-7deg) translateX(-3px); } 50% { transform: rotate(6deg) translateX(3px); } }
 @keyframes pencil-scribble { 0% { stroke-dashoffset: 130; } 70%, 100% { stroke-dashoffset: 0; } }
-@keyframes pencil-hop { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-14px) scale(1.03, 0.97); } 100% { transform: translateY(0); } }
+@keyframes pencil-hop { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-16px) scale(1.03, 0.97); } 100% { transform: translateY(0); } }
+@keyframes pencil-giggle { 0%, 100% { transform: scale(1) rotate(0); } 20% { transform: scale(1.07, 0.9) rotate(-4deg); } 45% { transform: scale(0.95, 1.06) rotate(4deg); } 70% { transform: scale(1.03, 0.97) rotate(-2deg); } }
+@keyframes pencil-jolt { 0% { transform: translateY(0); } 30% { transform: translateY(-9px) scale(0.97, 1.04); } 100% { transform: translateY(0); } }
+@keyframes pencil-sway { 0%, 100% { transform: rotate(-3deg) translateY(2px); } 50% { transform: rotate(2deg) translateY(3px); } }
+@keyframes pencil-spark { from { transform: scale(0.5) rotate(0); opacity: 0.4; } to { transform: scale(1.15) rotate(25deg); opacity: 1; } }
+@keyframes pencil-z { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(4px, -8px); } }
 .ledger-avatar .pencil * { animation: none !important; }
+
+.ledger-stage { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ledger-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ledger-speech {
+  position: absolute; z-index: 3; top: 14px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(86%, 270px);
+  padding: 9px 13px; border-radius: 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+  box-shadow: 0 10px 24px -12px rgba(0,0,0,0.5); font-size: 0.8125rem; line-height: 1.4; text-align: center; pointer-events: none;
+  animation: speech-pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ledger-speech::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 11px; height: 11px; background: var(--surface); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: translateX(-50%) rotate(45deg); }
+@keyframes speech-pop { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.9); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  :root:not(.motion-full) .pencil *, :root:not(.motion-full) .ledger-msg, :root:not(.motion-full) .ledger-typing i { animation: none !important; }
-  :root:not(.motion-full) .pencil.thinking .p-scribble { stroke-dashoffset: 0; }
+  :root:not(.motion-full) .pencil *, :root:not(.motion-full) .ledger-msg, :root:not(.motion-full) .ledger-typing i, :root:not(.motion-full) .ledger-speech { animation: none !important; }
+  :root:not(.motion-full) .pencil.mood-think .p-scribble { stroke-dashoffset: 0; }
 }
 @media (max-width: 900px) {
   .ledger-wrap { grid-template-columns: 1fr; gap: 14px; }
   .ledger-hero { position: static; flex-direction: row; text-align: left; align-items: center; gap: 14px; }
-  .ledger-stage { width: 96px; flex-shrink: 0; border-radius: 18px; }
+  .ledger-stage { width: 150px; flex-shrink: 0; border-radius: 18px; align-self: flex-start; }
+  .ledger-hero { align-items: flex-start; }
+  .ledger-intro { align-items: flex-start; }
+  .ledger-stage .pencil { height: 84%; }
+  .ledger-speech { top: 6px; max-width: 92%; font-size: 0.6875rem; padding: 6px 8px; border-radius: 10px; }
   .ledger-intro .page-sub { margin: 2px 0 8px; max-width: none; }
-  .ledger-chat { min-height: 60vh; max-height: calc(100vh - 290px); }
+  .ledger-chat { min-height: 60vh; max-height: calc(100vh - 330px); }
 }
 @media (max-width: 720px) {
-  .ledger-chat { max-height: calc(100vh - 300px - env(safe-area-inset-bottom, 0px)); min-height: 380px; }
+  .ledger-chat { max-height: calc(100vh - 330px - env(safe-area-inset-bottom, 0px)); min-height: 380px; }
+  .ledger-stage { width: 128px; }
   .ledger-log { padding: 16px 14px 6px; }
   .ledger-chips { padding: 4px 14px 8px; }
   .ledger-msg { max-width: 94%; }
@@ -1478,7 +1546,7 @@ td .empty-state { white-space: normal; }
     <section class="view" id="view-ledger">
       <div class="ledger-wrap">
         <aside class="ledger-hero">
-          <div class="ledger-stage" id="ledger-stage"></div>
+          <div class="ledger-stage" id="ledger-stage" role="button" tabindex="0" aria-label="Poke Ledger"></div>
           <div class="ledger-intro">
             <h1 class="page-title">Ledger</h1>
             <p class="page-sub">Your pencil-pushing business buddy. Ask me anything about your sales, inventory and profit.</p>
@@ -3417,8 +3485,16 @@ function askDeleteSale(sale, originEl) {
    ========================================================= */
 function pencilSvg(extraClass = '') {
   return `<svg class="pencil ${extraClass}" viewBox="0 0 120 210" aria-hidden="true">
-    <ellipse cx="60" cy="203" rx="30" ry="4.5" fill="color-mix(in srgb, var(--ink) 16%, transparent)"/>
+    <ellipse class="p-shadow" cx="60" cy="203" rx="30" ry="4.5" fill="color-mix(in srgb, var(--ink) 16%, transparent)"/>
     <path class="p-scribble" d="M30 199c10-9 16 6 26-2s14-8 22 1 12-6 18-3" fill="none" stroke="var(--ink-muted)" stroke-width="2.2" stroke-linecap="round"/>
+    <g class="p-sparks" fill="#F6C443">
+      <path d="M16 44l2.2 5.8 5.8 2.2-5.8 2.2L16 60l-2.2-5.8L8 52l5.8-2.2z"/>
+      <path d="M104 30l1.6 4.2 4.2 1.6-4.2 1.6-1.6 4.2-1.6-4.2-4.2-1.6 4.2-1.6z"/>
+      <path d="M100 68l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="#F29CB4"/>
+    </g>
+    <g class="p-zzz" fill="var(--ink-muted)" font-family="var(--font-display)" font-weight="700">
+      <text x="88" y="46" font-size="10">z</text><text x="96" y="33" font-size="13">z</text><text x="105" y="18" font-size="16">Z</text>
+    </g>
     <g class="p-body">
       <rect x="36" y="6" width="48" height="28" rx="11" fill="#F29CB4"/>
       <rect x="36" y="6" width="14" height="28" rx="7" fill="#F7B8CA" opacity=".8"/>
@@ -3430,17 +3506,29 @@ function pencilSvg(extraClass = '') {
       <path d="M36 153h48l-24 42z" fill="#F0D2A6"/>
       <path d="M36 153q6 5 12 0t12 0 12 0 12 0" fill="#E3BD86"/>
       <path d="M52.5 181h15L60 195z" fill="#3B3D42"/>
-      <path class="p-arm-l" d="M37 112c-9 -2 -15 -9 -17 -18" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/>
-      <circle class="p-arm-l" cx="19.5" cy="92" r="4" fill="#3B3D42"/>
-      <path d="M83 112c8 3 12 9 13 15" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/>
-      <circle cx="96.5" cy="129" r="4" fill="#3B3D42"/>
+      <g class="p-arm-l"><path d="M37 112c-9 -2 -15 -9 -17 -18" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/><circle cx="19.5" cy="92" r="4" fill="#3B3D42"/></g>
+      <g class="p-arm-r"><path d="M83 112c8 3 12 9 13 15" fill="none" stroke="#3B3D42" stroke-width="3.2" stroke-linecap="round"/><circle cx="96.5" cy="129" r="4" fill="#3B3D42"/></g>
+      <path class="p-brow p-brow-l" d="M43.5 71.5q7-5 13-1" fill="none" stroke="#2B2D31" stroke-width="2.4" stroke-linecap="round"/>
+      <path class="p-brow p-brow-r" d="M63.5 70.5q6-4 13 1" fill="none" stroke="#2B2D31" stroke-width="2.4" stroke-linecap="round"/>
       <g class="p-eyes">
-        <ellipse cx="50" cy="84" rx="5" ry="6.2" fill="#2B2D31"/><ellipse cx="70" cy="84" rx="5" ry="6.2" fill="#2B2D31"/>
-        <circle cx="51.8" cy="81.6" r="1.8" fill="#fff"/><circle cx="71.8" cy="81.6" r="1.8" fill="#fff"/>
+        <g class="e-open">
+          <ellipse cx="50" cy="83" rx="6.8" ry="8" fill="#fff"/><ellipse cx="70" cy="83" rx="6.8" ry="8" fill="#fff"/>
+          <g class="p-pupils">
+            <circle cx="50" cy="84" r="4.3" fill="#2B2D31"/><circle cx="70" cy="84" r="4.3" fill="#2B2D31"/>
+            <circle cx="51.6" cy="82" r="1.5" fill="#fff"/><circle cx="71.6" cy="82" r="1.5" fill="#fff"/>
+          </g>
+        </g>
+        <path class="e-arc" d="M43.5 85.5q6.5-8 13 0M63.5 85.5q6.5-8 13 0" fill="none" stroke="#2B2D31" stroke-width="2.8" stroke-linecap="round"/>
+        <path class="e-shut" d="M44 84q6 4.5 12 0M64 84q6 4.5 12 0" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
       </g>
-      <circle cx="43" cy="97" r="4.2" fill="#F2789A" opacity=".45"/><circle cx="77" cy="97" r="4.2" fill="#F2789A" opacity=".45"/>
-      <path class="p-mouth-idle" d="M52 97q8 8 16 0" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
-      <path class="p-mouth-think" d="M54 99h11" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
+      <circle class="p-cheek" cx="42" cy="97" r="4.4" fill="#F2789A"/><circle class="p-cheek" cx="78" cy="97" r="4.4" fill="#F2789A"/>
+      <path class="p-sweat" d="M84 66q-3.5 5-3.5 7.5a3.5 3.5 0 0 0 7 0q0-2.5-3.5-7.5z" fill="#8FC7F2"/>
+      <path class="m m-smile" d="M52 97q8 8 16 0" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
+      <g class="m m-grin"><path d="M50.5 95.5q9.5 13 19 0z" fill="#2B2D31" stroke="#2B2D31" stroke-width="1.6" stroke-linejoin="round"/><path d="M55.5 101.5q4.5-3.4 9 0q-4.5 3.2-9 0z" fill="#F2789A"/></g>
+      <path class="m m-think" d="M54 100q3-2.5 6 0t6-1" fill="none" stroke="#2B2D31" stroke-width="2.4" stroke-linecap="round"/>
+      <ellipse class="m m-o" cx="60" cy="100" rx="3.4" ry="4.4" fill="#2B2D31"/>
+      <path class="m m-sad" d="M52.5 103q7.5-7 15 0" fill="none" stroke="#2B2D31" stroke-width="2.6" stroke-linecap="round"/>
+      <path class="m m-sleep" d="M56 100q4 2 8 0" fill="none" stroke="#2B2D31" stroke-width="2.4" stroke-linecap="round"/>
     </g>
   </svg>`;
 }
@@ -3508,12 +3596,157 @@ function ledgerMarkdown(text) {
   return out.map(x => Array.isArray(x) ? `<ul>${x.map(li => `<li>${li}</li>`).join('')}</ul>` : x).join('');
 }
 
-function setPencilState(state) {
-  const p = document.querySelector('#ledger-stage .pencil');
+/* ---------- Ledger's personality: moods, speech, eyes, poking, naps ---------- */
+const PENCIL_MOODS = ['mood-think', 'mood-happy', 'mood-surprised', 'mood-sad', 'mood-sleepy', 'mood-tickled'];
+const pencilState = { mood: 'idle', moodTimer: null, sayTimer: null, lastPoke: 0, pokes: 0, sleeping: false, idleTimer: null, fidgetTimer: null, lookUntil: 0, look: null, lastQuip: '' };
+const bigPencil = () => document.querySelector('#ledger-stage .pencil');
+
+// mood: 'idle' | 'think' | 'happy' | 'surprised' | 'sad' | 'sleepy' | 'tickled'; ms: go back to idle after.
+function setPencilMood(mood, ms) {
+  const p = bigPencil();
   if (!p) return;
-  p.classList.remove('thinking', 'happy');
-  if (state === 'thinking') p.classList.add('thinking');
-  if (state === 'happy') { void p.getBoundingClientRect(); p.classList.add('happy'); setTimeout(() => p.classList.remove('happy'), 750); }
+  clearTimeout(pencilState.moodTimer);
+  p.classList.remove(...PENCIL_MOODS);
+  if (mood !== 'idle') { void p.getBoundingClientRect(); p.classList.add('mood-' + mood); }
+  pencilState.mood = mood;
+  aimPupils(...(lastPointer || []));
+  if (ms) pencilState.moodTimer = setTimeout(() => setPencilMood(ledgerBusy ? 'think' : 'idle'), ms);
+}
+function pencilDo(cls, ms = 750) {
+  const p = bigPencil();
+  if (!p) return;
+  p.classList.remove(cls); void p.getBoundingClientRect(); p.classList.add(cls);
+  setTimeout(() => p.classList.remove(cls), ms);
+}
+// Older callers: 'thinking' | 'happy' | 'idle'.
+function setPencilState(state) {
+  if (state === 'thinking') setPencilMood('think');
+  else if (state === 'happy') { setPencilMood('happy', 2200); pencilDo('hop'); }
+  else setPencilMood('idle');
+}
+
+function pencilSay(text, ms = 4200) {
+  const stage = document.getElementById('ledger-stage');
+  let bubble = document.getElementById('ledger-speech');
+  if (bubble) bubble.remove();
+  bubble = document.createElement('div');
+  bubble.id = 'ledger-speech'; bubble.className = 'ledger-speech'; bubble.setAttribute('role', 'status');
+  bubble.textContent = text;
+  stage.appendChild(bubble);
+  clearTimeout(pencilState.sayTimer);
+  pencilState.sayTimer = setTimeout(() => bubble.remove(), ms);
+}
+
+// Things Ledger says when poked: some about the business, some just silly.
+function pencilQuips() {
+  const q = [
+    "Hey, that tickles!", "Sharp as ever. Want to ask me something?", "2B or not 2B? Definitely 2B.",
+    "Eraser? Never needed one. Okay, once.", "I run on graphite and good margins.", "Got any good flips today?",
+    "Pencil me in for your next big sale!", "Don't forget to record your sales. I can only count what I can see!",
+    "I'm not pushy. I'm pencil-pushy.", "Careful, I'm a little lead-headed today.",
+  ];
+  const month = ledgerStats(periodRange('month', 0));
+  if (month.profit > 0) q.push(`You've made ${plainMoney(month.profit)} profit this month. I'm proud of you!`);
+  if (month.count === 0 && sales.length) q.push("No sales yet this month. Let's change that!");
+  const plats = ledgerGroup(s => s.platform);
+  if (plats.length) q.push(`${plats[0].name} is your money-maker. Just saying.`);
+  const stale = ledgerStock().find(e => e.days !== null && e.days >= 60);
+  if (stale) q.push(`${stale.item.item_name} has been waiting ${stale.days} days. Poor thing. Maybe a price drop?`);
+  const goal = loadGoalCents();
+  if (goal) q.push(month.profit >= goal ? 'Goal smashed this month. Nice!' : `${Math.round(Math.max(0, month.profit) / goal * 100)}% of the way to your goal. Keep going!`);
+  if (!items.length) q.push("Add some inventory and I'll get to work!");
+  const pick = q.filter(x => x !== pencilState.lastQuip);
+  return (pencilState.lastQuip = pick[Math.floor(Math.random() * pick.length)]);
+}
+
+function pokePencil() {
+  wakePencil(true);
+  if (ledgerBusy) { pencilSay("Shh, I'm writing!", 1800); return; }
+  const now = Date.now();
+  pencilState.pokes = now - pencilState.lastPoke < 2500 ? pencilState.pokes + 1 : 1;
+  pencilState.lastPoke = now;
+  if (pencilState.pokes >= 5) {
+    setPencilMood('surprised', 1400);
+    pencilSay(['Okay, okay! I’m ticklish!', 'Hey! My eraser is sensitive!', 'You’re going to smudge me!'][pencilState.pokes % 3], 2600);
+    return;
+  }
+  setPencilMood('tickled', 1100);
+  pencilSay(pencilQuips());
+}
+
+// Pupils follow the pointer (and look up while thinking).
+function aimPupils(clientX, clientY) {
+  const p = bigPencil();
+  const pupils = p && p.querySelector('.p-pupils');
+  if (!pupils) return;
+  let dx = 0, dy = 0;
+  if (pencilState.mood === 'think') { dx = -1.8; dy = -2.6; }
+  else if (pencilState.look && Date.now() < pencilState.lookUntil) { [dx, dy] = pencilState.look; }
+  else if (clientX !== undefined) {
+    const ctm = p.getScreenCTM();
+    if (ctm) {
+      const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+      const vx = pt.x - 60, vy = pt.y - 84, dist = Math.hypot(vx, vy) || 1;
+      const reach = Math.min(1, dist / 70) * 2.6;
+      dx = vx / dist * reach; dy = vy / dist * reach * 0.8;
+    }
+  }
+  pupils.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px)`;
+}
+let pointerQueued = false, lastPointer = null;
+window.addEventListener('pointermove', e => {
+  lastPointer = [e.clientX, e.clientY];
+  if (!document.getElementById('view-ledger').classList.contains('active')) return;
+  wakePencil();
+  if (pointerQueued) return;
+  pointerQueued = true;
+  requestAnimationFrame(() => { pointerQueued = false; if (lastPointer) aimPupils(...lastPointer); });
+});
+document.addEventListener('pointerleave', () => { lastPointer = null; aimPupils(); });
+
+// Naps after a while alone; little fidgets now and then while idle.
+const PENCIL_NAP_MS = 45000;
+function schedulePencilNap() {
+  clearTimeout(pencilState.idleTimer);
+  pencilState.idleTimer = setTimeout(() => {
+    if (!document.getElementById('view-ledger').classList.contains('active') || ledgerBusy || pencilState.mood !== 'idle') return schedulePencilNap();
+    pencilState.sleeping = true;
+    setPencilMood('sleepy');
+  }, PENCIL_NAP_MS);
+}
+function wakePencil(quiet) {
+  if (pencilState.sleeping) {
+    pencilState.sleeping = false;
+    setPencilMood('surprised', 1000);
+    if (!quiet) pencilSay(['Oh! I’m up, I’m up!', 'Huh? I was just resting my eraser.', 'Zzz… wha? Oh, hi!'][Math.floor(Math.random() * 3)], 2600);
+  }
+  schedulePencilNap();
+}
+function pencilFidget() {
+  clearTimeout(pencilState.fidgetTimer);
+  pencilState.fidgetTimer = setTimeout(() => {
+    if (document.getElementById('view-ledger').classList.contains('active') && pencilState.mood === 'idle' && !ledgerBusy) {
+      const roll = Math.random();
+      if (roll < 0.45) { // look around
+        pencilState.look = [-2.6, 0.4]; pencilState.lookUntil = Date.now() + 1400; aimPupils();
+        setTimeout(() => { pencilState.look = [2.6, 0.4]; pencilState.lookUntil = Date.now() + 900; aimPupils(); }, 700);
+        setTimeout(() => aimPupils(...(lastPointer || [])), 1700);
+      } else if (roll < 0.8) pencilDo('wiggle', 650);
+      else if (!document.getElementById('ledger-speech')) pencilSay(pencilQuips(), 3800);
+    }
+    pencilFidget();
+  }, 9000 + Math.random() * 8000);
+}
+
+// A hello when you open the Ledger page.
+let pencilGreeted = false;
+function greetPencil() {
+  wakePencil(true);
+  if (pencilGreeted) return;
+  pencilGreeted = true;
+  const h = new Date().getHours();
+  const hello = h < 5 ? 'Up late? Me too. Pencils never sleep. Well, rarely.' : h < 12 ? 'Good morning! Ready to count some cash?' : h < 18 ? 'Good afternoon! What are we working on?' : 'Good evening! Let’s see how today went.';
+  setTimeout(() => { setPencilMood('happy', 1600); pencilDo('hop'); pencilSay(hello, 4200); }, 350);
 }
 
 function setLedgerMode(mode) {
@@ -3788,6 +4021,7 @@ async function askLedger(question, opts = {}) {
 
   let answer = '', note = '';
   const outOfQuestions = ledgerMode === 'ai' && ledgerLeft() < cost;
+  if (opts.label && !outOfQuestions) pencilSay('Ooh, a deep dive! Let me sharpen up…', 3200);
   if (outOfQuestions) {
     await new Promise(r => setTimeout(r, prefersReducedMotion() ? 150 : 500));
     answer = opts.label ? ledgerOfflineReport() : ledgerOfflineAnswer(question);
@@ -3834,8 +4068,13 @@ async function askLedger(question, opts = {}) {
   if (!answer && !note) bubble.closest('.ledger-msg').remove();
   log.scrollTop = log.scrollHeight;
   saveLedgerChat();
-  setPencilState(answer ? 'happy' : 'idle');
   ledgerBusy = false;
+  if (outOfQuestions) { setPencilMood('sad', 3200); pencilSay(ledgerLeft() ? 'Not enough questions left for that one…' : 'That’s all my Claude brainpower for today. Back at midnight!', 4000); }
+  else if (!answer) { setPencilMood('surprised', 1600); if (note) pencilSay('Whoops! I smudged that one.', 2600); }
+  else {
+    setPencilState('happy');
+    if (Math.random() < 0.35) pencilSay(['Nailed it!', 'Hope that helps!', 'Numbers never lie. Pencils don’t either.', 'Want me to dig deeper?'][Math.floor(Math.random() * 4)], 2800);
+  }
   document.getElementById('ledger-send').disabled = false;
   const used = new Set(ledgerTurns.filter(t => t.role === 'user').map(t => t.content));
   document.getElementById('ledger-chips').innerHTML = LEDGER_SUGGESTIONS.filter(q => !used.has(q)).slice(0, 5)
@@ -3843,6 +4082,12 @@ async function askLedger(question, opts = {}) {
 }
 
 document.getElementById('ledger-stage').innerHTML = pencilSvg();
+document.getElementById('ledger-stage').addEventListener('click', pokePencil);
+document.getElementById('ledger-stage').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pokePencil(); } });
+document.body.addEventListener('click', e => { if (e.target.closest('.nav-item[data-view="ledger"]')) greetPencil(); });
+['keydown', 'pointerdown'].forEach(t => window.addEventListener(t, () => { if (document.getElementById('view-ledger').classList.contains('active')) wakePencil(); }, { passive: true }));
+schedulePencilNap();
+pencilFidget();
 document.getElementById('ledger-form').addEventListener('submit', e => { e.preventDefault(); askLedger(document.getElementById('ledger-q').value); });
 document.getElementById('ledger-q').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); askLedger(e.target.value); }
@@ -3853,7 +4098,7 @@ document.getElementById('ledger-stop').addEventListener('click', () => { if (led
 document.getElementById('ledger-analyze').addEventListener('click', () => askLedger(LEDGER_ANALYSIS_PROMPT, { label: LEDGER_ANALYSIS_LABEL, cost: LEDGER_ANALYSIS_COST }));
 document.getElementById('ledger-clear').addEventListener('click', () => {
   if (ledgerCtl) ledgerCtl.abort();
-  ledgerTurns = []; saveLedgerChat(); renderLedgerChat(); setPencilState('happy');
+  ledgerTurns = []; saveLedgerChat(); renderLedgerChat(); setPencilState('happy'); pencilSay('Fresh page! What’s on your mind?', 3000);
 });
 renderLedgerChat();
 setLedgerMode('checking');

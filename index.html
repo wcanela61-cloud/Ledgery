@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledgerly — Reseller Dashboard</title>
+<script>
+(function () {
+  var VALID = ['notepad', 'midnight', 'clean', 'terminal', 'paper'];
+  var BASE_COLORS = {
+    notepad: { bg: '#14161A', accent: '#4FAE84', fg: '#E7E9E5' },
+    midnight: { bg: '#0A0C10', accent: '#5B8CFF', fg: '#F5F6F8' },
+    clean: { bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
+    terminal: { bg: '#0D0F0C', accent: '#7FDB6E', fg: '#D8E8D0' },
+    paper: { bg: '#F6F1E7', accent: '#8A6D3B', fg: '#2B2620' },
+  };
+  function hexToRgb(hex) {
+    var h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+    var num = parseInt(h, 16) || 0;
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+  }
+  function rgbToHex(rgb) {
+    return '#' + rgb.map(function (v) {
+      return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+    }).join('');
+  }
+  function mix(hexA, hexB, wB) {
+    var a = hexToRgb(hexA), b = hexToRgb(hexB), w = Math.max(0, Math.min(1, wB));
+    return rgbToHex([a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w]);
+  }
+  function isDark(hex) {
+    var rgb = hexToRgb(hex).map(function (v) {
+      var c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) < 0.5;
+  }
+  var FONT_FAMILIES = {
+    'ibm-plex-sans': "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'space-grotesk': "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'manrope': "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'sora': "'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'work-sans': "'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'dm-sans': "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'outfit': "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  };
+  try {
+    var raw = localStorage.getItem('ledgerly-theme-settings');
+    var parsed = raw ? JSON.parse(raw) : null;
+    var vibe = parsed && VALID.indexOf(parsed.vibe) !== -1 ? parsed.vibe : 'notepad';
+    document.documentElement.setAttribute('data-vibe', vibe);
+    var override = parsed && parsed.colorOverrides;
+    if (override && (override.bg || override.accent || override.fg)) {
+      var base = BASE_COLORS[vibe];
+      var bg = override.bg || base.bg, accent = override.accent || base.accent, fg = override.fg || base.fg;
+      var dark = isDark(bg);
+      var root = document.documentElement.style;
+      root.setProperty('--bg', bg);
+      root.setProperty('--surface', dark ? mix(bg, fg, 0.05) : mix(bg, '#FFFFFF', 0.7));
+      root.setProperty('--surface-2', dark ? mix(bg, fg, 0.09) : '#FFFFFF');
+      root.setProperty('--ink', fg);
+      root.setProperty('--ink-muted', mix(fg, bg, 0.35));
+      root.setProperty('--ink-faint', mix(fg, bg, 0.55));
+      root.setProperty('--border', mix(bg, fg, dark ? 0.14 : 0.12));
+      root.setProperty('--accent', accent);
+      root.setProperty('--accent-soft', mix(bg, accent, 0.15));
+      root.setProperty('--accent-text', dark ? mix(accent, '#FFFFFF', 0.35) : mix(accent, '#000000', 0.25));
+    }
+    var fontScale = parsed && typeof parsed.fontScale === 'number' ? Math.min(1.25, Math.max(0.85, parsed.fontScale)) : 1;
+    document.documentElement.style.setProperty('--font-scale', String(fontScale));
+    var fontFamily = parsed && parsed.fontFamily;
+    if (fontFamily && FONT_FAMILIES[fontFamily]) {
+      document.documentElement.style.setProperty('--font-sans', FONT_FAMILIES[fontFamily]);
+    }
+  } catch (e) { /* storage unavailable — falls back to default notepad vibe */ }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   LEDGERLY THEME SYSTEM
+   Centralized design tokens. Every component below reads
+   these CSS variables — nothing is hardcoded per-component.
+   Switching [data-vibe] on <html> is the only thing that
+   changes the app's appearance.
+
+   Token groups:
+   - surfaces: --bg --surface --surface-2
+   - text: --ink --ink-muted --ink-faint
+   - structure: --border --radius
+   - brand: --accent --accent-soft --accent-text (buttons, nav, links)
+   - profit semantics: --success --success-soft --success-text
+     (kept green-ish across every vibe, independent of --accent,
+     so "green = profit" stays consistent even when a vibe's
+     brand accent color changes)
+   - status: --warning* --danger* --info* (badges, alerts)
+   - type: --font-sans --font-mono
+   - future hooks (declared, not yet wired everywhere): --density-scale
+   ========================================================= */
+:root,
+:root[data-vibe="notepad"] {
+  /* NOTEPAD — default. Tech-savvy digital notebook: dark charcoal, thin borders, subtle green. */
+  --bg: #14161A;
+  --surface: #1A1D21;
+  --surface-2: #20242A;
+  --ink: #E7E9E5;
+  --ink-muted: #9AA39B;
+  --ink-faint: #6B746D;
+  --border: #2A2E33;
+  --accent: #4FAE84;
+  --accent-soft: #1C2B23;
+  --accent-text: #7FCBA8;
+  --success: #4FAE84;
+  --success-soft: #1C2B23;
+  --success-text: #7FCBA8;
+  --warning: #D6A94B;
+  --warning-soft: #332A18;
+  --warning-text: #E8C97A;
+  --danger: #D9765A;
+  --danger-soft: #33231D;
+  --danger-text: #E8977C;
+  --info-soft: #1B2733;
+  --info-text: #8FB8E8;
+  --radius: 6px;
+  --density-scale: 0.9;
+  color-scheme: dark;
+}
+:root[data-vibe="midnight"] {
+  /* MIDNIGHT — premium dark SaaS: deeper background, more contrast, elevated surfaces. */
+  --bg: #0A0C10;
+  --surface: #10131A;
+  --surface-2: #161A23;
+  --ink: #F5F6F8;
+  --ink-muted: #8E96A6;
+  --ink-faint: #5C6474;
+  --border: #222732;
+  --accent: #5B8CFF;
+  --accent-soft: #182238;
+  --accent-text: #9CB8FF;
+  --success: #3FCB8C;
+  --success-soft: #12291F;
+  --success-text: #7BE8B8;
+  --warning: #E0B24E;
+  --warning-soft: #332711;
+  --warning-text: #F0CE85;
+  --danger: #F06A55;
+  --danger-soft: #331B16;
+  --danger-text: #F5988A;
+  --info-soft: #182238;
+  --info-text: #9CB8FF;
+  --radius: 10px;
+  --density-scale: 1;
+  color-scheme: dark;
+}
+:root[data-vibe="clean"] {
+  /* CLEAN — light professional workspace: white surfaces, minimal borders, spacious. */
+  --bg: #F7F7F5;
+  --surface: #FFFFFF;
+  --surface-2: #FFFFFF;
+  --ink: #1C2321;
+  --ink-muted: #5B655F;
+  --ink-faint: #8B948E;
+  --border: #E3E1DA;
+  --accent: #1F6F54;
+  --accent-soft: #E4F0EA;
+  --accent-text: #14513E;
+  --success: #1F6F54;
+  --success-soft: #E4F0EA;
+  --success-text: #14513E;
+  --warning: #B3812C;
+  --warning-soft: #F6ECD9;
+  --warning-text: #7A551A;
+  --danger: #B3452C;
+  --danger-soft: #F7E7E2;
+  --danger-text: #8A331F;
+  --info-soft: #E7EEF7;
+  --info-text: #2B577E;
+  --radius: 8px;
+  --density-scale: 1.05;
+  color-scheme: light;
+}
+:root[data-vibe="terminal"] {
+  /* TERMINAL — developer-inspired: very compact, near-square, minimal decoration. */
+  --bg: #0D0F0C;
+  --surface: #12140F;
+  --surface-2: #171A13;
+  --ink: #D8E8D0;
+  --ink-muted: #8CA283;
+  --ink-faint: #5A6B54;
+  --border: #232A20;
+  --accent: #7FDB6E;
+  --accent-soft: #1B2818;
+  --accent-text: #A9EB9C;
+  --success: #7FDB6E;
+  --success-soft: #1B2818;
+  --success-text: #A9EB9C;
+  --warning: #E0C24E;
+  --warning-soft: #2E2A12;
+  --warning-text: #F0DB85;
+  --danger: #E06A54;
+  --danger-soft: #2E1913;
+  --danger-text: #F0968A;
+  --info-soft: #132428;
+  --info-text: #9CE1F0;
+  --radius: 2px;
+  --density-scale: 0.8;
+  color-scheme: dark;
+}
+:root[data-vibe="paper"] {
+  /* PAPER — digital paper/notebook: warm off-white, soft contrast, notebook feel. */
+  --bg: #F6F1E7;
+  --surface: #FBF8F1;
+  --surface-2: #FFFFFF;
+  --ink: #2B2620;
+  --ink-muted: #6B6155;
+  --ink-faint: #948A7A;
+  --border: #E4DAC5;
+  --accent: #8A6D3B;
+  --accent-soft: #EFE6D2;
+  --accent-text: #5C4826;
+  --success: #4F7D4A;
+  --success-soft: #E4EEDE;
+  --success-text: #365E32;
+  --warning: #B3812C;
+  --warning-soft: #F3E7CC;
+  --warning-text: #7A551A;
+  --danger: #B3452C;
+  --danger-soft: #F5E2D6;
+  --danger-text: #8A331F;
+  --info-soft: #E2ECF2;
+  --info-text: #33526A;
+  --radius: 10px;
+  --density-scale: 1.05;
+  color-scheme: light;
+}
+/* Terminal leans harder on monospace for data/nav labels — the only
+   vibe-specific typography rule, kept narrow on purpose so the whole
+   app never becomes a terminal window. */
+:root[data-vibe="terminal"] .nav-item,
+:root[data-vibe="terminal"] th {
+  font-family: var(--font-mono);
+}
+* { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+  --font-scale: 1;
+}
+/* Font size is root-relative: every font-size in this stylesheet is
+   in rem, so this one variable scales the whole app's type. */
+html { font-size: calc(16px * var(--font-scale)); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+a { color: inherit; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 0.875rem; }
+
+/* ---------- App shell ---------- */
+/* =========================================================
+   ANIMATED BACKGROUND
+   Large, softly-blurred color blobs slowly drift and pulse across
+   the whole viewport — the PS5-menu-style ambient look. Fixed behind
+   everything, pointer-events disabled so it never blocks
+   interaction, colored from the theme's own accent/success tokens so
+   it matches every vibe and color override automatically. Fixed
+   position means it's always visible in whatever page area isn't
+   covered by an opaque panel, regardless of scroll position.
+   ========================================================= */
+.wave-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--bg);
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+.blob-1 {
+  width: 48vw; height: 48vw;
+  top: -12%; left: -10%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: blob-drift-a 24s ease-in-out infinite alternate;
+}
+.blob-2 {
+  width: 40vw; height: 40vw;
+  top: 35%; right: -12%;
+  background: var(--success);
+  opacity: 0.32;
+  animation: blob-drift-b 30s ease-in-out infinite alternate;
+}
+.blob-3 {
+  width: 44vw; height: 44vw;
+  bottom: -16%; left: 18%;
+  background: var(--accent);
+  opacity: 0.3;
+  animation: blob-drift-c 20s ease-in-out infinite alternate;
+}
+.blob-4 {
+  width: 30vw; height: 30vw;
+  top: 6%; right: 18%;
+  background: var(--success);
+  opacity: 0.24;
+  animation: blob-drift-a 34s ease-in-out infinite alternate-reverse;
+}
+@keyframes blob-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(7vw, 9vh) scale(1.2); }
+}
+@keyframes blob-drift-b {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-9vw, -7vh) scale(0.85); }
+}
+@keyframes blob-drift-c {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(6vw, -10vh) scale(1.15); }
+}
+
+/* Recurring wave flash — a soft diagonal band of light that stays
+   invisible most of the time, then sweeps across the whole screen
+   and fades, on a loop. Two layers at different speeds/angles/
+   delays so it reads as a richer, more organic shimmer rather than
+   one mechanical repeat. Each "flash" is brief and low-opacity, and
+   the recurrence (every 8-11s, well under 1Hz) is far below flash-
+   rate thresholds that matter for photosensitivity, so it's
+   readable as a wave, not a strobe. */
+.wave-flash {
+  position: absolute;
+  top: -30%;
+  left: -60%;
+  width: 55%;
+  height: 160%;
+  background: linear-gradient(100deg, transparent, var(--accent) 45%, var(--success) 58%, transparent);
+  opacity: 0;
+  transform: skewX(-14deg);
+  filter: blur(50px);
+  animation: wave-flash-sweep 8s ease-in-out infinite;
+}
+.wave-flash-2 {
+  top: -20%;
+  left: -70%;
+  width: 40%;
+  height: 150%;
+  background: linear-gradient(100deg, transparent, var(--success) 40%, var(--accent) 60%, transparent);
+  transform: skewX(-18deg);
+  filter: blur(60px);
+  animation: wave-flash-sweep-2 11s ease-in-out infinite;
+  animation-delay: 3.5s;
+}
+@keyframes wave-flash-sweep {
+  0%, 78% { left: -60%; opacity: 0; }
+  84% { opacity: 0.28; }
+  92% { left: 130%; opacity: 0.24; }
+  100% { left: 135%; opacity: 0; }
+}
+@keyframes wave-flash-sweep-2 {
+  0%, 82% { left: -70%; opacity: 0; }
+  88% { opacity: 0.2; }
+  95% { left: 140%; opacity: 0.16; }
+  100% { left: 145%; opacity: 0; }
+}
+
+.app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* =========================================================
+   INTERACTION ANIMATIONS
+   Every clickable thing gets a quick spring-back press, and panels/
+   modals/views ease in on appearance instead of just popping into
+   existence. Kept short (150-260ms) so it reads as responsive, not
+   sluggish.
+   ========================================================= */
+button, .btn, .nav-item, .vibe-card, input[type="color"] {
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+button:not(:disabled):active, .btn:active, .nav-item:active, .vibe-card:active {
+  transform: scale(0.95);
+}
+.vibe-card:hover { transform: translateY(-2px); }
+.vibe-card.selected { animation: pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes pop-in {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes fade-up-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.view.active { animation: fade-up-in 280ms ease; }
+.stat-tile, .panel, .table-wrap { animation: fade-up-in 320ms ease; }
+.overlay.open { animation: overlay-fade 180ms ease; }
+/* Add Item / Record Sale's pop-open effect is driven directly via
+   modal.animate() in openOverlay() — see that function for why. */
+.preview-card.open { animation: modal-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+tr { transition: background-color 150ms ease; }
+
+.range-slider::-webkit-slider-thumb { transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.range-slider:hover::-webkit-slider-thumb, .range-slider:active::-webkit-slider-thumb { transform: scale(1.15); }
+.range-slider::-moz-range-thumb { transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.range-slider:hover::-moz-range-thumb, .range-slider:active::-moz-range-thumb { transform: scale(1.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-1, .blob-2, .blob-3, .blob-4, .wave-flash, .wave-flash-2, .vibe-card.selected, .view.active, .stat-tile, .panel,
+  .table-wrap, .overlay.open, .preview-card.open {
+    animation: none !important;
+  }
+  button, .btn, .nav-item, .vibe-card, input[type="color"], .range-slider::-webkit-slider-thumb, .range-slider::-moz-range-thumb, .nav-active-pill, .bar-fill {
+    transition: none !important;
+  }
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  position: relative;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 20px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.brand-mark {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8125rem; font-weight: 700;
+  font-family: var(--font-mono);
+}
+/* Sliding highlight behind whichever nav item is active. JS sets
+   top/height to match the active button's actual position, so it
+   works regardless of spacing changes — see updateNavPill(). */
+.nav-active-pill {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), height 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  color: var(--ink-muted);
+  font-size: 0.8438rem;
+  font-weight: 500;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+.nav-item:hover { background: var(--bg); color: var(--ink); }
+.nav-item.active { background: none; color: var(--accent-text); }
+.nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 36px 60px;
+  padding-top: calc(28px + env(safe-area-inset-top, 0px));
+}
+.page-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
+}
+.page-title { font-size: 1.25rem; font-weight: 600; margin: 0; }
+.page-sub { color: var(--ink-muted); font-size: 0.8125rem; margin-top: 2px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.8438rem;
+  font-weight: 500;
+}
+.btn:hover { border-color: var(--ink-faint); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-text); border-color: var(--accent-text); }
+.btn-sm { padding: 5px 10px; font-size: 0.7812rem; }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--bg); border-color: transparent; }
+
+/* ---------- Dashboard ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.stat-tile {
+  background: var(--surface);
+  padding: 16px 18px;
+  border-top: 2px solid var(--accent);
+}
+.stat-tile.warn { border-top-color: var(--danger); }
+.stat-label { font-size: 0.75rem; color: var(--ink-muted); margin-bottom: 8px; }
+.stat-value { font-size: 1.375rem; font-weight: 600; }
+.stat-value.mono { font-family: var(--font-mono); }
+
+/* =========================================================
+   HERO KPI CARDS
+   The two headline numbers (revenue, profit) get their own row:
+   large mono figures, a trend badge vs. the prior period, a
+   sparkline, and a soft decorative accent shape in the corner so
+   the dashboard reads as something with actual visual weight, not
+   just another data table.
+   ========================================================= */
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.hero-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  padding: 20px 22px;
+  overflow: hidden;
+}
+.hero-shape {
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.1;
+  filter: blur(2px);
+}
+.hero-card.profit .hero-shape { background: var(--success); }
+.hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; position: relative; z-index: 1; }
+.hero-label { font-size: 0.8125rem; color: var(--ink-muted); font-weight: 500; }
+.hero-trend {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 0.7188rem; font-weight: 600; font-family: var(--font-mono);
+  padding: 2px 8px; border-radius: 100px;
+}
+.hero-trend.up { background: var(--success-soft); color: var(--success-text); }
+.hero-trend.down { background: var(--danger-soft); color: var(--danger-text); }
+.hero-value {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 10px 0 2px;
+  position: relative; z-index: 1;
+  letter-spacing: -0.01em;
+}
+.hero-sub { font-size: 0.7188rem; color: var(--ink-faint); position: relative; z-index: 1; margin-bottom: 10px; }
+.hero-spark { position: relative; z-index: 1; display: block; width: 100%; height: 40px; }
+
+/* Revenue/profit trend chart */
+.trend-svg { width: 100%; height: 200px; display: block; }
+.trend-axis-label { font-size: 0.6875rem; fill: var(--ink-faint); font-family: var(--font-sans); }
+.trend-legend { display: flex; gap: 16px; margin-top: 8px; }
+.trend-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.7188rem; color: var(--ink-muted); }
+.trend-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Inventory status donut */
+.donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 140px; }
+.donut-legend-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.8125rem; }
+.donut-legend-key { display: flex; align-items: center; gap: 8px; }
+.donut-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.donut-legend-count { font-family: var(--font-mono); color: var(--ink-muted); font-size: 0.7812rem; }
+.donut-center-value { font-family: var(--font-mono); font-size: 1.375rem; font-weight: 700; }
+.donut-center-label { font-size: 0.625rem; color: var(--ink-faint); }
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) { .panel-grid { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.panel-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-head h3 { margin: 0; font-size: 0.875rem; font-weight: 600; }
+.panel-body { padding: 6px 18px 14px; }
+
+.row-line {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8438rem;
+}
+.row-line:last-child { border-bottom: none; }
+.row-title { font-weight: 500; }
+.row-sub { color: var(--ink-muted); font-size: 0.75rem; margin-top: 2px; }
+.row-amt { font-family: var(--font-mono); font-weight: 600; }
+.row-amt.neg { color: var(--danger); }
+.row-amt.pos { color: var(--success-text); }
+
+.bar-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.bar-label { width: 90px; font-size: 0.7812rem; flex-shrink: 0; }
+.bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.bar-val { width: 60px; text-align: right; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted); }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 100px;
+  font-size: 0.7188rem; font-weight: 500;
+}
+.badge-unsold { background: var(--accent-soft); color: var(--accent-text); }
+.badge-listed { background: var(--info-soft); color: var(--info-text); }
+.badge-sold { background: var(--bg); color: var(--ink-muted); border: 1px solid var(--border); }
+.badge-aging { background: var(--danger-soft); color: var(--danger); }
+.badge-incomplete { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------- Table ---------- */
+.toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.toolbar input[type="text"], .toolbar select {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}
+.toolbar input[type="text"] { min-width: 200px; flex: 1; }
+.spacer { flex: 1; }
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th {
+  text-align: left; font-size: 0.7188rem; text-transform: none;
+  color: var(--ink-muted); font-weight: 500;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 0.8125rem; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg); }
+.item-name { font-weight: 500; }
+.item-sub { color: var(--ink-faint); font-size: 0.7188rem; }
+
+/* ---------- Modal ---------- */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(20, 22, 20, 0.45);
+  display: none; align-items: flex-start; justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+  z-index: 50;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  width: 100%; max-width: 560px;
+  padding: 22px 24px 24px;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.modal-head h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.modal-sub { color: var(--ink-muted); font-size: 0.7812rem; margin: 0 0 18px; }
+.close-x { background: none; border: none; font-size: 1.125rem; color: var(--ink-muted); padding: 2px 6px; }
+.delete-x { color: var(--danger); font-size: 1rem; line-height: 1; padding: 4px 9px; }
+.delete-x:hover { background: var(--danger-soft); border-color: var(--danger); }
+.confirm-modal { max-width: 380px; }
+.confirm-body { color: var(--ink-muted); font-size: 0.8438rem; margin: 4px 0 4px; }
+.confirm-item-name { color: var(--ink); font-weight: 600; }
+
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.field-grid.single { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 0.75rem; color: var(--ink-muted); font-weight: 500; }
+.field input, .field select, .field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  width: 100%;
+}
+.field textarea { resize: vertical; min-height: 60px; }
+.field-hint { font-size: 0.6875rem; color: var(--ink-faint); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+.calc-box {
+  margin-top: 16px;
+  background: var(--success-soft);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.calc-box.incomplete { background: var(--danger-soft); }
+.calc-item .calc-label { font-size: 0.7188rem; color: var(--ink-muted); margin-bottom: 3px; }
+.calc-item .calc-val { font-family: var(--font-mono); font-size: 1.125rem; font-weight: 600; color: var(--success-text); }
+.calc-box.incomplete .calc-val { color: var(--danger); font-size: 0.8125rem; }
+
+/* ---------- Smart entry ---------- */
+.se-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.se-box textarea {
+  width: 100%; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; background: var(--bg); color: var(--ink);
+  min-height: 84px; resize: vertical; font-size: 0.875rem;
+}
+.se-examples { font-size: 0.75rem; color: var(--ink-faint); margin: 8px 0 14px; }
+.se-flow-note {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 0.7188rem; color: var(--ink-faint); margin-top: 14px;
+}
+.flow-step { background: var(--bg); border: 1px solid var(--border); border-radius: 100px; padding: 3px 10px; }
+.flow-arrow { color: var(--ink-faint); }
+
+.preview-card {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px 22px;
+  display: none;
+}
+.preview-card.open { display: block; }
+.preview-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.preview-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.preview-head h3 { margin: 0; font-size: 0.875rem; font-weight: 600; }
+.preview-sub { color: var(--ink-muted); font-size: 0.75rem; margin: 0 0 16px; }
+.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 4px; }
+.preview-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; }
+.preview-row .k { color: var(--ink-muted); }
+.preview-row .v { font-family: var(--font-mono); font-weight: 500; }
+.preview-flag { color: var(--danger); font-size: 0.7188rem; margin-top: 2px; }
+
+.empty-note { color: var(--ink-faint); font-size: 0.7812rem; padding: 20px 0; text-align: center; }
+
+.vibe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.vibe-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.vibe-card:hover { border-color: var(--ink-faint); }
+.vibe-card.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.vibe-swatch { display: flex; gap: 4px; margin-bottom: 8px; }
+.vibe-swatch span { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.08); }
+.vibe-name { font-size: 0.8125rem; font-weight: 600; margin-bottom: 2px; }
+.vibe-desc { font-size: 0.7188rem; color: var(--ink-muted); }
+
+.custom-color-row { padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--border); }
+.custom-color-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 0.75rem; color: var(--ink-muted); font-weight: 500; }
+.customized-tag { color: var(--accent-text); font-weight: 500; }
+.reset-link { background: none; border: none; color: var(--ink-muted); text-decoration: underline; font-size: 0.7188rem; cursor: pointer; padding: 0; }
+.custom-color-fields { display: flex; flex-wrap: wrap; gap: 20px; }
+.color-field { display: flex; flex-direction: column; gap: 6px; }
+.color-field label { font-size: 0.75rem; color: var(--ink-muted); font-weight: 500; }
+.color-field .swatch-input { display: flex; align-items: center; gap: 8px; }
+.color-field input[type="color"] { width: 36px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius); background: none; cursor: pointer; }
+.color-field .hex-val { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted); }
+.custom-note { font-size: 0.7188rem; color: var(--ink-faint); width: 100%; margin-top: 12px; }
+
+.font-size-row { display: flex; align-items: center; gap: 12px; }
+.font-a-small { font-size: 0.75rem; color: var(--ink-faint); font-weight: 500; user-select: none; }
+.font-a-large { font-size: 1.125rem; color: var(--ink-faint); font-weight: 500; user-select: none; }
+.font-scale-val { font-family: var(--font-mono); font-size: 0.7188rem; color: var(--ink-muted); width: 44px; text-align: right; flex-shrink: 0; }
+.range-slider {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 4px; border-radius: 999px; background: var(--border); outline: none; cursor: pointer;
+}
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: grab;
+}
+.range-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+.range-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: grab;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+@media (max-width: 720px) {
+  .sidebar { display: none; }
+  .main { padding: 20px 16px 48px; }
+  .field-grid { grid-template-columns: 1fr; }
+  .preview-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wave-bg" aria-hidden="true">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+  <div class="wave-flash"></div>
+  <div class="wave-flash wave-flash-2"></div>
+</div>
+<div class="app">
+
+  <nav class="sidebar">
+    <div class="brand"><span class="brand-mark">Rs</span>Ledgerly</div>
+    <div class="nav-active-pill" id="nav-active-pill"></div>
+    <button class="nav-item active" data-view="dashboard"><span class="nav-icon">&#9632;</span>Dashboard</button>
+    <button class="nav-item" data-view="inventory"><span class="nav-icon">&#9638;</span>Inventory</button>
+    <button class="nav-item" data-view="sales"><span class="nav-icon">&#9670;</span>Sales</button>
+    <button class="nav-item" data-view="smart-entry"><span class="nav-icon">&#9998;</span>Smart Entry</button>
+    <button class="nav-item" data-view="analytics"><span class="nav-icon">&#9776;</span>Analytics</button>
+    <button class="nav-item" data-view="settings"><span class="nav-icon">&#9881;</span>Settings</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <div class="page-sub">Sample data — connect Supabase to see your real numbers</div>
+        </div>
+        <button class="btn btn-primary" data-open="record-sale">Record sale</button>
+      </div>
+
+      <div class="hero-grid" id="hero-grid"></div>
+
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="panel-grid">
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Revenue &amp; profit</h3><span class="page-sub" style="margin:0">last 14 sales</span></div>
+            <div class="panel-body"><div id="trend-chart"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Recent sales</h3></div>
+            <div class="panel-body" id="recent-sales"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Platform breakdown</h3><span class="page-sub" style="margin:0">by profit</span></div>
+            <div class="panel-body" id="platform-breakdown"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Inventory status</h3></div>
+            <div class="panel-body"><div id="inventory-donut"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Aging inventory</h3><span class="page-sub" style="margin:0">60+ days unsold</span></div>
+            <div class="panel-body" id="aging-inventory"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="view" id="view-inventory">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Inventory</h1>
+          <div class="page-sub"><span id="inv-count"></span> items</div>
+        </div>
+        <button class="btn btn-primary" data-open="add-item">Add item</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="inv-search" placeholder="Search item name">
+        <select id="inv-status-filter">
+          <option value="">All statuses</option>
+          <option value="unsold">Unsold</option>
+          <option value="listed">Listed</option>
+          <option value="sold">Sold</option>
+          <option value="returned">Returned</option>
+        </select>
+        <select id="inv-platform-filter">
+          <option value="">All platforms</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th><th>Platform</th><th>Category</th><th>Size</th>
+              <th>Purchase cost</th><th>Status</th><th>Sale price</th><th>Profit</th><th>Date</th><th></th><th></th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SALES -->
+    <section class="view" id="view-sales">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Sales</h1>
+          <div class="page-sub">Every recorded sale, newest first</div>
+        </div>
+        <button class="btn btn-primary" data-open="record-sale">Record sale</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Platform</th><th>Sale price</th><th>Costs</th><th>Net profit</th><th>Margin</th><th>Date</th><th>Status</th><th></th><th></th></tr>
+          </thead>
+          <tbody id="sales-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SMART ENTRY -->
+    <section class="view" id="view-smart-entry">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Smart Entry</h1>
+          <div class="page-sub">Describe a sale in plain language — nothing saves until you confirm</div>
+        </div>
+      </div>
+
+      <div class="se-box">
+        <textarea id="se-input" placeholder="Sold black tracksuit on Depop for $85. Bought it for $55. Fees were $4.50. Shipping was $6. Sold September 21.">Sold black tracksuit on Depop for $85. Bought it for $55. Fees were $4.50. Shipping was $6. Sold September 21.</textarea>
+        <div class="se-examples">This uses a mocked parser for the preview — swap in a real model later without touching the rest of the app.</div>
+        <button class="btn btn-primary" id="se-parse-btn">Parse entry</button>
+        <div class="se-flow-note">
+          <span class="flow-step">Your text</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">Parser (mock)</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">Draft</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">Validate</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">You review</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">You confirm</span><span class="flow-arrow">&rarr;</span>
+          <span class="flow-step">App saves</span>
+        </div>
+      </div>
+
+      <div class="preview-card" id="se-preview">
+        <div class="preview-head"><span class="preview-dot"></span><h3>Detected sale</h3></div>
+        <p class="preview-sub">Review and edit before saving — nothing is written to your data yet.</p>
+        <div id="se-preview-fields"></div>
+        <div class="calc-box" id="se-calc-box">
+          <div class="calc-item"><div class="calc-label">Net profit</div><div class="calc-val" id="se-profit">&mdash;</div></div>
+          <div class="calc-item"><div class="calc-label">Profit margin</div><div class="calc-val" id="se-margin">&mdash;</div></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" id="se-edit-btn">Edit</button>
+          <button class="btn btn-primary" id="se-confirm-btn">Confirm and save</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANALYTICS (stub) -->
+    <section class="view" id="view-analytics">
+      <div class="page-header"><div><h1 class="page-title">Analytics</h1><div class="page-sub">Not built yet</div></div></div>
+      <div class="panel"><div class="panel-body"><p class="empty-note">Deeper trend analysis comes after the core tracking flow is solid.</p></div></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="page-header"><div><h1 class="page-title">Settings</h1><div class="page-sub">Account, currency, and appearance</div></div></div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Appearance</h3><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
+        <div class="panel-body">
+          <div class="field-hint" style="margin-bottom:10px">Vibe</div>
+          <div class="vibe-grid" id="vibe-grid"></div>
+          <div id="custom-color-controls"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Font</h3><span class="page-sub" style="margin:0">Size and family</span></div>
+        <div class="panel-body">
+          <div class="field-hint" style="margin-bottom:10px">Font size</div>
+          <div class="font-size-row">
+            <span class="font-a-small">A</span>
+            <input type="range" class="range-slider" id="font-scale-slider" min="0.85" max="1.25" step="0.025" value="1">
+            <span class="font-a-large">A</span>
+            <span class="font-scale-val" id="font-scale-val">100%</span>
+          </div>
+          <div class="custom-note" style="margin-top:10px">Drag to resize all text and most spacing app-wide, similar to browser zoom. Capped in both directions so the layout can't break.</div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+            <div class="field-hint" style="margin-bottom:10px">Font family</div>
+            <select id="font-family-select" style="width:100%;max-width:280px"></select>
+            <div class="custom-note" style="margin-top:10px">Applies everywhere text uses the app's UI font. Monospace text (prices, dates) is unaffected.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel"><div class="panel-body"><p class="empty-note">Account and currency settings will live here.</p></div></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ADD ITEM MODAL -->
+<div class="overlay" id="overlay-add-item">
+  <div class="modal">
+    <div class="modal-head"><h3 id="add-item-modal-title">Add item</h3><button class="close-x" data-close>&times;</button></div>
+    <p class="modal-sub" id="add-item-modal-sub">Profit is calculated automatically once this item sells — it's not entered here.</p>
+    <form id="add-item-form">
+      <input type="hidden" name="editing_id">
+      <div class="field-grid">
+        <div class="field full"><label>Item name *</label><input required name="item_name" placeholder="Black tracksuit"></div>
+        <div class="field"><label>Category</label><input name="category" placeholder="Outerwear"></div>
+        <div class="field"><label>Size</label><input name="size" placeholder="M"></div>
+        <div class="field"><label>Color</label><input name="color" placeholder="Black"></div>
+        <div class="field"><label>Condition</label>
+          <select name="condition"><option value="">Select</option><option>New with tags</option><option>Like new</option><option>Good</option><option>Fair</option></select>
+        </div>
+        <div class="field">
+          <label>Purchase cost</label>
+          <input name="purchase_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown">
+          <span class="field-hint">Blank = unknown cost, not $0</span>
+        </div>
+        <div class="field"><label>Purchase date</label><input name="purchase_date" type="date"></div>
+        <div class="field"><label>Supplier</label><input name="supplier"></div>
+        <div class="field"><label>Storage location</label><input name="storage_location" placeholder="Bin 3"></div>
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="unsold">Unsold</option><option value="listed">Listed</option><option value="sold">Sold</option><option value="returned">Returned</option></select>
+        </div>
+        <div class="field full"><label>Notes</label><textarea name="notes"></textarea></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- RECORD SALE MODAL -->
+<div class="overlay" id="overlay-record-sale">
+  <div class="modal">
+    <div class="modal-head"><h3 id="record-sale-modal-title">Record sale</h3><button class="close-x" data-close>&times;</button></div>
+    <p class="modal-sub" id="record-sale-modal-sub">Profit and margin are calculated by the app as you type — they're not editable fields.</p>
+    <form id="record-sale-form">
+      <input type="hidden" name="editing_id">
+      <div class="field-grid">
+        <div class="field full"><label>Item *</label><select required name="item_id" id="rs-item-select"></select></div>
+        <div class="field"><label>Platform *</label>
+          <select required name="platform">
+            <option value="">Select</option>
+            <option>Depop</option><option>Vinted</option><option>eBay</option><option>Grailed</option>
+            <option>Poshmark</option><option>Facebook Marketplace</option><option>Instagram</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Sale price *</label><input required name="sale_price" type="number" step="0.01" min="0"></div>
+        <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
+        <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
+        <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
+        <div class="field"><label>Order number</label><input name="order_number"></div>
+        <div class="field"><label>Sale date *</label><input required name="sale_date" type="date"></div>
+        <div class="field"><label>Status</label>
+          <select name="status"><option value="completed">Completed</option><option value="returned">Returned</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div class="field full"><label>Notes</label><textarea name="notes"></textarea></div>
+      </div>
+      <div class="calc-box" id="rs-calc-box">
+        <div class="calc-item"><div class="calc-label">Net profit</div><div class="calc-val" id="rs-profit">&mdash;</div></div>
+        <div class="calc-item"><div class="calc-label">Profit margin</div><div class="calc-val" id="rs-margin">&mdash;</div></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="record-sale-submit-btn">Save sale</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
+<div class="overlay" id="overlay-confirm-delete">
+  <div class="modal confirm-modal">
+    <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button class="close-x" data-close>&times;</button></div>
+    <p class="confirm-body">Are you sure you want to delete <span class="confirm-item-name" id="confirm-delete-item-name"></span>? This can't be undone.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirm-delete-btn" style="background:var(--danger);border-color:var(--danger)">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   MOCK DATA LAYER
+   All money stored in integer cents, mirroring the Postgres
+   schema. This is the part that gets swapped for real
+   Supabase queries later — everything else (calc, UI) stays.
+   ========================================================= */
+let nextItemId = 1;
+let nextSaleId = 1;
+
+function money(dollars) { return Math.round(dollars * 100); }
+
+const items = [
+  { id: 1, item_name: 'Black tracksuit', category: 'Outerwear', size: 'M', color: 'Black', condition: 'Good', purchase_cost_cents: money(55), purchase_date: '2026-08-02', supplier: '', storage_location: 'Bin 2', status: 'sold', notes: '' },
+  { id: 2, item_name: 'Levi\'s 501 jeans', category: 'Denim', size: '32x32', color: 'Blue', condition: 'Like new', purchase_cost_cents: money(22), purchase_date: '2026-07-14', supplier: 'Thrift haul', storage_location: 'Rack A', status: 'sold', notes: '' },
+  { id: 3, item_name: 'Nike Air Max 90', category: 'Footwear', size: '10', color: 'White/Grey', condition: 'Good', purchase_cost_cents: money(38), purchase_date: '2026-06-20', supplier: '', storage_location: 'Shelf 1', status: 'sold', notes: '' },
+  { id: 4, item_name: 'Vintage Carhartt jacket', category: 'Outerwear', size: 'L', color: 'Brown', condition: 'Fair', purchase_cost_cents: null, purchase_date: '2026-05-30', supplier: 'Estate sale', storage_location: 'Rack B', status: 'sold', notes: 'Cost unknown — bundled lot' },
+  { id: 5, item_name: 'Patagonia fleece', category: 'Outerwear', size: 'S', color: 'Green', condition: 'Like new', purchase_cost_cents: money(30), purchase_date: '2026-04-11', supplier: '', storage_location: 'Bin 4', status: 'unsold', notes: '' },
+  { id: 6, item_name: 'Adidas Samba', category: 'Footwear', size: '9', color: 'Black/White', condition: 'New with tags', purchase_cost_cents: money(48), purchase_date: '2026-08-15', supplier: '', storage_location: 'Shelf 2', status: 'listed', notes: '' },
+  { id: 7, item_name: 'Champion hoodie', category: 'Tops', size: 'L', color: 'Grey', condition: 'Good', purchase_cost_cents: money(15), purchase_date: '2026-03-01', supplier: '', storage_location: 'Bin 1', status: 'unsold', notes: '' },
+  { id: 8, item_name: 'Wrangler denim jacket', category: 'Outerwear', size: 'M', color: 'Light wash', condition: 'Fair', purchase_cost_cents: money(12), purchase_date: '2026-02-18', supplier: '', storage_location: 'Rack B', status: 'unsold', notes: '' },
+  { id: 9, item_name: 'North Face puffer', category: 'Outerwear', size: 'L', color: 'Black', condition: 'Like new', purchase_cost_cents: money(62), purchase_date: '2026-08-05', supplier: '', storage_location: 'Rack C', status: 'sold', notes: '' },
+  { id: 10, item_name: 'Doc Martens 1460', category: 'Footwear', size: '8', color: 'Cherry Red', condition: 'Good', purchase_cost_cents: money(45), purchase_date: '2026-08-10', supplier: '', storage_location: 'Shelf 3', status: 'sold', notes: '' },
+  { id: 11, item_name: 'Vintage band tee', category: 'Tops', size: 'M', color: 'Black', condition: 'Fair', purchase_cost_cents: money(8), purchase_date: '2026-08-18', supplier: 'Flea market', storage_location: 'Bin 3', status: 'sold', notes: '' },
+  { id: 12, item_name: 'Arc\'teryx shell jacket', category: 'Outerwear', size: 'M', color: 'Navy', condition: 'Like new', purchase_cost_cents: money(95), purchase_date: '2026-08-22', supplier: '', storage_location: 'Rack C', status: 'sold', notes: '' },
+  { id: 13, item_name: 'Ralph Lauren polo', category: 'Tops', size: 'L', color: 'Navy', condition: 'Good', purchase_cost_cents: money(14), purchase_date: '2026-08-28', supplier: '', storage_location: 'Bin 1', status: 'sold', notes: '' },
+  { id: 14, item_name: 'New Balance 550', category: 'Footwear', size: '9.5', color: 'White/Green', condition: 'New with tags', purchase_cost_cents: money(52), purchase_date: '2026-09-01', supplier: '', storage_location: 'Shelf 2', status: 'sold', notes: '' },
+  { id: 15, item_name: 'Carhartt WIP beanie', category: 'Accessories', size: 'One size', color: 'Black', condition: 'New with tags', purchase_cost_cents: money(6), purchase_date: '2026-09-08', supplier: '', storage_location: 'Bin 5', status: 'sold', notes: '' },
+  { id: 16, item_name: 'Stussy graphic hoodie', category: 'Tops', size: 'L', color: 'Cream', condition: 'Good', purchase_cost_cents: money(28), purchase_date: '2026-09-12', supplier: '', storage_location: 'Bin 2', status: 'listed', notes: '' },
+];
+nextItemId = items.length + 1;
+
+const sales = [
+  { id: 1, item_id: 3, platform: 'Grailed', sale_price_cents: money(120), platform_fees_cents: money(9), shipping_cost_cents: money(12), other_costs_cents: money(0), order_number: 'GR-55021', sale_date: '2026-08-06', status: 'completed', notes: '' },
+  { id: 2, item_id: 2, platform: 'eBay', sale_price_cents: money(48), platform_fees_cents: money(5.8), shipping_cost_cents: money(5.5), other_costs_cents: null, order_number: 'EB-12045', sale_date: '2026-08-09', status: 'completed', notes: '' },
+  { id: 3, item_id: 9, platform: 'Depop', sale_price_cents: money(98), platform_fees_cents: money(5), shipping_cost_cents: money(9), other_costs_cents: money(0), order_number: 'DP-88055', sale_date: '2026-08-12', status: 'completed', notes: '' },
+  { id: 4, item_id: 10, platform: 'Poshmark', sale_price_cents: money(72), platform_fees_cents: money(7.2), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'PM-30801', sale_date: '2026-08-16', status: 'completed', notes: '' },
+  { id: 5, item_id: 4, platform: 'Poshmark', sale_price_cents: money(65), platform_fees_cents: money(6.5), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'PM-30987', sale_date: '2026-08-19', status: 'completed', notes: '' },
+  { id: 6, item_id: 11, platform: 'Depop', sale_price_cents: money(32), platform_fees_cents: money(1.9), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'DP-88109', sale_date: '2026-08-23', status: 'completed', notes: '' },
+  { id: 7, item_id: 1, platform: 'Depop', sale_price_cents: money(85), platform_fees_cents: money(4.5), shipping_cost_cents: money(6), other_costs_cents: money(0), order_number: 'DP-88213', sale_date: '2026-08-27', status: 'completed', notes: '' },
+  { id: 8, item_id: 12, platform: 'Grailed', sale_price_cents: money(175), platform_fees_cents: money(13), shipping_cost_cents: money(14), other_costs_cents: money(0), order_number: 'GR-55190', sale_date: '2026-08-30', status: 'completed', notes: '' },
+  { id: 9, item_id: 13, platform: 'eBay', sale_price_cents: money(29), platform_fees_cents: money(3.5), shipping_cost_cents: money(5.5), other_costs_cents: money(0), order_number: 'EB-12210', sale_date: '2026-09-03', status: 'completed', notes: '' },
+  { id: 10, item_id: 14, platform: 'Depop', sale_price_cents: money(110), platform_fees_cents: money(6), shipping_cost_cents: money(9), other_costs_cents: money(0), order_number: 'DP-88350', sale_date: '2026-09-07', status: 'completed', notes: '' },
+  { id: 11, item_id: 15, platform: 'Poshmark', sale_price_cents: money(22), platform_fees_cents: money(2.2), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31090', sale_date: '2026-09-11', status: 'completed', notes: '' },
+  { id: 12, item_id: 15, platform: 'Poshmark', sale_price_cents: money(24), platform_fees_cents: money(2.4), shipping_cost_cents: money(5), other_costs_cents: money(0), order_number: 'PM-31091', sale_date: '2026-09-14', status: 'completed', notes: '' },
+  { id: 13, item_id: 9, platform: 'Depop', sale_price_cents: money(90), platform_fees_cents: money(4.8), shipping_cost_cents: money(8), other_costs_cents: money(0), order_number: 'DP-88410', sale_date: '2026-09-16', status: 'completed', notes: '' },
+  { id: 14, item_id: 10, platform: 'Grailed', sale_price_cents: money(68), platform_fees_cents: money(6.8), shipping_cost_cents: money(7), other_costs_cents: money(0), order_number: 'GR-55240', sale_date: '2026-09-18', status: 'completed', notes: '' },
+];
+nextSaleId = sales.length + 1;
+
+const PLATFORMS = ['Depop', 'Vinted', 'eBay', 'Grailed', 'Poshmark', 'Facebook Marketplace', 'Instagram', 'Other'];
+
+/* =========================================================
+   CALCULATION ENGINE
+   Mirrors the v_sale_profit SQL view exactly:
+   - is_complete only if purchase cost + all three cost
+     fields are present (not NULL)
+   - net_profit / margin are null (not zero) when incomplete
+   - everything in integer cents, no floats
+   ========================================================= */
+function calcProfit(sale, item) {
+  const purchaseCost = item ? item.purchase_cost_cents : null;
+  const fields = [purchaseCost, sale.platform_fees_cents, sale.shipping_cost_cents, sale.other_costs_cents];
+  const isComplete = fields.every(f => f !== null && f !== undefined && !Number.isNaN(f));
+  if (!isComplete) {
+    return { isComplete: false, netProfitCents: null, marginBps: null };
+  }
+  const netProfitCents = sale.sale_price_cents - purchaseCost - sale.platform_fees_cents - sale.shipping_cost_cents - sale.other_costs_cents;
+  const marginBps = sale.sale_price_cents !== 0 ? Math.round((netProfitCents * 10000) / sale.sale_price_cents) : null;
+  return { isComplete: true, netProfitCents, marginBps };
+}
+
+function fmtCents(cents, opts) {
+  opts = opts || {};
+  if (cents === null || cents === undefined) return opts.dash === false ? '' : '&mdash;';
+  const sign = cents < 0 ? '-' : '';
+  const abs = Math.abs(cents);
+  return sign + '$' + (abs / 100).toFixed(2);
+}
+function fmtBps(bps) {
+  if (bps === null || bps === undefined) return '&mdash;';
+  return (bps / 100).toFixed(2) + '%';
+}
+function fmtDate(d) {
+  if (!d) return '&mdash;';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function daysSince(d) {
+  const dt = new Date(d + 'T00:00:00');
+  return Math.floor((Date.now() - dt.getTime()) / 86400000);
+}
+function itemById(id) { return items.find(i => i.id === id); }
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+function buildSparkline(values, colorVar) {
+  if (values.length < 2) return '';
+  const w = 100, h = 32, pad = 2;
+  const max = Math.max(...values, 1), min = Math.min(...values, 0);
+  const range = (max - min) || 1;
+  const pts = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return [x, y];
+  });
+  const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = line + ` L${pts[pts.length - 1][0].toFixed(1)},${h} L${pts[0][0].toFixed(1)},${h} Z`;
+  return `<svg class="hero-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${area}" fill="var(${colorVar})" opacity="0.12"></path>
+    <path d="${line}" fill="none" stroke="var(${colorVar})" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path>
+  </svg>`;
+}
+
+function renderHero(completedSales) {
+  const chrono = [...completedSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date));
+  const withProfit = chrono.map(s => ({ sale: s, r: calcProfit(s, itemById(s.item_id)) }));
+
+  const revenueSeries = chrono.map(s => s.sale_price_cents / 100);
+  const profitSeries = withProfit.map(x => (x.r.isComplete ? x.r.netProfitCents : 0) / 100);
+
+  const half = Math.floor(chrono.length / 2) || 1;
+  const sum = arr => arr.reduce((a, b) => a + b, 0);
+  const revPrev = sum(revenueSeries.slice(0, half)), revNow = sum(revenueSeries.slice(half));
+  const profPrev = sum(profitSeries.slice(0, half)), profNow = sum(profitSeries.slice(half));
+  const pctChange = (now, prev) => (prev === 0 ? (now > 0 ? 100 : 0) : Math.round(((now - prev) / Math.abs(prev)) * 100));
+  const revTrend = pctChange(revNow, revPrev);
+  const profTrend = pctChange(profNow, profPrev);
+
+  const totalRevenue = sum(revenueSeries) * 100;
+  const totalProfit = sum(profitSeries) * 100;
+
+  document.getElementById('hero-grid').innerHTML = `
+    <div class="hero-card revenue">
+      <div class="hero-shape"></div>
+      <div class="hero-top">
+        <span class="hero-label">Total revenue</span>
+        <span class="hero-trend ${revTrend >= 0 ? 'up' : 'down'}">${revTrend >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(revTrend)}%</span>
+      </div>
+      <div class="hero-value">${fmtCents(totalRevenue)}</div>
+      <div class="hero-sub">vs. prior period &middot; ${chrono.length} sales</div>
+      ${buildSparkline(revenueSeries, '--accent')}
+    </div>
+    <div class="hero-card profit">
+      <div class="hero-shape"></div>
+      <div class="hero-top">
+        <span class="hero-label">Net profit</span>
+        <span class="hero-trend ${profTrend >= 0 ? 'up' : 'down'}">${profTrend >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(profTrend)}%</span>
+      </div>
+      <div class="hero-value">${fmtCents(totalProfit)}</div>
+      <div class="hero-sub">vs. prior period &middot; complete sales only</div>
+      ${buildSparkline(profitSeries, '--success')}
+    </div>
+  `;
+  return { totalRevenue, totalProfit };
+}
+
+function renderTrendChart(completedSales) {
+  const chrono = [...completedSales].sort((a, b) => a.sale_date.localeCompare(b.sale_date)).slice(-14);
+  const container = document.getElementById('trend-chart');
+  if (chrono.length < 2) { container.innerHTML = '<div class="empty-note">Not enough sales yet for a trend line.</div>'; return; }
+
+  const w = 640, h = 200, padL = 4, padR = 4, padT = 12, padB = 26;
+  const revenues = chrono.map(s => s.sale_price_cents);
+  const profits = chrono.map(s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : 0; });
+  const maxVal = Math.max(...revenues, ...profits, 100);
+
+  const x = i => padL + (i / (chrono.length - 1)) * (w - padL - padR);
+  const y = v => padT + (1 - v / maxVal) * (h - padT - padB);
+
+  const linePath = vals => vals.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  const revLine = linePath(revenues);
+  const revArea = revLine + ` L${x(chrono.length - 1).toFixed(1)},${(h - padB).toFixed(1)} L${x(0).toFixed(1)},${(h - padB).toFixed(1)} Z`;
+  const profLine = linePath(profits);
+
+  const gridLines = [0.25, 0.5, 0.75, 1].map(f => `<line x1="${padL}" y1="${y(maxVal * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal * f).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`).join('');
+
+  const labelEvery = Math.ceil(chrono.length / 6);
+  const labels = chrono.map((s, i) => i % labelEvery === 0 || i === chrono.length - 1
+    ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${fmtDate(s.sale_date).replace('&mdash;', '').split(',')[0]}</text>`
+    : '').join('');
+
+  const dots = chrono.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(revenues[i]).toFixed(1)}" r="2.5" fill="var(--accent)"></circle>`).join('');
+
+  container.innerHTML = `
+    <svg class="trend-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      ${gridLines}
+      <path d="${revArea}" fill="var(--accent)" opacity="0.1"></path>
+      <path d="${revLine}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="${profLine}" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3"></path>
+      ${dots}
+      ${labels}
+    </svg>
+    <div class="trend-legend">
+      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--accent)"></span>Revenue</div>
+      <div class="trend-legend-item"><span class="trend-legend-dot" style="background:var(--success)"></span>Net profit</div>
+    </div>
+  `;
+}
+
+function renderInventoryDonut() {
+  const statusCounts = { unsold: 0, listed: 0, sold: 0, returned: 0 };
+  items.forEach(i => statusCounts[i.status] = (statusCounts[i.status] || 0) + 1);
+  const total = items.length || 1;
+  const colors = { unsold: 'var(--accent)', listed: 'var(--info-text)', sold: 'var(--ink-faint)', returned: 'var(--danger)' };
+
+  const r = 46, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const segments = Object.entries(statusCounts).filter(([, c]) => c > 0).map(([status, count]) => {
+    const frac = count / total;
+    const dash = frac * circumference;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${colors[status]}" stroke-width="16"
+      stroke-dasharray="${dash.toFixed(1)} ${(circumference - dash).toFixed(1)}"
+      stroke-dashoffset="${(-offset).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
+    offset += dash;
+    return seg;
+  }).join('');
+
+  document.getElementById('inventory-donut').innerHTML = `
+    <div class="donut-wrap">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        ${segments}
+        <text x="60" y="57" text-anchor="middle" class="donut-center-value" fill="var(--ink)">${total}</text>
+        <text x="60" y="72" text-anchor="middle" class="donut-center-label" fill="var(--ink-faint)">items</text>
+      </svg>
+      <div class="donut-legend">
+        ${Object.entries(statusCounts).map(([status, count]) => `
+          <div class="donut-legend-item">
+            <span class="donut-legend-key"><span class="donut-legend-dot" style="background:${colors[status]}"></span>${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+            <span class="donut-legend-count">${count}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  const completedSales = sales.filter(s => s.status === 'completed');
+  let completeCount = 0, incompleteCount = 0, totalProfitCheck = 0;
+  completedSales.forEach(s => {
+    const r = calcProfit(s, itemById(s.item_id));
+    if (r.isComplete) { completeCount++; totalProfitCheck += r.netProfitCents; }
+    else incompleteCount++;
+  });
+  const avgProfit = completeCount ? Math.round(totalProfitCheck / completeCount) : null;
+  const activeInventory = items.filter(i => i.status === 'unsold' || i.status === 'listed').length;
+
+  renderHero(completedSales);
+  renderTrendChart(completedSales);
+  renderInventoryDonut();
+
+  const tiles = [
+    { label: 'Items sold', value: completedSales.length, plain: true },
+    { label: 'Active inventory', value: activeInventory, plain: true },
+    { label: 'Avg profit / sale', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit) },
+  ];
+  document.getElementById('stat-grid').innerHTML = tiles.map(t => `
+    <div class="stat-tile">
+      <div class="stat-label">${t.label}</div>
+      <div class="stat-value ${t.plain ? '' : 'mono'}">${t.value}</div>
+    </div>`).join('') + (incompleteCount ? `<div class="stat-tile warn"><div class="stat-label">Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div></div>` : '');
+
+  // Recent sales
+  const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date)).slice(0, 5);
+  document.getElementById('recent-sales').innerHTML = recent.length ? recent.map(s => {
+    const item = itemById(s.item_id);
+    const r = calcProfit(s, item);
+    return `<div class="row-line">
+      <div>
+        <div class="row-title">${item ? item.item_name : 'Unknown item'}</div>
+        <div class="row-sub">${s.platform} &middot; ${fmtDate(s.sale_date)}</div>
+      </div>
+      <div class="row-amt ${r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
+    </div>`;
+  }).join('') : '<div class="empty-note">No sales recorded yet.</div>';
+
+  // Platform breakdown (by profit, complete sales only)
+  const byPlatform = {};
+  completedSales.forEach(s => {
+    const r = calcProfit(s, itemById(s.item_id));
+    if (!r.isComplete) return;
+    byPlatform[s.platform] = (byPlatform[s.platform] || 0) + r.netProfitCents;
+  });
+  const maxVal = Math.max(1, ...Object.values(byPlatform));
+  const platformEntries = Object.entries(byPlatform).sort((a, b) => b[1] - a[1]);
+  document.getElementById('platform-breakdown').innerHTML = platformEntries.length ? platformEntries.map(([p, val]) => `
+    <div class="bar-row">
+      <div class="bar-label">${p}</div>
+      <div class="bar-track"><div class="bar-fill" data-target-width="${Math.max(4, (val / maxVal) * 100)}" style="width:0%"></div></div>
+      <div class="bar-val">${fmtCents(val)}</div>
+    </div>`).join('') : '<div class="empty-note">No complete sales yet.</div>';
+  requestAnimationFrame(() => {
+    document.querySelectorAll('#platform-breakdown .bar-fill').forEach(el => {
+      el.style.width = el.dataset.targetWidth + '%';
+    });
+  });
+
+  // Aging inventory (unsold/listed, 60+ days since purchase date)
+  const aging = items.filter(i => (i.status === 'unsold' || i.status === 'listed') && i.purchase_date && daysSince(i.purchase_date) >= 60)
+    .sort((a, b) => daysSince(b.purchase_date) - daysSince(a.purchase_date));
+  document.getElementById('aging-inventory').innerHTML = aging.length ? aging.map(i => `
+    <div class="row-line">
+      <div>
+        <div class="row-title">${i.item_name}</div>
+        <div class="row-sub">${i.category || 'Uncategorized'}</div>
+      </div>
+      <span class="badge badge-aging">${daysSince(i.purchase_date)}d</span>
+    </div>`).join('') : '<div class="empty-note">Nothing aging past 60 days.</div>';
+}
+
+/* =========================================================
+   INVENTORY PAGE
+   ========================================================= */
+function statusBadge(status) {
+  return `<span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+}
+
+function renderInventory() {
+  const search = document.getElementById('inv-search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('inv-status-filter').value;
+  const platformFilter = document.getElementById('inv-platform-filter').value;
+
+  let rows = items.map(item => {
+    const sale = sales.find(s => s.item_id === item.id);
+    return { item, sale };
+  });
+
+  rows = rows.filter(({ item, sale }) => {
+    if (search && !item.item_name.toLowerCase().includes(search)) return false;
+    if (statusFilter && item.status !== statusFilter) return false;
+    if (platformFilter && (!sale || sale.platform !== platformFilter)) return false;
+    return true;
+  });
+
+  document.getElementById('inv-count').textContent = rows.length;
+
+  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale }) => {
+    const r = sale ? calcProfit(sale, item) : null;
+    return `<tr>
+      <td><div class="item-name">${item.item_name}</div><div class="item-sub">${item.category || ''}${item.size ? ' &middot; ' + item.size : ''}</div></td>
+      <td>${sale ? sale.platform : '&mdash;'}</td>
+      <td>${item.category || '&mdash;'}</td>
+      <td>${item.size || '&mdash;'}</td>
+      <td class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
+      <td>${statusBadge(item.status)}</td>
+      <td class="num">${sale ? fmtCents(sale.sale_price_cents) : '&mdash;'}</td>
+      <td class="num">${sale ? (r.isComplete ? fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
+      <td>${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
+      <td><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
+      <td><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="11" class="empty-note">No items match your filters.</td></tr>`;
+}
+
+function populatePlatformFilter() {
+  const sel = document.getElementById('inv-platform-filter');
+  PLATFORMS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    sel.appendChild(opt);
+  });
+}
+
+/* =========================================================
+   SALES PAGE
+   ========================================================= */
+function renderSales() {
+  const rows = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date));
+  document.getElementById('sales-tbody').innerHTML = rows.length ? rows.map(s => {
+    const item = itemById(s.item_id);
+    const r = calcProfit(s, item);
+    const costsKnown = [s.platform_fees_cents, s.shipping_cost_cents, s.other_costs_cents].every(c => c !== null);
+    return `<tr>
+      <td class="item-name">${item ? item.item_name : 'Unknown'}</td>
+      <td>${s.platform}</td>
+      <td class="num">${fmtCents(s.sale_price_cents)}</td>
+      <td class="num">${costsKnown ? fmtCents(s.platform_fees_cents + s.shipping_cost_cents + s.other_costs_cents) : '<span class="badge badge-incomplete">Partial</span>'}</td>
+      <td class="num">${r.isComplete ? fmtCents(r.netProfitCents) : '&mdash;'}</td>
+      <td class="num">${r.isComplete ? fmtBps(r.marginBps) : '&mdash;'}</td>
+      <td>${fmtDate(s.sale_date)}</td>
+      <td style="text-transform:capitalize">${s.status}</td>
+      <td><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
+      <td><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty-note">No sales yet.</td></tr>`;
+}
+
+/* =========================================================
+   ADD ITEM MODAL
+   ========================================================= */
+function openOverlay(id, originEl) {
+  const overlay = document.getElementById(id);
+  const modal = overlay.querySelector('.modal');
+  overlay.classList.add('open');
+  if (!modal) return;
+
+  let originX = '50%', originY = '50%';
+  if (originEl) {
+    const btnRect = originEl.getBoundingClientRect();
+    // Overlay is now display:flex, so this reflects the modal's real
+    // on-screen position — express the click point relative to it.
+    const modalRect = modal.getBoundingClientRect();
+    originX = ((btnRect.left + btnRect.width / 2) - modalRect.left) + 'px';
+    originY = ((btnRect.top + btnRect.height / 2) - modalRect.top) + 'px';
+  }
+  modal.style.transformOrigin = `${originX} ${originY}`;
+
+  // Driven directly with the Web Animations API instead of a CSS
+  // class + display-toggle. A class-based approach depends on the
+  // browser recognizing display:none -> flex as a fresh animation
+  // trigger, which turned out not to be reliable here. modal.animate()
+  // has no such ambiguity — calling it always plays the animation,
+  // every time, guaranteed.
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion && modal.animate) {
+    modal.animate(
+      [
+        { opacity: 0, transform: 'scale(0.1)' },
+        { opacity: 1, transform: 'scale(1.04)', offset: 0.55 },
+        { opacity: 1, transform: 'scale(1)' },
+      ],
+      { duration: 340, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    );
+  }
+}
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('add-item-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const purchaseCostRaw = fd.get('purchase_cost');
+  const editingId = fd.get('editing_id');
+  const fields = {
+    item_name: fd.get('item_name'),
+    category: fd.get('category') || '',
+    size: fd.get('size') || '',
+    color: fd.get('color') || '',
+    condition: fd.get('condition') || '',
+    purchase_cost_cents: purchaseCostRaw === '' ? null : money(parseFloat(purchaseCostRaw)),
+    purchase_date: fd.get('purchase_date') || null,
+    supplier: fd.get('supplier') || '',
+    storage_location: fd.get('storage_location') || '',
+    status: fd.get('status') || 'unsold',
+    notes: fd.get('notes') || '',
+  };
+  if (editingId) {
+    // Update in place — same object reference, so any sale still
+    // pointing at this item.id automatically sees the new details.
+    const existing = itemById(parseInt(editingId, 10));
+    if (existing) Object.assign(existing, fields);
+  } else {
+    items.push(Object.assign({ id: nextItemId++ }, fields));
+  }
+  e.target.reset();
+  closeOverlay('overlay-add-item');
+  renderAll();
+});
+
+/* =========================================================
+   RECORD SALE MODAL — live profit calculation
+   ========================================================= */
+function populateItemSelect(includeItemId) {
+  // Sold items are normally excluded (you record a sale against unsold/
+  // listed inventory), but editing an existing sale must still show its
+  // own item even though recording that sale is what marked it sold.
+  const sel = document.getElementById('rs-item-select');
+  sel.innerHTML = '<option value="">Select an item</option>' + items
+    .filter(i => i.status !== 'sold' || i.id === includeItemId)
+    .map(i => `<option value="${i.id}">${i.item_name}</option>`).join('');
+}
+
+function updateSaleCalc() {
+  const form = document.getElementById('record-sale-form');
+  const fd = new FormData(form);
+  const itemId = parseInt(fd.get('item_id'), 10);
+  const item = itemById(itemId);
+  const salePrice = fd.get('sale_price');
+  const fees = fd.get('platform_fees');
+  const shipping = fd.get('shipping_cost');
+  const other = fd.get('other_costs');
+
+  const draftSale = {
+    sale_price_cents: salePrice === '' ? 0 : money(parseFloat(salePrice)),
+    platform_fees_cents: fees === '' ? null : money(parseFloat(fees)),
+    shipping_cost_cents: shipping === '' ? null : money(parseFloat(shipping)),
+    other_costs_cents: other === '' ? null : money(parseFloat(other)),
+  };
+  const r = calcProfit(draftSale, item);
+  const box = document.getElementById('rs-calc-box');
+  box.classList.toggle('incomplete', !r.isComplete);
+  document.getElementById('rs-profit').innerHTML = r.isComplete ? fmtCents(r.netProfitCents) : 'Incomplete — missing cost data';
+  document.getElementById('rs-margin').innerHTML = r.isComplete ? fmtBps(r.marginBps) : '&mdash;';
+}
+
+document.getElementById('record-sale-form').addEventListener('input', updateSaleCalc);
+document.getElementById('record-sale-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const itemId = parseInt(fd.get('item_id'), 10);
+  if (!itemId) return;
+  const editingId = fd.get('editing_id');
+  const fees = fd.get('platform_fees'), shipping = fd.get('shipping_cost'), other = fd.get('other_costs');
+  const fields = {
+    item_id: itemId,
+    platform: fd.get('platform'),
+    sale_price_cents: money(parseFloat(fd.get('sale_price'))),
+    platform_fees_cents: fees === '' ? null : money(parseFloat(fees)),
+    shipping_cost_cents: shipping === '' ? null : money(parseFloat(shipping)),
+    other_costs_cents: other === '' ? null : money(parseFloat(other)),
+    order_number: fd.get('order_number') || '',
+    sale_date: fd.get('sale_date'),
+    status: fd.get('status') || 'completed',
+    notes: fd.get('notes') || '',
+  };
+  if (editingId) {
+    const existing = sales.find(s => s.id === parseInt(editingId, 10));
+    if (existing) Object.assign(existing, fields);
+  } else {
+    sales.push(Object.assign({ id: nextSaleId++ }, fields));
+  }
+  const item = itemById(itemId);
+  if (item && fields.status === 'completed') item.status = 'sold';
+  e.target.reset();
+  closeOverlay('overlay-record-sale');
+  renderAll();
+});
+
+/* =========================================================
+   EDIT SALE — reuses the Record Sale modal/form, same pattern
+   as editing an item reuses the Add Item modal.
+   ========================================================= */
+function resetRecordSaleFormForCreate() {
+  const form = document.getElementById('record-sale-form');
+  form.reset();
+  form.elements.editing_id.value = '';
+  populateItemSelect();
+  document.getElementById('record-sale-modal-title').textContent = 'Record sale';
+  document.getElementById('record-sale-modal-sub').textContent = "Profit and margin are calculated by the app as you type — they're not editable fields.";
+  document.getElementById('record-sale-submit-btn').textContent = 'Save sale';
+}
+
+function editSale(sale, originEl) {
+  const form = document.getElementById('record-sale-form');
+  form.reset();
+  populateItemSelect(sale.item_id);
+  form.elements.editing_id.value = sale.id;
+  form.elements.item_id.value = sale.item_id;
+  form.elements.platform.value = sale.platform;
+  form.elements.sale_price.value = (sale.sale_price_cents / 100).toFixed(2);
+  form.elements.platform_fees.value = sale.platform_fees_cents === null ? '' : (sale.platform_fees_cents / 100).toFixed(2);
+  form.elements.shipping_cost.value = sale.shipping_cost_cents === null ? '' : (sale.shipping_cost_cents / 100).toFixed(2);
+  form.elements.other_costs.value = sale.other_costs_cents === null ? '' : (sale.other_costs_cents / 100).toFixed(2);
+  form.elements.order_number.value = sale.order_number || '';
+  form.elements.sale_date.value = sale.sale_date || '';
+  form.elements.status.value = sale.status || 'completed';
+  form.elements.notes.value = sale.notes || '';
+  document.getElementById('record-sale-modal-title').textContent = 'Edit sale';
+  document.getElementById('record-sale-modal-sub').textContent = 'Update this sale’s details. Profit and margin are still calculated automatically.';
+  document.getElementById('record-sale-submit-btn').textContent = 'Save changes';
+  updateSaleCalc();
+  openOverlay('overlay-record-sale', originEl);
+}
+
+/* =========================================================
+   DELETE SALE — same confirm-before-destroy modal used for
+   items, generalized to handle either kind.
+   ========================================================= */
+function saleById(id) { return sales.find(s => s.id === id); }
+
+function askDeleteSale(sale, originEl) {
+  const item = itemById(sale.item_id);
+  pendingDelete = { kind: 'sale', id: sale.id };
+  document.getElementById('confirm-delete-title').textContent = 'Delete sale?';
+  document.getElementById('confirm-delete-item-name').textContent = `the ${item ? item.item_name : 'Unknown item'} sale`;
+  openOverlay('overlay-confirm-delete', originEl);
+}
+
+/* =========================================================
+   SMART ENTRY — mocked parser
+   This function is the ONLY thing that changes when you wire
+   up a real AI provider. It must return the same shape:
+   { item_name, platform, sale_price, purchase_cost, fees,
+     shipping, other, sale_date, missing: [...] }
+   The rest of the flow (validation, preview, edit, confirm,
+   save) never talks to the AI directly — it only reads this
+   structured draft, exactly like the real app will.
+   ========================================================= */
+function mockParseSmartEntry(text) {
+  const lower = text.toLowerCase();
+
+  const platform = PLATFORMS.find(p => lower.includes(p.toLowerCase())) || null;
+
+  const priceMatch = text.match(/for\s*\$?(\d+(?:\.\d{1,2})?)/i);
+  const costMatch = text.match(/(?:bought|cost)\s*(?:it\s*)?(?:for\s*)?\$?(\d+(?:\.\d{1,2})?)/i);
+  const feesMatch = text.match(/fees?\s*(?:were|was|of)?\s*\$?(\d+(?:\.\d{1,2})?)/i);
+  const shippingMatch = text.match(/shipping\s*(?:was|cost|of)?\s*\$?(\d+(?:\.\d{1,2})?)/i);
+
+  const dateMatch = text.match(/(sold|on)\s+([A-Za-z]+\s+\d{1,2})(?:,?\s*(\d{4}))?/i);
+  let saleDate = null;
+  if (dateMatch) {
+    const year = dateMatch[3] || new Date().getFullYear();
+    const parsed = new Date(`${dateMatch[2]}, ${year}`);
+    if (!isNaN(parsed)) saleDate = parsed.toISOString().slice(0, 10);
+  }
+
+  const nameMatch = text.match(/sold\s+(?:an?\s+|the\s+)?(.+?)\s+(?:on|for)\s/i);
+  const itemName = nameMatch ? nameMatch[1].replace(/^(a|an|the)\s+/i, '') : null;
+
+  const missing = [];
+  if (!itemName) missing.push('item name');
+  if (!platform) missing.push('platform');
+  if (!priceMatch) missing.push('sale price');
+  if (!costMatch) missing.push('purchase cost');
+  if (!saleDate) missing.push('sale date');
+
+  return {
+    item_name: itemName ? itemName.charAt(0).toUpperCase() + itemName.slice(1) : null,
+    platform,
+    sale_price: priceMatch ? parseFloat(priceMatch[1]) : null,
+    purchase_cost: costMatch ? parseFloat(costMatch[1]) : null,
+    fees: feesMatch ? parseFloat(feesMatch[1]) : null,
+    shipping: shippingMatch ? parseFloat(shippingMatch[1]) : null,
+    other: null,
+    sale_date: saleDate,
+    missing,
+  };
+}
+
+let currentDraft = null;
+
+document.getElementById('se-parse-btn').addEventListener('click', () => {
+  const text = document.getElementById('se-input').value.trim();
+  if (!text) return;
+  currentDraft = mockParseSmartEntry(text);
+  renderSmartEntryPreview(currentDraft, false);
+});
+
+function renderSmartEntryPreview(draft, editing) {
+  const preview = document.getElementById('se-preview');
+  preview.classList.add('open');
+
+  const fieldDefs = [
+    ['Item', draft.item_name || null, 'item_name', 'text'],
+    ['Platform', draft.platform || null, 'platform', 'select'],
+    ['Sale price', draft.sale_price !== null ? '$' + draft.sale_price.toFixed(2) : null, 'sale_price', 'number'],
+    ['Purchase cost', draft.purchase_cost !== null ? '$' + draft.purchase_cost.toFixed(2) : null, 'purchase_cost', 'number'],
+    ['Platform fees', draft.fees !== null ? '$' + draft.fees.toFixed(2) : 'Not detected', 'fees', 'number'],
+    ['Shipping', draft.shipping !== null ? '$' + draft.shipping.toFixed(2) : 'Not detected', 'shipping', 'number'],
+    ['Sale date', draft.sale_date ? fmtDate(draft.sale_date).replace('&mdash;','') : null, 'sale_date', 'date'],
+  ];
+
+  if (!editing) {
+    document.getElementById('se-preview-fields').innerHTML = `
+      <div class="preview-grid">
+        ${fieldDefs.map(([label, val]) => `
+          <div class="preview-row"><span class="k">${label}</span><span class="v">${val !== null ? val : '<span class="badge badge-incomplete">Missing</span>'}</span></div>
+        `).join('')}
+      </div>
+      ${draft.missing.length ? `<div class="preview-flag">Missing: ${draft.missing.join(', ')} — fill these in before saving.</div>` : ''}
+    `;
+  } else {
+    document.getElementById('se-preview-fields').innerHTML = `
+      <div class="field-grid" id="se-edit-fields">
+        <div class="field"><label>Item</label><input id="ef-item_name" value="${draft.item_name || ''}"></div>
+        <div class="field"><label>Platform</label>
+          <select id="ef-platform"><option value="">Select</option>${PLATFORMS.map(p => `<option ${p===draft.platform?'selected':''}>${p}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Sale price</label><input id="ef-sale_price" type="number" step="0.01" value="${draft.sale_price ?? ''}"></div>
+        <div class="field"><label>Purchase cost</label><input id="ef-purchase_cost" type="number" step="0.01" value="${draft.purchase_cost ?? ''}"></div>
+        <div class="field"><label>Platform fees</label><input id="ef-fees" type="number" step="0.01" value="${draft.fees ?? ''}"></div>
+        <div class="field"><label>Shipping</label><input id="ef-shipping" type="number" step="0.01" value="${draft.shipping ?? ''}"></div>
+        <div class="field"><label>Sale date</label><input id="ef-sale_date" type="date" value="${draft.sale_date || ''}"></div>
+      </div>
+    `;
+    ['item_name','platform','sale_price','purchase_cost','fees','shipping','sale_date'].forEach(f => {
+      const el = document.getElementById('ef-' + f);
+      el.addEventListener('input', syncDraftFromEditFields);
+    });
+  }
+  updateSmartEntryCalc(draft);
+}
+
+function syncDraftFromEditFields() {
+  currentDraft.item_name = document.getElementById('ef-item_name').value || null;
+  currentDraft.platform = document.getElementById('ef-platform').value || null;
+  const sp = document.getElementById('ef-sale_price').value;
+  const pc = document.getElementById('ef-purchase_cost').value;
+  const fe = document.getElementById('ef-fees').value;
+  const sh = document.getElementById('ef-shipping').value;
+  currentDraft.sale_price = sp === '' ? null : parseFloat(sp);
+  currentDraft.purchase_cost = pc === '' ? null : parseFloat(pc);
+  currentDraft.fees = fe === '' ? null : parseFloat(fe);
+  currentDraft.shipping = sh === '' ? null : parseFloat(sh);
+  currentDraft.sale_date = document.getElementById('ef-sale_date').value || null;
+  updateSmartEntryCalc(currentDraft);
+}
+
+function updateSmartEntryCalc(draft) {
+  const complete = draft.sale_price !== null && draft.purchase_cost !== null && draft.fees !== null && draft.shipping !== null;
+  const box = document.getElementById('se-calc-box');
+  box.classList.toggle('incomplete', !complete);
+  if (complete) {
+    const salePriceCents = money(draft.sale_price);
+    const netCents = salePriceCents - money(draft.purchase_cost) - money(draft.fees) - money(draft.shipping);
+    const marginBps = salePriceCents !== 0 ? Math.round((netCents * 10000) / salePriceCents) : null;
+    document.getElementById('se-profit').innerHTML = fmtCents(netCents);
+    document.getElementById('se-margin').innerHTML = fmtBps(marginBps);
+  } else {
+    document.getElementById('se-profit').textContent = 'Incomplete';
+    document.getElementById('se-margin').innerHTML = '&mdash;';
+  }
+}
+
+document.getElementById('se-edit-btn').addEventListener('click', () => {
+  renderSmartEntryPreview(currentDraft, true);
+});
+
+document.getElementById('se-confirm-btn').addEventListener('click', () => {
+  if (!currentDraft) return;
+  if (!currentDraft.item_name || !currentDraft.platform || currentDraft.sale_price === null || !currentDraft.sale_date) {
+    alert('Fill in at least item, platform, sale price, and sale date before saving.');
+    return;
+  }
+  // App-controlled save path: same insert logic a manual form would use.
+  let item = items.find(i => i.item_name.toLowerCase() === currentDraft.item_name.toLowerCase());
+  if (!item) {
+    item = {
+      id: nextItemId++, item_name: currentDraft.item_name, category: '', size: '', color: '',
+      condition: '', purchase_cost_cents: currentDraft.purchase_cost !== null ? money(currentDraft.purchase_cost) : null,
+      purchase_date: null, supplier: '', storage_location: '', status: 'unsold', notes: '',
+    };
+    items.push(item);
+  }
+  const newSale = {
+    id: nextSaleId++, item_id: item.id, platform: currentDraft.platform,
+    sale_price_cents: money(currentDraft.sale_price),
+    platform_fees_cents: currentDraft.fees !== null ? money(currentDraft.fees) : null,
+    shipping_cost_cents: currentDraft.shipping !== null ? money(currentDraft.shipping) : null,
+    other_costs_cents: currentDraft.other !== null ? money(currentDraft.other) : money(0),
+    order_number: '', sale_date: currentDraft.sale_date, status: 'completed', notes: '(via Smart Entry)',
+  };
+  sales.push(newSale);
+  item.status = 'sold';
+  document.getElementById('se-preview').classList.remove('open');
+  document.getElementById('se-input').value = '';
+  currentDraft = null;
+  renderAll();
+  document.querySelector('[data-view="dashboard"]').click();
+});
+
+/* =========================================================
+   THEME SYSTEM
+   Single source of truth for the app's appearance. Applying a
+   vibe only ever sets one attribute (data-vibe on <html>) —
+   every component reads its colors from the CSS variables
+   defined per [data-vibe] above. No per-component theme logic.
+   ========================================================= */
+const VIBE_PRESETS = [
+  { id: 'notepad', name: 'Notepad', desc: 'Tech-savvy digital notebook (default)', swatches: ['#14161A', '#4FAE84', '#E7E9E5'] },
+  { id: 'midnight', name: 'Midnight', desc: 'Premium dark SaaS', swatches: ['#0A0C10', '#5B8CFF', '#F5F6F8'] },
+  { id: 'clean', name: 'Clean', desc: 'Light professional workspace', swatches: ['#F7F7F5', '#1F6F54', '#1C2321'] },
+  { id: 'terminal', name: 'Terminal', desc: 'Developer-inspired, very compact', swatches: ['#0D0F0C', '#7FDB6E', '#D8E8D0'] },
+  { id: 'paper', name: 'Paper', desc: 'Warm digital notebook feel', swatches: ['#F6F1E7', '#8A6D3B', '#2B2620'] },
+];
+// Each vibe's own bg/accent/fg — used as the fallback when a color
+// override leaves a field unset. Mirrors the CSS blocks above; keep
+// in sync if a vibe's base colors ever change.
+const VIBE_BASE_COLORS = {
+  notepad: { bg: '#14161A', accent: '#4FAE84', fg: '#E7E9E5' },
+  midnight: { bg: '#0A0C10', accent: '#5B8CFF', fg: '#F5F6F8' },
+  clean: { bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
+  terminal: { bg: '#0D0F0C', accent: '#7FDB6E', fg: '#D8E8D0' },
+  paper: { bg: '#F6F1E7', accent: '#8A6D3B', fg: '#2B2620' },
+};
+const THEME_STORAGE_KEY = 'ledgerly-theme-settings';
+
+// All loaded upfront via the Google Fonts <link> in <head> so
+// switching is instant with no flash of unstyled text. Chosen to fit
+// the app's own aesthetic — not curated per-vibe; any of these works
+// with any vibe.
+const FONT_FAMILY_OPTIONS = [
+  { id: 'inter', label: 'Inter (default)', desc: 'Neutral, highly readable', css: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'ibm-plex-sans', label: 'IBM Plex Sans', desc: 'Pairs with the app\u2019s mono font', css: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'space-grotesk', label: 'Space Grotesk', desc: 'Geometric, technical', css: "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'manrope', label: 'Manrope', desc: 'Modern, a little warmer', css: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'sora', label: 'Sora', desc: 'Clean, geometric SaaS feel', css: "'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'work-sans', label: 'Work Sans', desc: 'Humanist, friendly', css: "'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'dm-sans', label: 'DM Sans', desc: 'Low-contrast, minimal', css: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'outfit', label: 'Outfit', desc: 'Rounded, approachable', css: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+];
+function fontFamilyCss(id) {
+  const opt = FONT_FAMILY_OPTIONS.find(o => o.id === id);
+  return opt ? opt.css : null;
+}
+
+function hexToRgb(hex) {
+  var h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+  var num = parseInt(h, 16) || 0;
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+function rgbToHex(rgb) {
+  return '#' + rgb.map(function (v) { return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'); }).join('');
+}
+function mixColors(hexA, hexB, wB) {
+  var a = hexToRgb(hexA), b = hexToRgb(hexB), w = Math.max(0, Math.min(1, wB));
+  return rgbToHex([a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w]);
+}
+function isDarkColor(hex) {
+  var rgb = hexToRgb(hex).map(function (v) {
+    var c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) < 0.5;
+}
+
+/* =========================================================
+   THEME SETTINGS — single source of truth
+   { vibe: 'notepad', colorOverrides: { bg, accent, fg }, fontScale }
+   colorOverrides fields are independently nullable — null means
+   "use this vibe's own color." fontScale is a continuous multiplier
+   with its own default (1), clamped to [0.85, 1.25]. Layout and font
+   FAMILY override slots will be added the same way later.
+   ========================================================= */
+const FONT_SCALE_MIN = 0.85;
+const FONT_SCALE_MAX = 1.25;
+
+function clampFontScale(scale) {
+  if (typeof scale !== 'number' || isNaN(scale)) return 1;
+  return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, scale));
+}
+
+function getThemeSettings() {
+  try {
+    var raw = localStorage.getItem(THEME_STORAGE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      return {
+        vibe: VIBE_BASE_COLORS[parsed.vibe] ? parsed.vibe : 'notepad',
+        colorOverrides: Object.assign({ bg: null, accent: null, fg: null }, parsed.colorOverrides),
+        fontScale: clampFontScale(parsed.fontScale),
+        fontFamily: parsed.fontFamily && fontFamilyCss(parsed.fontFamily) ? parsed.fontFamily : null,
+      };
+    }
+  } catch (e) {}
+  return { vibe: 'notepad', colorOverrides: { bg: null, accent: null, fg: null }, fontScale: 1, fontFamily: null };
+}
+
+function saveThemeSettings(settings) {
+  try { localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(settings)); } catch (e) {}
+}
+
+function hasColorOverride(overrides) {
+  return !!(overrides.bg || overrides.accent || overrides.fg);
+}
+
+const TOKEN_KEYS = [
+  'bg', 'surface', 'surface-2', 'ink', 'ink-muted', 'ink-faint', 'border',
+  'accent', 'accent-soft', 'accent-text',
+];
+
+// Applies the base vibe (its CSS block takes over) then, only if any
+// color override is set, layers derived tokens on top as inline
+// styles. No override → no inline styles → the vibe renders from
+// pure CSS, identical to having no theme system at all. Font scale
+// always applies (it has its own default, not a vibe fallback).
+function applyTheme(settings) {
+  document.documentElement.setAttribute('data-vibe', settings.vibe);
+  TOKEN_KEYS.forEach(k => document.documentElement.style.removeProperty('--' + k));
+  if (hasColorOverride(settings.colorOverrides)) {
+    const base = VIBE_BASE_COLORS[settings.vibe];
+    const bg = settings.colorOverrides.bg || base.bg;
+    const accent = settings.colorOverrides.accent || base.accent;
+    const fg = settings.colorOverrides.fg || base.fg;
+    const dark = isDarkColor(bg);
+    const root = document.documentElement.style;
+    root.setProperty('--bg', bg);
+    root.setProperty('--surface', dark ? mixColors(bg, fg, 0.05) : mixColors(bg, '#FFFFFF', 0.7));
+    root.setProperty('--surface-2', dark ? mixColors(bg, fg, 0.09) : '#FFFFFF');
+    root.setProperty('--ink', fg);
+    root.setProperty('--ink-muted', mixColors(fg, bg, 0.35));
+    root.setProperty('--ink-faint', mixColors(fg, bg, 0.55));
+    root.setProperty('--border', mixColors(bg, fg, dark ? 0.14 : 0.12));
+    root.setProperty('--accent', accent);
+    root.setProperty('--accent-soft', mixColors(bg, accent, 0.15));
+    root.setProperty('--accent-text', dark ? mixColors(accent, '#FFFFFF', 0.35) : mixColors(accent, '#000000', 0.25));
+  }
+  document.documentElement.style.setProperty('--font-scale', String(clampFontScale(settings.fontScale)));
+  const familyCss = fontFamilyCss(settings.fontFamily);
+  if (familyCss) {
+    document.documentElement.style.setProperty('--font-sans', familyCss);
+  } else {
+    document.documentElement.style.removeProperty('--font-sans');
+  }
+}
+
+function setFontScale(scale) {
+  const settings = getThemeSettings();
+  settings.fontScale = clampFontScale(scale);
+  saveThemeSettings(settings);
+  applyTheme(settings);
+  renderFontScaleControl();
+}
+
+function setFontFamily(id) {
+  const settings = getThemeSettings();
+  settings.fontFamily = id || null;
+  saveThemeSettings(settings);
+  applyTheme(settings);
+}
+
+function renderFontScaleControl() {
+  const settings = getThemeSettings();
+  const slider = document.getElementById('font-scale-slider');
+  const val = document.getElementById('font-scale-val');
+  if (slider) slider.value = settings.fontScale;
+  if (val) val.textContent = Math.round(settings.fontScale * 100) + '%';
+}
+
+function renderFontFamilyControl() {
+  const settings = getThemeSettings();
+  const select = document.getElementById('font-family-select');
+  if (!select) return;
+  select.innerHTML = FONT_FAMILY_OPTIONS.map(o =>
+    `<option value="${o.id === 'inter' ? '' : o.id}" style="font-family:${o.css}">${o.label} — ${o.desc}</option>`
+  ).join('');
+  select.value = settings.fontFamily || '';
+  select.addEventListener('change', (e) => setFontFamily(e.target.value));
+}
+
+function setVibe(vibe) {
+  // Overrides are layered on top of whichever vibe is selected, so
+  // switching vibes keeps them active rather than clearing them.
+  const settings = getThemeSettings();
+  settings.vibe = vibe;
+  saveThemeSettings(settings);
+  applyTheme(settings);
+  renderVibeGrid();
+  renderColorControls();
+}
+
+function setColorOverride(key, value) {
+  const settings = getThemeSettings();
+  settings.colorOverrides[key] = value;
+  saveThemeSettings(settings);
+  applyTheme(settings);
+  renderColorControls();
+}
+
+function resetColorOverrides() {
+  const settings = getThemeSettings();
+  settings.colorOverrides = { bg: null, accent: null, fg: null };
+  saveThemeSettings(settings);
+  applyTheme(settings);
+  renderColorControls();
+}
+
+function renderVibeGrid() {
+  const settings = getThemeSettings();
+  document.getElementById('vibe-grid').innerHTML = VIBE_PRESETS.map(v => `
+    <button class="vibe-card ${v.id === settings.vibe ? 'selected' : ''}" data-vibe-select="${v.id}" type="button">
+      <div class="vibe-swatch">${v.swatches.map(c => `<span style="background:${c}"></span>`).join('')}</div>
+      <div class="vibe-name">${v.name}</div>
+      <div class="vibe-desc">${v.desc}</div>
+    </button>
+  `).join('');
+  document.querySelectorAll('[data-vibe-select]').forEach(btn => {
+    btn.addEventListener('click', () => setVibe(btn.dataset.vibeSelect));
+  });
+}
+
+function renderColorControls() {
+  const container = document.getElementById('custom-color-controls');
+  const settings = getThemeSettings();
+  const base = VIBE_BASE_COLORS[settings.vibe];
+  const overridden = hasColorOverride(settings.colorOverrides);
+  const effective = {
+    bg: settings.colorOverrides.bg || base.bg,
+    accent: settings.colorOverrides.accent || base.accent,
+    fg: settings.colorOverrides.fg || base.fg,
+  };
+  container.innerHTML = `
+    <div class="custom-color-row">
+      <div class="custom-color-header">
+        <span>Customize colors${overridden ? ' <span class="customized-tag">· customized</span>' : ''}</span>
+        ${overridden ? '<button type="button" class="reset-link" id="reset-color-overrides">Reset to vibe defaults</button>' : ''}
+      </div>
+      <div class="custom-color-fields">
+        ${[['bg', 'Background'], ['accent', 'Accent'], ['fg', 'Text']].map(([key, label]) => `
+          <div class="color-field">
+            <label>${label}</label>
+            <div class="swatch-input">
+              <input type="color" id="cc-${key}" value="${effective[key]}">
+              <span class="hex-val" id="cc-${key}-val">${effective[key].toUpperCase()}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="custom-note">These override the selected vibe's own colors. Everything else (surfaces, borders, muted text) is calculated from the 3 above — status colors (success/warning/danger) stay fixed for readability. Switch vibes any time; your overrides carry over.</div>
+    </div>
+  `;
+  ['bg', 'accent', 'fg'].forEach(key => {
+    document.getElementById('cc-' + key).addEventListener('input', (e) => {
+      document.getElementById('cc-' + key + '-val').textContent = e.target.value.toUpperCase();
+      setColorOverride(key, e.target.value);
+    });
+  });
+  const resetBtn = document.getElementById('reset-color-overrides');
+  if (resetBtn) resetBtn.addEventListener('click', resetColorOverrides);
+}
+
+/* =========================================================
+   NAV + OVERLAYS + WIRING
+   ========================================================= */
+function updateNavPill(activeBtn) {
+  const pill = document.getElementById('nav-active-pill');
+  if (!pill || !activeBtn) return;
+  pill.style.transform = `translateY(${activeBtn.offsetTop}px)`;
+  pill.style.height = activeBtn.offsetHeight + 'px';
+}
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    updateNavPill(btn);
+  });
+});
+// Position the pill under Dashboard (the default active tab) on load.
+updateNavPill(document.querySelector('.nav-item.active'));
+window.addEventListener('resize', () => updateNavPill(document.querySelector('.nav-item.active')));
+
+document.querySelectorAll('[data-open]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.open;
+    if (target === 'record-sale') { resetRecordSaleFormForCreate(); updateSaleCalc(); }
+    if (target === 'add-item') { resetAddItemFormForCreate(); }
+    openOverlay('overlay-' + target, btn);
+  });
+});
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => btn.closest('.overlay').classList.remove('open'));
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+
+document.getElementById('inv-search').addEventListener('input', renderInventory);
+document.getElementById('inv-status-filter').addEventListener('change', renderInventory);
+document.getElementById('inv-platform-filter').addEventListener('change', renderInventory);
+
+/* =========================================================
+   EDIT ITEM — reuses the Add Item modal/form. Populating the
+   form and flipping its title/copy is enough; the submit
+   handler below branches on the hidden editing_id field to
+   decide between creating a new item and updating this one.
+   ========================================================= */
+function resetAddItemFormForCreate() {
+  const form = document.getElementById('add-item-form');
+  form.reset();
+  form.elements.editing_id.value = '';
+  document.getElementById('add-item-modal-title').textContent = 'Add item';
+  document.getElementById('add-item-modal-sub').textContent = "Profit is calculated automatically once this item sells — it's not entered here.";
+  form.querySelector('button[type="submit"]').textContent = 'Save item';
+}
+
+function editItem(item, originEl) {
+  const form = document.getElementById('add-item-form');
+  form.reset();
+  form.elements.editing_id.value = item.id;
+  form.elements.item_name.value = item.item_name || '';
+  form.elements.category.value = item.category || '';
+  form.elements.size.value = item.size || '';
+  form.elements.color.value = item.color || '';
+  form.elements.condition.value = item.condition || '';
+  form.elements.purchase_cost.value = item.purchase_cost_cents === null || item.purchase_cost_cents === undefined ? '' : (item.purchase_cost_cents / 100).toFixed(2);
+  form.elements.purchase_date.value = item.purchase_date || '';
+  form.elements.supplier.value = item.supplier || '';
+  form.elements.storage_location.value = item.storage_location || '';
+  form.elements.status.value = item.status || 'unsold';
+  form.elements.notes.value = item.notes || '';
+  document.getElementById('add-item-modal-title').textContent = 'Edit item';
+  document.getElementById('add-item-modal-sub').textContent = 'Update this item’s details. Profit is still calculated automatically, never entered here.';
+  form.querySelector('button[type="submit"]').textContent = 'Save changes';
+  openOverlay('overlay-add-item', originEl);
+}
+
+/* =========================================================
+   DELETE ITEM / SALE — confirm-before-destroy, shared modal.
+   Neither × button deletes directly; each only stages
+   { kind, id } and shows a confirmation, so a stray click
+   can't lose data.
+   ========================================================= */
+let pendingDelete = null;
+
+function askDeleteItem(item, originEl) {
+  pendingDelete = { kind: 'item', id: item.id };
+  document.getElementById('confirm-delete-title').textContent = 'Delete item?';
+  document.getElementById('confirm-delete-item-name').textContent = item.item_name;
+  openOverlay('overlay-confirm-delete', originEl);
+}
+
+document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+  if (!pendingDelete) return;
+  if (pendingDelete.kind === 'item') {
+    const idx = items.findIndex(i => i.id === pendingDelete.id);
+    if (idx !== -1) items.splice(idx, 1);
+  } else if (pendingDelete.kind === 'sale') {
+    const sale = saleById(pendingDelete.id);
+    const idx = sales.findIndex(s => s.id === pendingDelete.id);
+    if (idx !== -1) sales.splice(idx, 1);
+    // If that was the only sale referencing this item, it's no longer
+    // actually sold — put it back into unsold so it shows up in
+    // inventory searches and the Record Sale item picker again.
+    if (sale) {
+      const item = itemById(sale.item_id);
+      const stillReferenced = sales.some(s => s.item_id === sale.item_id);
+      if (item && !stillReferenced && item.status === 'sold') item.status = 'unsold';
+    }
+  }
+  pendingDelete = null;
+  closeOverlay('overlay-confirm-delete');
+  renderAll();
+});
+
+document.body.addEventListener('click', e => {
+  const editBtn = e.target.closest('[data-edit-item]');
+  if (editBtn) {
+    const item = itemById(parseInt(editBtn.dataset.editItem, 10));
+    if (item) editItem(item, editBtn);
+    return;
+  }
+  const deleteBtn = e.target.closest('[data-delete-item]');
+  if (deleteBtn) {
+    const item = itemById(parseInt(deleteBtn.dataset.deleteItem, 10));
+    if (item) askDeleteItem(item, deleteBtn);
+    return;
+  }
+  const editSaleBtn = e.target.closest('[data-edit-sale]');
+  if (editSaleBtn) {
+    const sale = saleById(parseInt(editSaleBtn.dataset.editSale, 10));
+    if (sale) editSale(sale, editSaleBtn);
+    return;
+  }
+  const deleteSaleBtn = e.target.closest('[data-delete-sale]');
+  if (deleteSaleBtn) {
+    const sale = saleById(parseInt(deleteSaleBtn.dataset.deleteSale, 10));
+    if (sale) askDeleteSale(sale, deleteSaleBtn);
+  }
+});
+
+function renderAll() {
+  renderDashboard();
+  renderInventory();
+  renderSales();
+}
+
+populatePlatformFilter();
+renderVibeGrid();
+renderColorControls();
+renderFontScaleControl();
+renderFontFamilyControl();
+document.getElementById('font-scale-slider').addEventListener('input', (e) => setFontScale(parseFloat(e.target.value)));
+renderAll();
+</script>
+</body>
+</html>
+

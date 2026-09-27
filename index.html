@@ -1211,6 +1211,36 @@ td .empty-state { white-space: normal; }
   .inv-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .goal-ring { width: 92px; height: 92px; }
 }
+/* Batches: one row per purchase of several, opens to show each unit. */
+.batch-row { cursor: pointer; }
+.batch-row .item-name { display: flex; align-items: center; gap: 4px; }
+.batch-chev { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: var(--ink-faint); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms ease; }
+.batch-row.open .batch-chev { transform: rotate(90deg); stroke: var(--accent-text); }
+.batch-row.open td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.batch-thumb { position: relative; display: inline-flex; flex-shrink: 0; }
+.batch-thumb::before { content: ''; position: absolute; inset: 0; transform: translate(3px, -3px); border-radius: 8px; background: color-mix(in srgb, var(--ink) 10%, transparent); box-shadow: inset 0 0 0 1px var(--hairline); }
+.batch-thumb .item-thumb { position: relative; }
+.qty-badge {
+  position: absolute; right: -7px; bottom: -6px; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; font: 700 0.625rem/1 var(--font-num); box-shadow: 0 0 0 2px var(--surface);
+}
+.inv-card-media .qty-badge { right: 10px; bottom: 10px; left: auto; height: 22px; min-width: 30px; font-size: 0.75rem; border-radius: 11px; }
+.inv-card.is-batch { box-shadow: var(--highlight), var(--shadow), 5px -5px 0 -1px color-mix(in srgb, var(--ink) 9%, var(--surface)); margin: 5px 5px 0 0; }
+.batch-counts { display: flex; flex-wrap: wrap; gap: 4px; }
+.unit-row td { background: color-mix(in srgb, var(--ink) 2.5%, transparent); }
+.unit-row td.cell-title { padding-left: 34px; }
+.unit-row .item-name { font-size: 0.8125rem; color: var(--ink-muted); }
+.unit-no { width: 38px; height: 26px; flex-shrink: 0; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font: 600 0.75rem/1 var(--font-num); color: var(--ink-muted); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.unit-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.unit-line { display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 0.8125rem; }
+.unit-line + .unit-line { border-top: 1px solid var(--border); }
+.unit-detail { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--ink-muted); font-family: var(--font-num); }
+@media (max-width: 720px) {
+  .unit-row { margin-left: 14px; border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border)) !important; }
+  .unit-row td.cell-title { padding-left: 0; }
+  .batch-row.open td, .unit-row td { background: none; }
+}
 </style>
 </head>
 <body>
@@ -1538,6 +1568,7 @@ td .empty-state { white-space: normal; }
     <p class="modal-sub" id="add-item-modal-sub">Profit is worked out automatically when it sells.</p>
     <form id="add-item-form">
       <input type="hidden" name="editing_id">
+      <input type="hidden" name="editing_batch">
 
       <fieldset class="form-section">
         <legend>Product</legend>
@@ -1573,7 +1604,7 @@ td .empty-state { white-space: normal; }
           <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
           <div class="field"><label>Time purchased</label><input name="purchase_time" type="time"></div>
           <div class="field"><label>Total spent</label><input name="total_spent" type="number" step="0.01" min="0" placeholder="Blank if unknown"></div>
-          <div class="field" data-create-only><label>Quantity</label><input name="quantity" type="number" min="1" max="100" step="1" value="1"></div>
+          <div class="field" data-create-only data-batch-field><label>Quantity</label><input name="quantity" type="number" min="1" max="100" step="1" value="1"><span class="field-hint" id="ai-qty-hint" hidden></span></div>
           <div class="field"><label>Cost per item</label><div class="calc-inline" id="ai-cost-each">&mdash;</div><span class="field-hint" id="ai-cost-hint">Worked out automatically</span></div>
         </div>
       </fieldset>
@@ -1591,6 +1622,11 @@ td .empty-state { white-space: normal; }
           <div class="field" data-listing-field><label>Listing price</label><input name="listing_price" type="number" step="0.01" min="0" placeholder="0.00"></div>
           <div class="field" data-listing-field><label>Date listed</label><input name="listed_date" type="date"></div>
         </div>
+      </fieldset>
+
+      <fieldset class="form-section" id="ai-units-section" hidden>
+        <legend>Units in this batch</legend>
+        <div class="unit-list" id="ai-units"></div>
       </fieldset>
 
       <fieldset class="form-section">
@@ -1749,6 +1785,7 @@ function normalizeItem(item) {
   if (!Array.isArray(item.photo_ids)) item.photo_ids = [];
   if (item.purchase_time === undefined) item.purchase_time = null;
   if (item.department === undefined) item.department = '';
+  if (item.batch_id === undefined) item.batch_id = null;
   if (!item.purchase_order) item.purchase_order = newOrderNumber(item.purchase_date, item.purchase_time);
   return item;
 }
@@ -1756,6 +1793,7 @@ function normalizeItem(item) {
 function replaceData(newItems, newSales) {
   items.splice(0, items.length, ...newItems.map(normalizeItem));
   sales.splice(0, sales.length, ...newSales);
+  groupLegacyBatches();
   nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
 }
@@ -1988,6 +2026,25 @@ function inRange(date, range) {
   return !range || (!!date && date >= range.start && date <= range.end);
 }
 function itemById(id) { return items.find(i => i.id === id); }
+
+// Batches: buying several of the same thing (quantity > 1) makes one unit per
+// piece, so each can sell on its own, tied together by a shared batch_id.
+function batchUnits(batchId) { return batchId ? items.filter(i => i.batch_id === batchId) : []; }
+function isBatched(item) { return !!item && !!item.batch_id && batchUnits(item.batch_id).length > 1; }
+// Older data: units added with a quantity share an order number and a name.
+function groupLegacyBatches() {
+  const groups = new Map();
+  items.filter(i => !i.batch_id && i.purchase_order).forEach(i => {
+    const key = i.purchase_order + '|' + (i.item_name || '').trim().toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+  groups.forEach(list => {
+    if (list.length < 2) return;
+    const id = 'B' + Math.min(...list.map(i => i.id));
+    list.forEach(i => { i.batch_id = id; });
+  });
+}
 
 // Escape user-entered text before it goes into innerHTML, so names
 // like `Jordan 4 "Bred"` or `<i>Dunk</i>` show exactly as typed.
@@ -2464,10 +2521,12 @@ function renderDashboard() {
   // Aging inventory (unsold/listed, 60+ days since purchase date)
   const aging = items.filter(i => (i.status === 'unsold' || i.status === 'listed') && i.purchase_date && daysSince(i.purchase_date) >= 60)
     .sort((a, b) => daysSince(b.purchase_date) - daysSince(a.purchase_date));
-  document.getElementById('aging-inventory').innerHTML = aging.length ? aging.map(i => `
+  const agingSeen = new Set();
+  const agingRows = aging.filter(i => !isBatched(i) || (!agingSeen.has(i.batch_id) && agingSeen.add(i.batch_id)));
+  document.getElementById('aging-inventory').innerHTML = agingRows.length ? agingRows.map(i => `
     <div class="row-line">
       <div class="item-cell">${itemThumb(i)}<div>
-        <div class="row-title">${esc(i.item_name)}</div>
+        <div class="row-title">${esc(i.item_name)}${isBatched(i) ? ` <span class="price-note">&times;${aging.filter(u => u.batch_id === i.batch_id).length}</span>` : ''}</div>
         <div class="row-sub">${esc(i.category || 'Uncategorized')}</div>
       </div></div>
       <span class="badge badge-aging">${daysSince(i.purchase_date)}d</span>
@@ -2545,6 +2604,15 @@ function renderInventory() {
   sortRows(rows, valueOf, sortState.inv);
   markSortHeaders('inv-table', sortState.inv);
 
+  // A batch shows as one entry where its first matching unit would sort.
+  const entries = [], seen = new Map();
+  rows.forEach(row => {
+    const bid = isBatched(row.item) ? row.item.batch_id : null;
+    if (!bid) { entries.push({ row }); return; }
+    if (!seen.has(bid)) { const entry = { batchId: bid, rows: [] }; seen.set(bid, entry); entries.push(entry); }
+    seen.get(bid).rows.push(row);
+  });
+
   document.getElementById('inv-count').textContent = rows.length;
   const empty = items.length
     ? emptyState('search', 'No matches', 'Nothing fits these filters. Try a different search or status.')
@@ -2559,9 +2627,26 @@ function renderInventory() {
   document.querySelectorAll('#inv-view-toggle [data-inv-view]').forEach(b => { b.classList.toggle('active', b.dataset.invView === invView); b.setAttribute('aria-pressed', b.dataset.invView === invView); });
 
   if (grid) {
-    document.getElementById('inv-grid').innerHTML = rows.length ? rows.map(({ item, sale, r }, i) => {
+    document.getElementById('inv-grid').innerHTML = entries.length ? entries.map((entry, i) => {
+      const delay = `animation-delay:${Math.min(i, 12) * 30}ms`;
+      if (entry.batchId) {
+        const b = batchSummary(entry.batchId);
+        const item = b.units[0];
+        return `<button type="button" class="inv-card is-batch${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-edit-batch="${esc(entry.batchId)}" style="${delay}">
+          <div class="inv-card-media">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span>${b.available ? `<span class="badge badge-${b.listed ? 'listed' : 'unsold'}">${b.available} left</span>` : statusBadge('sold')}</div>
+          <div class="inv-card-body">
+            <div class="inv-card-name">${esc(item.item_name)}</div>
+            <div class="inv-card-sub">${subOf(item)}</div>
+            <div class="inv-card-foot">
+              <span class="inv-card-price">${item.listing_price_cents !== null ? fmtCents(item.listing_price_cents) + '<span class="inv-card-cost"> each</span>' : '<span class="inv-card-cost">No price yet</span>'}</span>
+              ${b.profitCount ? `<span class="inv-card-profit ${moneyClass(b.profit)}">${b.profit >= 0 ? '+' : ''}${fmtCents(b.profit)}</span>` : b.sold ? '' : `<span class="inv-card-cost">${b.units.length} units</span>`}
+            </div>
+          </div>
+        </button>`;
+      }
+      const { item, sale, r } = entry.row;
       const price = priceOf(item, sale);
-      return `<button type="button" class="inv-card${highlightItemIds.has(item.id) ? ' row-new' : ''}" data-edit-item="${item.id}" style="animation-delay:${Math.min(i, 12) * 30}ms">
+      return `<button type="button" class="inv-card${highlightItemIds.has(item.id) ? ' row-new' : ''}" data-edit-item="${item.id}" style="${delay}">
         <div class="inv-card-media">${itemThumb(item)}${statusBadge(item.status)}${sale ? `<span class="inv-card-plat">${platformChip(sale.platform, 'mark')}</span>` : ''}</div>
         <div class="inv-card-body">
           <div class="inv-card-name">${esc(item.item_name)}</div>
@@ -2577,8 +2662,11 @@ function renderInventory() {
     return;
   }
 
-  document.getElementById('inv-tbody').innerHTML = rows.length ? rows.map(({ item, sale, r }) => `<tr data-item-id="${item.id}"${highlightItemIds.has(item.id) ? ' class="row-new"' : ''}>
-      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div><div class="item-name">${esc(item.item_name)}</div><div class="item-sub">${subOf(item)}</div></div></div></td>
+  // unit = { no, of, name } for a row inside an opened batch.
+  const unitRow = ({ item, sale, r }, unit) => `<tr data-item-id="${item.id}" class="${unit ? 'unit-row' : ''}${highlightItemIds.has(item.id) ? ' row-new' : ''}">
+      <td class="cell-title"><div class="item-cell">${unit ? `<span class="unit-no">#${unit.no}</span>` : itemThumb(item)}<div>
+        <div class="item-name">${unit ? (item.item_name === unit.name ? `Unit ${unit.no} of ${unit.of}` : esc(item.item_name)) : esc(item.item_name)}</div>
+        <div class="item-sub">${unit ? esc(item.notes || '') : subOf(item)}</div></div></div></td>
       <td data-label="Platform">${sale ? platformChip(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
       <td data-label="Status">${statusBadge(item.status)}</td>
@@ -2586,9 +2674,64 @@ function renderInventory() {
       <td data-label="Profit" class="num">${sale ? (r.isComplete ? moneyCell(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
       <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}</td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
-      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete item" aria-label="Delete item">&times;</button></td>
-    </tr>`).join('') : `<tr><td colspan="9" class="empty-note">${empty}</td></tr>`;
+      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete ${unit ? 'this unit' : 'item'}" aria-label="Delete ${unit ? 'this unit' : 'item'}">&times;</button></td>
+    </tr>`;
+
+  const batchRows = entry => {
+    const b = batchSummary(entry.batchId);
+    const item = b.units[0];
+    const open = expandedBatches.has(entry.batchId);
+    const costs = [...new Set(b.units.map(u => u.purchase_cost_cents))];
+    const costText = costs.includes(null) ? '<span class="badge badge-incomplete">Unknown</span>'
+      : costs.length === 1 ? `${fmtCents(costs[0])} <span class="price-note">each</span>`
+      : `${fmtCents(Math.min(...costs))}–${fmtCents(Math.max(...costs))}`;
+    const counts = [['unsold', b.unsold], ['listed', b.listed], ['sold', b.sold], ['returned', b.returned]].filter(([, n]) => n);
+    const platforms = [...new Set(b.units.map(u => (sales.find(s => s.item_id === u.id && s.status === 'completed') || {}).platform).filter(Boolean))];
+    const filtered = entry.rows.length < b.units.length ? ` &middot; ${entry.rows.length} shown` : '';
+    const head = `<tr class="batch-row${open ? ' open' : ''}${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-batch-toggle="${esc(entry.batchId)}" aria-expanded="${open}">
+      <td class="cell-title"><div class="item-cell"><span class="batch-thumb">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span></span><div>
+        <div class="item-name"><svg class="batch-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${esc(item.item_name)}</div>
+        <div class="item-sub">${[subOf(item), `${b.units.length} units${filtered}`].filter(Boolean).join(' &middot; ')}</div></div></div></td>
+      <td data-label="Platform">${platforms.length ? platforms.map(p => platformChip(p, platforms.length > 1 ? 'mark' : false)).join(' ') : '&mdash;'}</td>
+      <td data-label="Purchase cost" class="num">${costText}</td>
+      <td data-label="Status"><div class="batch-counts">${counts.map(([st, n]) => `<span class="badge badge-${st}">${n} ${esc(statusLabel(st).toLowerCase())}</span>`).join('')}</div></td>
+      <td data-label="Listing price" class="num">${item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">each</span>` : '&mdash;'}</td>
+      <td data-label="Profit" class="num">${b.profitCount ? moneyCell(b.profit) : '&mdash;'}</td>
+      <td data-label="Bought">${fmtDate(item.purchase_date)}</td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-batch="${esc(entry.batchId)}">Edit batch</button></td>
+      <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-batch="${esc(entry.batchId)}" title="Delete the whole batch" aria-label="Delete the whole batch">&times;</button></td>
+    </tr>`;
+    return head + (open ? entry.rows.map(row => unitRow(row, { no: b.units.indexOf(row.item) + 1, of: b.units.length, name: item.item_name })).join('') : '');
+  };
+
+  document.getElementById('inv-tbody').innerHTML = entries.length
+    ? entries.map(entry => entry.batchId ? batchRows(entry) : unitRow(entry.row)).join('')
+    : `<tr><td colspan="9" class="empty-note">${empty}</td></tr>`;
 }
+
+// Totals for one batch: how many units are in each status, and profit so far.
+function batchSummary(batchId) {
+  const units = batchUnits(batchId).sort((a, b) => a.id - b.id);
+  const count = st => units.filter(u => u.status === st).length;
+  let profit = 0, profitCount = 0;
+  units.forEach(u => sales.filter(s => s.item_id === u.id && s.status === 'completed').forEach(s => {
+    const r = calcProfit(s, u);
+    if (r.isComplete) { profit += r.netProfitCents; profitCount++; }
+  }));
+  const unsold = count('unsold'), listed = count('listed');
+  return { units, unsold, listed, sold: count('sold'), returned: count('returned'), available: unsold + listed, profit, profitCount };
+}
+
+// Batches opened up in the Inventory table (click the row to toggle).
+const expandedBatches = new Set();
+document.getElementById('inv-tbody').addEventListener('click', e => {
+  if (e.target.closest('button, a, input')) return;
+  const row = e.target.closest('[data-batch-toggle]');
+  if (!row) return;
+  const id = row.dataset.batchToggle;
+  if (expandedBatches.has(id)) expandedBatches.delete(id); else expandedBatches.add(id);
+  renderInventory();
+});
 
 // Inventory layout: table or photo grid, remembered per browser.
 let invView = 'table';
@@ -2829,7 +2972,8 @@ function updateItemCostEach() {
   if (totalRaw === '') { out.innerHTML = '&mdash;'; hint.textContent = 'Blank total = cost unknown'; return; }
   const parts = splitCents(money(parseFloat(totalRaw)), qty);
   out.textContent = fmtCents(parts[parts.length - 1]);
-  hint.textContent = qty > 1 ? `Adds ${qty} separate items${parts[0] !== parts[parts.length - 1] ? ' (a few get 1¢ more)' : ''}` : 'Worked out automatically';
+  const oddCents = parts[0] !== parts[parts.length - 1] ? ' (a few get 1¢ more)' : '';
+  hint.textContent = qty > 1 ? `${form.elements.editing_batch.value ? 'Split across' : 'One batch of'} ${qty} units${oddCents}` : 'Worked out automatically';
 }
 
 // Department → Category → Size. Each dropdown opens up once the one before it is chosen,
@@ -2956,7 +3100,7 @@ document.getElementById('add-item-form').addEventListener('input', e => {
     if (other) e.currentTarget.elements.size_other.focus();
   }
   const form = e.currentTarget;
-  if ((e.target.name === 'purchase_date' || e.target.name === 'purchase_time') && !form.elements.editing_id.value) {
+  if ((e.target.name === 'purchase_date' || e.target.name === 'purchase_time') && !form.elements.editing_id.value && !form.elements.editing_batch.value) {
     refreshNewOrderNumber(form, 'ai-order-no');
   }
 });
@@ -2993,6 +3137,8 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     photo_ids: formPhotos.map(ph => ph.id),
     notes: fd.get('notes') || '',
   };
+  const batchId = fd.get('editing_batch');
+  if (batchId) { saveBatch(batchId, fields, fd); return; }
   const before = existing ? null : snapshotData();
   const addedIds = [];
   if (existing) {
@@ -3000,9 +3146,10 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     // pointing at this item.id automatically sees the new details.
     Object.assign(existing, fields, { purchase_cost_cents: costs[0] });
   } else {
-    // Quantity N creates N separate items (each can sell on its own).
+    // Quantity N creates N units (each can sell on its own), grouped as one batch.
+    const batchId = qty > 1 ? 'B' + nextItemId : null;
     costs.forEach(cost => {
-      const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }));
+      const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }));
       items.push(item);
       addedIds.push(item.id);
     });
@@ -3025,9 +3172,19 @@ function populateItemSelect(includeItemId) {
   // own item even though recording that sale is what marked it sold.
   const sel = document.getElementById('rs-item-select');
   const choices = items.filter(i => i.status !== 'sold' || i.id === includeItemId);
+  // A batch appears once; picking it sells its next available unit.
+  const options = [], batchesShown = new Set();
+  choices.forEach(i => {
+    if (!isBatched(i) || i.id === includeItemId) { options.push(`<option value="${i.id}">${esc(i.item_name)}${isBatched(i) ? ' (this unit)' : ''}</option>`); return; }
+    if (batchesShown.has(i.batch_id)) return;
+    batchesShown.add(i.batch_id);
+    const left = choices.filter(u => u.batch_id === i.batch_id && u.id !== includeItemId)
+      .sort((a, b) => (a.status === 'listed' ? 0 : 1) - (b.status === 'listed' ? 0 : 1) || a.id - b.id);
+    options.push(`<option value="${left[0].id}">${esc(i.item_name)} (${left.length} of ${batchUnits(i.batch_id).length} left)</option>`);
+  });
   sel.innerHTML = '<option value="">Select an item</option>'
     + '<option value="__new__">+ New item (not in inventory yet)</option>'
-    + choices.map(i => `<option value="${i.id}">${esc(i.item_name)}</option>`).join('');
+    + options.join('');
   // Nothing to pick from yet: go straight to creating the item here.
   if (!choices.length) sel.value = '__new__';
   toggleNewItemFields();
@@ -3808,6 +3965,7 @@ function resetAddItemFormForCreate() {
   const form = document.getElementById('add-item-form');
   form.reset();
   form.elements.editing_id.value = '';
+  setBatchMode(null);
   form.elements.purchase_date.value = isoDate(new Date());
   form.elements.purchase_time.value = nowTime();
   showOrderNumber(form, 'ai-order-no', newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value));
@@ -3823,11 +3981,12 @@ function resetAddItemFormForCreate() {
   document.getElementById('add-item-submit-btn').textContent = 'Save item';
 }
 
-function editItem(item, originEl) {
+function fillItemForm(item) {
   const form = document.getElementById('add-item-form');
   const money2 = c => (c === null || c === undefined ? '' : (c / 100).toFixed(2));
   form.reset();
   form.elements.editing_id.value = item.id;
+  setBatchMode(null);
   form.elements.item_name.value = item.item_name || '';
   form.elements.brand.value = item.brand || '';
   setProductFields(item.department || '', item.category || '', item.size || '');
@@ -3847,10 +4006,131 @@ function editItem(item, originEl) {
   setItemStatusControl(item.status || 'unsold');
   renderFormPhotos();
   updateItemCostEach();
-  document.getElementById('add-item-modal-title').textContent = 'Edit item';
-  document.getElementById('add-item-modal-sub').textContent = 'Update this item’s details. Profit is still worked out automatically.';
+}
+
+function editItem(item, originEl) {
+  fillItemForm(item);
+  const inBatch = isBatched(item);
+  const units = inBatch ? batchSummary(item.batch_id).units : [];
+  document.getElementById('add-item-modal-title').textContent = inBatch ? `Edit unit #${units.indexOf(item) + 1}` : 'Edit item';
+  document.getElementById('add-item-modal-sub').textContent = inBatch
+    ? `One unit from a batch of ${units.length}. Changes here apply to this unit only.`
+    : 'Update this item’s details. Profit is still worked out automatically.';
   document.getElementById('add-item-submit-btn').textContent = 'Save changes';
   openOverlay('overlay-add-item', originEl);
+}
+
+// Batch mode: the form edits every unit of a batch together.
+function setBatchMode(batchId) {
+  const form = document.getElementById('add-item-form');
+  form.elements.editing_batch.value = batchId || '';
+  document.getElementById('ai-units-section').hidden = !batchId;
+  document.getElementById('ai-qty-hint').hidden = !batchId;
+  form.elements.quantity.min = 1;
+}
+
+function editBatch(batchId, originEl) {
+  const b = batchSummary(batchId);
+  if (!b.units.length) return;
+  const form = document.getElementById('add-item-form');
+  const first = b.units.find(u => u.status === 'unsold' || u.status === 'listed') || b.units[0];
+  fillItemForm(first);
+  form.elements.editing_id.value = '';
+  setBatchMode(batchId);
+
+  const withSales = b.units.filter(u => sales.some(s => s.item_id === u.id)).length;
+  const costs = b.units.map(u => u.purchase_cost_cents);
+  const total = costs.includes(null) ? '' : (costs.reduce((t, c) => t + c, 0) / 100).toFixed(2);
+  form.elements.total_spent.value = total;
+  form.elements.quantity.value = b.units.length;
+  form.elements.quantity.min = Math.max(1, withSales);
+  form.dataset.batchTotal = total;
+  form.dataset.batchQty = b.units.length;
+  form.querySelector('[data-batch-field]').hidden = false;
+  document.getElementById('ai-qty-hint').textContent = withSales
+    ? `At least ${withSales}: units with a sale can’t be removed`
+    : 'Lower it to remove unsold units, raise it to add more';
+  if (b.available) setItemStatusControl(b.listed ? 'listed' : 'unsold');
+  else setItemStatusControl('sold');
+  updateItemCostEach();
+  renderBatchUnits(b);
+
+  document.getElementById('add-item-modal-title').textContent = `Edit batch · ${b.units.length} units`;
+  document.getElementById('add-item-modal-sub').textContent = 'Changes apply to every unit. Units that already sold keep their sale and profit.';
+  document.getElementById('add-item-submit-btn').textContent = 'Save batch';
+  openOverlay('overlay-add-item', originEl);
+}
+
+function renderBatchUnits(b) {
+  document.getElementById('ai-units').innerHTML = b.units.map((u, i) => {
+    const sale = sales.find(s => s.item_id === u.id && s.status === 'completed') || sales.find(s => s.item_id === u.id);
+    const r = sale ? calcProfit(sale, u) : null;
+    const detail = sale
+      ? `${platformChip(sale.platform, true)} <span>${fmtCents(sale.sale_price_cents)} &middot; ${fmtDate(sale.sale_date)}</span>${r && r.isComplete ? ` <span class="${moneyClass(r.netProfitCents)}">${r.netProfitCents > 0 ? '+' : ''}${fmtCents(r.netProfitCents)}</span>` : ''}`
+      : `<span>cost ${u.purchase_cost_cents === null ? 'unknown' : fmtCents(u.purchase_cost_cents)}</span>`;
+    return `<div class="unit-line">
+      <span class="unit-no">#${i + 1}</span>
+      ${statusBadge(u.status)}
+      <span class="unit-detail">${detail}</span>
+      <button type="button" class="btn btn-sm btn-ghost" data-edit-item="${u.id}">Edit unit</button>
+    </div>`;
+  }).join('');
+}
+
+function saveBatch(batchId, fields, fd) {
+  const form = document.getElementById('add-item-form');
+  const before = snapshotData();
+  const hasSale = u => sales.some(s => s.item_id === u.id);
+  let units = batchSummary(batchId).units;
+  const keep = units.filter(hasSale).length;
+  const qty = Math.min(100, Math.max(1, keep, parseInt(fd.get('quantity'), 10) || units.length));
+
+  // Fewer units: drop ones with no sale, not-listed and newest first.
+  if (qty < units.length) {
+    const drop = new Set(units.filter(u => !hasSale(u))
+      .sort((a, b) => (a.status === 'listed') - (b.status === 'listed') || b.id - a.id)
+      .slice(0, units.length - qty).map(u => u.id));
+    for (let i = items.length - 1; i >= 0; i--) if (drop.has(items[i].id)) items.splice(i, 1);
+    units = units.filter(u => !drop.has(u.id));
+  }
+  // More units: copies of the batch.
+  const addedIds = [];
+  while (units.length < qty) {
+    const unit = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: null, photo_ids: [...fields.photo_ids] }));
+    items.push(unit); units.push(unit); addedIds.push(unit.id);
+  }
+  // Shared details go to every unit; status only to units that haven't sold.
+  const { status, listed_date, ...shared } = fields;
+  units.forEach(u => {
+    Object.assign(u, shared, { photo_ids: [...fields.photo_ids] });
+    if (u.status === 'unsold' || u.status === 'listed') { u.status = status; u.listed_date = listed_date; }
+  });
+  // Total spent is for the whole batch: re-split it only if it or the count changed.
+  const totalRaw = fd.get('total_spent');
+  if (totalRaw !== '' && (totalRaw !== form.dataset.batchTotal || qty !== Number(form.dataset.batchQty))) {
+    const parts = splitCents(money(parseFloat(totalRaw)), qty);
+    units.forEach((u, i) => { u.purchase_cost_cents = parts[i]; });
+  }
+
+  form.reset();
+  formPhotos = [];
+  closeOverlay('overlay-add-item');
+  highlightItemIds = new Set(addedIds.length ? addedIds : units.map(u => u.id));
+  expandedBatches.add(batchId);
+  renderAll();
+  highlightItemIds = new Set();
+  showUndo(`Updated ${fields.item_name} (${qty} units)`, before);
+}
+
+function askDeleteBatch(batchId, originEl) {
+  const b = batchSummary(batchId);
+  if (!b.units.length) return;
+  pendingDelete = { kind: 'batch', id: batchId };
+  const saleCount = sales.filter(s => b.units.some(u => u.id === s.item_id)).length;
+  document.getElementById('confirm-delete-title').textContent = 'Delete the whole batch?';
+  document.getElementById('confirm-delete-item-name').textContent = `${b.units[0].item_name} × ${b.units.length}`
+    + (saleCount ? ` and ${saleCount} sale${saleCount === 1 ? '' : 's'}` : '');
+  openOverlay('overlay-confirm-delete', originEl);
 }
 
 /* =========================================================
@@ -3864,7 +4144,7 @@ let pendingDelete = null;
 function askDeleteItem(item, originEl) {
   pendingDelete = { kind: 'item', id: item.id };
   const saleCount = sales.filter(s => s.item_id === item.id).length;
-  document.getElementById('confirm-delete-title').textContent = 'Delete item?';
+  document.getElementById('confirm-delete-title').textContent = isBatched(item) ? 'Delete this unit?' : 'Delete item?';
   document.getElementById('confirm-delete-item-name').textContent = saleCount
     ? `${item.item_name} and its ${saleCount} sale${saleCount === 1 ? '' : 's'}`
     : item.item_name;
@@ -3882,6 +4162,10 @@ document.getElementById('confirm-delete-btn').addEventListener('click', () => {
     for (let i = sales.length - 1; i >= 0; i--) {
       if (sales[i].item_id === pendingDelete.id) sales.splice(i, 1);
     }
+  } else if (pendingDelete.kind === 'batch') {
+    const ids = new Set(batchUnits(pendingDelete.id).map(u => u.id));
+    for (let i = items.length - 1; i >= 0; i--) if (ids.has(items[i].id)) items.splice(i, 1);
+    for (let i = sales.length - 1; i >= 0; i--) if (ids.has(sales[i].item_id)) sales.splice(i, 1);
   } else if (pendingDelete.kind === 'sale') {
     const sale = saleById(pendingDelete.id);
     const idx = sales.findIndex(s => s.id === pendingDelete.id);
@@ -3904,6 +4188,10 @@ document.body.addEventListener('click', e => {
     if (item) editItem(item, editBtn);
     return;
   }
+  const editBatchBtn = e.target.closest('[data-edit-batch]');
+  if (editBatchBtn) { editBatch(editBatchBtn.dataset.editBatch, editBatchBtn); return; }
+  const deleteBatchBtn = e.target.closest('[data-delete-batch]');
+  if (deleteBatchBtn) { askDeleteBatch(deleteBatchBtn.dataset.deleteBatch, deleteBatchBtn); return; }
   const deleteBtn = e.target.closest('[data-delete-item]');
   if (deleteBtn) {
     const item = itemById(parseInt(deleteBtn.dataset.deleteItem, 10));

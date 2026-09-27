@@ -5271,8 +5271,8 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
    schema is what keeps each person's data private.
    ========================================================= */
 const LEDGERY_SUPABASE = {
-  url: '',      // e.g. https://abcdefghijklmno.supabase.co
-  anonKey: '',  // Project Settings → API → "anon public" key
+  url: 'https://xbmclxwzanvrvsaddgib.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWNseHd6YW52cnZzYWRkZ2liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDI3MzksImV4cCI6MjEwNjExODczOX0.Yk9RtzRnw74Bwt42PbhW_CkQYa9xmHGDoU0rGgJtE3Q',
 };
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const SYNC_META_KEY = 'ledgery-sync-meta';
@@ -5317,6 +5317,8 @@ function loadScript(src) {
 
 async function initAccounts() {
   if (!accountsConfigured()) { Account.status = 'off'; renderAccountUI(); return; }
+  // The Claude preview can't reach outside services; accounts work on the real website.
+  if (window.claude && typeof window.claude.use === 'function') { Account.status = 'unavailable'; Account.inPreview = true; renderAccountUI(); return; }
   Account.status = 'loading'; renderAccountUI();
   try {
     await loadScript(SUPABASE_JS_URL);
@@ -5508,7 +5510,9 @@ function renderAccountUI() {
     } else if (Account.status === 'loading') {
       panel.innerHTML = '<p class="custom-note" style="margin:0">Connecting…</p>';
     } else if (Account.status === 'unavailable') {
-      panel.innerHTML = `<p class="custom-note" style="margin:0">Accounts can't be reached from here right now (you may be offline, or this preview blocks connections). Your data is still saved in this browser.</p>`;
+      panel.innerHTML = Account.inPreview
+        ? `<p class="custom-note" style="margin:0">Sign-in works on your Ledgery website, not inside this preview. Here, your data is saved in this browser.</p>`
+        : `<p class="custom-note" style="margin:0">Accounts can't be reached from here right now (you may be offline). Your data is still saved in this browser.</p>`;
     } else if (!Account.user) {
       panel.innerHTML = `<div class="account-row"><div><strong>Sync across your devices</strong><div class="custom-note" style="margin:4px 0 0">Create a free account to keep your inventory and sales safe and use them on your phone and computer.</div></div>
         <div class="account-actions"><button type="button" class="btn btn-primary" data-account="signup">Create account</button><button type="button" class="btn" data-account="signin">Sign in</button></div></div>`;

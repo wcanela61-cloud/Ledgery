@@ -1558,7 +1558,8 @@ function resetData() {
    the same visit can still bring them back.
    ========================================================= */
 const photoCache = new Map();
-let photosAvailable = !!window.indexedDB;
+// Reading window.indexedDB itself throws in some blocked-storage contexts.
+let photosAvailable = (() => { try { return !!window.indexedDB; } catch (e) { return false; } })();
 const PhotoStore = (() => {
   let dbPromise = null;
   const open = () => dbPromise || (dbPromise = new Promise((resolve, reject) => {
@@ -3496,13 +3497,31 @@ document.getElementById('reset-fee-rates').addEventListener('click', () => {
    ========================================================= */
 const LAST_BACKUP_KEY = 'ledgerly-last-backup';
 
+// Inside the claude.ai preview, pages can't download directly: files go
+// through the viewer's save prompt ("downloads" capability). Anywhere else
+// (index.html opened directly or self-hosted) a normal download is used.
+let viewerDownloads = null;
+if (window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('downloads').then(d => { viewerDownloads = d; }).catch(() => {});
+}
+
+// Resolves true when the file was handed over, false if it wasn't.
 function downloadFile(filename, content, type) {
+  if (viewerDownloads) {
+    return viewerDownloads.save({ filename, data: content }).then(() => true, err => {
+      const code = err && err.code;
+      if (code === 'rate_limited') alert('A save prompt is already open. Finish that one first.');
+      else if (code !== 'declined') alert("This file couldn't be saved here.");
+      return false;
+    });
+  }
   const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement('a');
   a.href = url; a.download = filename;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+  return Promise.resolve(true);
 }
 
 function renderBackupNote() {
@@ -3517,9 +3536,11 @@ document.getElementById('backup-btn').addEventListener('click', () => {
   const photos = {};
   items.forEach(i => (i.photo_ids || []).forEach(id => { if (photoCache.has(id)) photos[id] = photoCache.get(id); }));
   const backup = { app: 'ledgery', version: 1, exported_at: new Date().toISOString(), items, sales, feeRates: getFeeRates(), photos };
-  downloadFile(`ledgery-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
-  try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
-  renderBackupNote();
+  downloadFile(`ledgery-backup-${isoDate(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json').then(saved => {
+    if (!saved) return;
+    try { localStorage.setItem(LAST_BACKUP_KEY, isoDate(new Date())); } catch (e) {}
+    renderBackupNote();
+  });
 });
 
 function isValidBackup(b) {

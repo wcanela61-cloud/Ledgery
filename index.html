@@ -1840,6 +1840,21 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
 #ledgeryMarkGrad stop:first-child { stop-color: color-mix(in srgb, var(--accent) 88%, white); }
 #ledgeryMarkGrad stop:last-child { stop-color: var(--accent); }
 .empty-text { color: var(--ink-muted); }
+/* Money & dates settings */
+.md-preview { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; margin: 4px 0 16px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--bg); font-size: 0.9rem; }
+.md-preview b { font-family: var(--font-num); font-weight: 600; }
+.md-preview-label { font-family: var(--font-display); font-variant: small-caps; text-transform: lowercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-muted); }
+.opt-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt-currency { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.opt-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--ink); cursor: pointer; font: inherit; text-align: left; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.opt-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.opt-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); }
+.opt-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt-main { font-family: var(--font-num); font-size: 0.875rem; font-weight: 600; }
+.opt-sym { font-family: var(--font-display); font-size: 1.05rem; margin-right: 2px; }
+.opt-sub { font-size: 0.7188rem; color: var(--ink-muted); }
+.md-cols { display: grid; grid-template-columns: 1fr auto; gap: 0 28px; }
+@media (max-width: 720px) { .opt-currency { grid-template-columns: repeat(2, minmax(0, 1fr)); } .md-cols { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -1890,6 +1905,7 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
         </div>
         <div class="header-actions">
           <div class="seg" id="period-switch" role="group" aria-label="Dashboard period">
+            <button type="button" data-period="week">This week</button>
             <button type="button" data-period="month">This month</button>
             <button type="button" data-period="year">This year</button>
             <button type="button" data-period="all">All time</button>
@@ -2143,6 +2159,22 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
               <p class="tp-body">Vintage Levi&rsquo;s 501 sold on Depop for $58.00 after $5.80 in fees.</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="panel" id="money-panel">
+        <div class="panel-head"><h2>Money &amp; dates</h2><span class="page-sub" style="margin:0">How amounts and dates are written</span></div>
+        <div class="panel-body">
+          <div class="md-preview" id="md-preview" aria-live="polite"></div>
+          <div class="studio-sub" id="md-currency-label" style="margin-top:0">Currency</div>
+          <div class="opt-grid opt-currency" id="md-currency" role="group" aria-labelledby="md-currency-label"></div>
+          <div class="md-cols">
+            <div><div class="studio-sub" id="md-number-label">Number format</div><div class="opt-grid" id="md-number" role="group" aria-labelledby="md-number-label"></div></div>
+            <div><div class="studio-sub" id="md-week-label">Week starts on</div><div class="opt-grid" id="md-week" role="group" aria-labelledby="md-week-label"></div></div>
+          </div>
+          <div class="studio-sub" id="md-date-label">Date format</div>
+          <div class="opt-grid opt-dates" id="md-date" role="group" aria-labelledby="md-date-label"></div>
+          <div class="custom-note">Changing the currency changes the symbol only; amounts you entered aren't converted. The week start is used by "This week" on the Dashboard and by Ledger.</div>
         </div>
       </div>
 
@@ -2640,8 +2672,8 @@ function estimateFeeCents(platform, salePriceCents) {
 function describeFeeRate(platform) {
   const rate = getFeeRates()[platform];
   if (!rate) return '';
-  let text = `${rate.pct}%` + (rate.fixed ? ` + $${(rate.fixed / 100).toFixed(2)}` : '');
-  if (rate.flatBelow) text += ` ($${(rate.flatFee / 100).toFixed(2)} flat under $${(rate.flatBelow / 100).toFixed(0)})`;
+  let text = `${fmtNumber(rate.pct, rate.pct % 1 ? 1 : 0)}%` + (rate.fixed ? ` + ${fmtCents(rate.fixed)}` : '');
+  if (rate.flatBelow) text += ` (${fmtCents(rate.flatFee)} flat under ${MONEY0_FMT.format(rate.flatBelow / 100)})`;
   return text;
 }
 
@@ -2668,21 +2700,69 @@ function calcProfit(sale, item) {
   return { isComplete: true, netProfitCents, marginBps };
 }
 
+/* ---------- Money & dates (Settings): currency, number and date style, week start ---------- */
+const MONEY_PREFS_KEY = 'ledgery-money-prefs';
+const CURRENCIES = [
+  { code: 'USD', name: 'US dollar' }, { code: 'CAD', name: 'Canadian dollar' }, { code: 'GBP', name: 'British pound' },
+  { code: 'EUR', name: 'Euro' }, { code: 'AUD', name: 'Australian dollar' }, { code: 'MXN', name: 'Mexican peso' },
+];
+const NUMBER_FORMATS = { us: 'en-US', eu: 'de-DE', space: 'fr-FR' };
+const DATE_FORMATS = {
+  us: { long: ['en-US', { month: 'short', day: 'numeric', year: 'numeric' }], short: ['en-US', { month: 'short', day: 'numeric' }] },
+  uk: { long: ['en-GB', { day: 'numeric', month: 'short', year: 'numeric' }], short: ['en-GB', { day: 'numeric', month: 'short' }] },
+  iso: { iso: true },
+  'us-num': { long: ['en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }], short: ['en-US', { month: 'numeric', day: 'numeric' }] },
+  'eu-num': { long: ['en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }], short: ['en-GB', { day: '2-digit', month: '2-digit' }] },
+};
+const DEFAULT_MONEY_PREFS = { currency: 'USD', numberFormat: 'us', dateFormat: 'us', weekStart: 0 };
+function cleanMoneyPrefs(p) {
+  p = p || {};
+  return {
+    currency: CURRENCIES.some(c => c.code === p.currency) ? p.currency : 'USD',
+    numberFormat: NUMBER_FORMATS[p.numberFormat] ? p.numberFormat : 'us',
+    dateFormat: DATE_FORMATS[p.dateFormat] ? p.dateFormat : 'us',
+    weekStart: p.weekStart === 1 ? 1 : 0,
+  };
+}
+let moneyPrefs = DEFAULT_MONEY_PREFS;
+try { moneyPrefs = cleanMoneyPrefs(JSON.parse(localStorage.getItem(MONEY_PREFS_KEY) || 'null')); } catch (e) {}
+let MONEY_FMT, MONEY0_FMT, MONEY_COMPACT_FMT, DEC_SEP;
+function buildFormatters() {
+  const locale = NUMBER_FORMATS[moneyPrefs.numberFormat];
+  const base = { style: 'currency', currency: moneyPrefs.currency, currencyDisplay: 'narrowSymbol' };
+  MONEY_FMT = new Intl.NumberFormat(locale, { ...base, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  MONEY0_FMT = new Intl.NumberFormat(locale, { ...base, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  MONEY_COMPACT_FMT = new Intl.NumberFormat(locale, { ...base, notation: 'compact', maximumFractionDigits: 1 });
+  DEC_SEP = (new Intl.NumberFormat(locale).formatToParts(1.5).find(x => x.type === 'decimal') || {}).value || '.';
+}
+buildFormatters();
+const currencySymbol = () => (MONEY_FMT.formatToParts(0).find(x => x.type === 'currency') || {}).value || '$';
+const numberLocale = () => NUMBER_FORMATS[moneyPrefs.numberFormat];
+const fmtNumber = (n, decimals = 0) => Number(n).toLocaleString(numberLocale(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
 function fmtCents(cents, opts) {
   opts = opts || {};
   if (cents === null || cents === undefined) return opts.dash === false ? '' : '&mdash;';
-  const sign = cents < 0 ? '-' : '';
-  const abs = Math.abs(cents);
-  return sign + '$' + (abs / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return MONEY_FMT.format(cents / 100);
 }
+// Whole units for chart axes; big values shorten (e.g. $1.2K).
+const fmtMoneyAxis = cents => (Math.abs(cents) >= 100000 ? MONEY_COMPACT_FMT : MONEY0_FMT).format(cents / 100);
 function fmtBps(bps) {
   if (bps === null || bps === undefined) return '&mdash;';
-  return (bps / 100).toFixed(2) + '%';
+  return fmtNumber(bps / 100, 2) + '%';
 }
 function fmtDate(d) {
   if (!d) return '&mdash;';
-  const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const f = DATE_FORMATS[moneyPrefs.dateFormat];
+  if (f.iso) return d;
+  return new Date(d + 'T00:00:00').toLocaleDateString(f.long[0], f.long[1]);
+}
+// Month and day only, for chart labels.
+function fmtDateShort(d) {
+  if (!d) return '';
+  const f = DATE_FORMATS[moneyPrefs.dateFormat];
+  if (f.iso) return d.slice(5);
+  return new Date(d + 'T00:00:00').toLocaleDateString(f.short[0], f.short[1]);
 }
 function daysSince(d) {
   const dt = new Date(d + 'T00:00:00');
@@ -2703,7 +2783,8 @@ function isoDate(d) {
    is the previous one only up to the same point, so trends
    compare like with like.
    ========================================================= */
-const PERIOD_LABELS = { month: 'This month', year: 'This year', all: 'All time' };
+const PERIOD_LABELS = { week: 'This week', month: 'This month', year: 'This year', all: 'All time' };
+const PERIOD_VS = { week: 'vs. same point last week', month: 'vs. same point last month', year: 'vs. same point last year' };
 const PERIOD_STORAGE_KEY = 'ledgerly-dash-period';
 let dashPeriod = 'all';
 try { const saved = localStorage.getItem(PERIOD_STORAGE_KEY); if (PERIOD_LABELS[saved]) dashPeriod = saved; } catch (e) {}
@@ -2712,6 +2793,13 @@ function periodRange(period, back) {
   if (period === 'all') return null;
   const now = new Date();
   const clampDay = (y, m, day) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+  if (period === 'week') {
+    // Weeks start on the day chosen in Settings → Money & dates.
+    const into = (now.getDay() - moneyPrefs.weekStart + 7) % 7;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - into - 7 * back);
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + (back === 0 ? 6 : into));
+    return { start: isoDate(start), end: isoDate(end) };
+  }
   if (period === 'month') {
     const start = new Date(now.getFullYear(), now.getMonth() - back, 1);
     const end = back === 0
@@ -2797,8 +2885,11 @@ function fadeGradient(colorVar, strength) {
 
 // "$1,011" with ".00" set smaller, for headline figures.
 function fmtMoneyParts(cents) {
-  const [whole, dec] = fmtCents(cents).split('.');
-  return `<span class="money-whole">${whole}</span><span class="money-dec">.${dec}</span>`;
+  const parts = MONEY_FMT.formatToParts(cents / 100);
+  const at = parts.findIndex(x => x.type === 'decimal');
+  if (at === -1) return `<span class="money-whole">${esc(parts.map(x => x.value).join(''))}</span>`;
+  const whole = parts.slice(0, at).map(x => x.value).join(''), rest = parts.slice(at).map(x => x.value).join('');
+  return `<span class="money-whole">${esc(whole)}</span><span class="money-dec">${esc(rest)}</span>`;
 }
 
 // Motion: follow the device's reduce-motion setting, unless the viewer
@@ -2881,7 +2972,7 @@ function renderHero(periodSales, prevSales) {
   const hasTrend = dashPeriod !== 'all';
   const revTrend = hasTrend ? pctChange(totalRevenue, sumRevenue(prevSales)) : null;
   const profTrend = hasTrend ? pctChange(totalProfit, sumProfit(prevSales)) : null;
-  const vsText = dashPeriod === 'month' ? 'vs. same point last month' : 'vs. same point last year';
+  const vsText = PERIOD_VS[dashPeriod] || '';
   const trendBadge = t => (t === null ? ''
     : `<span class="hero-trend ${t >= 0 ? 'up' : 'down'}" title="${vsText}">${t >= 0 ? '&#9650;' : '&#9660;'} ${Math.abs(t)}%</span>`);
   const periodName = PERIOD_LABELS[dashPeriod];
@@ -2946,13 +3037,13 @@ function renderTrendChart(completedSales) {
 
   const gridLines = [0.5, 1].map(f => `<line x1="${padL}" y1="${y(maxVal / 1.08 * f).toFixed(1)}" x2="${w - padR}" y2="${y(maxVal / 1.08 * f).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"></line>`).join('')
     + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`
-    + [0, 0.5, 1].map(f => { const v = maxVal / 1.08 * f; return `<text class="trend-axis-label" x="${padL - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">$${v >= 100000 ? (v / 100000).toFixed(1).replace(/\.0$/, '') + 'k' : Math.round(v / 100)}</text>`; }).join('');
+    + [0, 0.5, 1].map(f => { const v = maxVal / 1.08 * f; return `<text class="trend-axis-label" x="${padL - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${fmtMoneyAxis(v)}</text>`; }).join('');
 
   const labelEvery = Math.max(1, Math.ceil(chrono.length / Math.max(2, Math.floor(w / 110))));
   const last = chrono.length - 1;
   // Label every Nth sale plus the last one, skipping any that would crowd the last label.
   const labels = chrono.map((s, i) => (i % labelEvery === 0 && (i === 0 || last - i >= labelEvery)) || i === last
-    ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="${i === 0 ? 'start' : i === last ? 'end' : 'middle'}">${fmtDate(s.sale_date).replace('&mdash;', '').split(',')[0]}</text>`
+    ? `<text class="trend-axis-label" x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="${i === 0 ? 'start' : i === last ? 'end' : 'middle'}">${fmtDateShort(s.sale_date)}</text>`
     : '').join('');
 
   // End-of-line markers; per-point detail lives in the hover tooltip.
@@ -3191,7 +3282,7 @@ function renderDashboard() {
     { label: 'Active inventory', icon: 'box', value: activeInventory, plain: true, trend: prevRange ? pct(activeInventory, activeInventoryAt(lastPeriodDay)) : null, series: activeSeries, color: '--info-text', neutral: true },
     { label: 'Avg profit / sale', icon: 'avg', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit), trend: prevRange ? pct(avgProfit, prevAvg) : null, series: avgSeries, color: '--success' },
   ];
-  const vsLabel = dashPeriod === 'month' ? 'vs. same point last month' : 'vs. same point last year';
+  const vsLabel = PERIOD_VS[dashPeriod] || '';
   const trendPill = (t, neutral) => t === null ? ''
     : `<span class="stat-trend ${t === 0 || neutral ? 'flat' : t > 0 ? 'up' : 'down'}" title="${vsLabel}">${t > 0 ? '&#9650;' : t < 0 ? '&#9660;' : ''} ${Math.abs(t)}%</span>`;
   document.getElementById('stat-grid').innerHTML = tiles.map(t => `
@@ -4622,7 +4713,7 @@ const plainMoney = c => (c === null || c === undefined ? 'unknown' : fmtCents(c)
 function buildLedgerSnapshot() {
   const now = new Date();
   const line = (label, st) => `${label}: ${st.count} sales, revenue ${plainMoney(st.revenue)}, net profit ${plainMoney(st.profit)} (${st.complete} with full cost data)${st.margin !== null ? `, avg margin ${(st.margin / 100).toFixed(1)}%` : ''}, fees ${plainMoney(st.fees)}`;
-  const out = [`Today: ${isoDate(now)} (${now.toLocaleDateString('en-US', { weekday: 'long' })}). Currency: USD.`];
+  const out = [`Today: ${isoDate(now)} (${now.toLocaleDateString('en-US', { weekday: 'long' })}). Currency: ${moneyPrefs.currency}. Write amounts in that currency.`];
   const goal = loadGoalCents();
   const monthStats = ledgerStats(periodRange('month', 0));
   out.push(goal ? `Monthly net profit goal: ${plainMoney(goal)}; so far this month: ${plainMoney(monthStats.profit)}; days left in month: ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate()}.` : 'Monthly profit goal: not set (can be set in Settings).');
@@ -4692,7 +4783,7 @@ function ledgerOfflineAnswer(q) {
   else if (has(/this month|month/)) { range = periodRange('month', 0); label = 'this month'; }
   else if (has(/last year/)) { const y = now.getFullYear() - 1; range = { start: `${y}-01-01`, end: `${y}-12-31` }; label = 'last year'; }
   else if (has(/this year|year|ytd/)) { range = periodRange('year', 0); label = 'this year'; }
-  else if (has(/this week|week/)) { const a = new Date(now); a.setDate(now.getDate() - 6); range = { start: isoDate(a), end: isoDate(now) }; label = 'the last 7 days'; }
+  else if (has(/this week|week/)) { range = { start: periodRange('week', 0).start, end: isoDate(now) }; label = 'this week'; }
   else if (has(/today/)) { range = { start: isoDate(now), end: isoDate(now) }; label = 'today'; }
 
   if (has(/goal|target/)) {
@@ -5754,12 +5845,12 @@ function renderMonthlyChart(completed) {
     <linearGradient id="${revGrad}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ink-faint)" stop-opacity="0.75"></stop><stop offset="100%" stop-color="var(--ink-faint)" stop-opacity="0.35"></stop></linearGradient>
     <linearGradient id="${netGrad}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)"></stop><stop offset="100%" stop-color="var(--accent)" stop-opacity="0.55"></stop></linearGradient>
   </defs>`;
-  const money0 = c => '$' + Math.round(c / 100).toLocaleString('en-US');
+  const money0 = c => fmtMoneyAxis(c);
 
   const grid = ticks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>
       <text class="an-axis" x="${padL - 6}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${money0(t)}</text>`).join('')
     + `<line x1="${padL}" y1="${y(0).toFixed(1)}" x2="${w - padR}" y2="${y(0).toFixed(1)}" stroke="var(--ink-faint)" stroke-width="1"></line>
-      <text class="an-axis" x="${padL - 6}" y="${(y(0) + 4).toFixed(1)}" text-anchor="end">$0</text>`;
+      <text class="an-axis" x="${padL - 6}" y="${(y(0) + 4).toFixed(1)}" text-anchor="end">${fmtMoneyAxis(0)}</text>`;
   const bars = months.map((m, i) => {
     const cx = padL + slot * i + slot / 2;
     return bar(cx - barW - 1, m.revenue, `url(#${revGrad})`) + bar(cx + 1, m.net, m.net < 0 ? 'var(--danger)' : `url(#${netGrad})`)
@@ -5814,7 +5905,7 @@ function renderFeeRates() {
     <label class="fee-row">
       <span class="fee-name">${esc(p)}</span>
       <input type="number" step="0.01" min="0" data-fee-pct="${esc(p)}" value="${rates[p].pct}" aria-label="${esc(p)} percentage fee">
-      <span class="fee-unit">% + $</span>
+      <span class="fee-unit">% + ${esc(currencySymbol())}</span>
       <input type="number" step="0.01" min="0" data-fee-fixed="${esc(p)}" value="${((rates[p].fixed || 0) / 100).toFixed(2)}" aria-label="${esc(p)} flat fee per order">
     </label>`).join('');
 }
@@ -6082,7 +6173,7 @@ const accountsConfigured = () => !!(LEDGERY_SUPABASE.url && LEDGERY_SUPABASE.ano
 
 // What syncs: the ledger itself plus the settings that change its numbers.
 function syncPayload() {
-  return { items, sales, feeRates: getFeeRates(), goalCents: loadGoalCents() };
+  return { items, sales, feeRates: getFeeRates(), goalCents: loadGoalCents(), moneyPrefs };
 }
 function hashString(str) { // FNV-1a: cheap "has anything changed?" check
   let h = 0x811c9dc5;
@@ -6189,6 +6280,7 @@ function applyCloud(cloud) {
   const d = cloud.data || {};
   replaceData(d.items || [], d.sales || []);
   if (d.feeRates) { saveFeeRates(d.feeRates); renderFeeRates(); }
+  if (d.moneyPrefs) setMoneyPrefs(d.moneyPrefs, true);
   try { if (d.goalCents > 0) localStorage.setItem(GOAL_KEY, String(d.goalCents)); else localStorage.removeItem(GOAL_KEY); } catch (e) {}
   const g = loadGoalCents(); document.getElementById('goal-input').value = g ? (g / 100).toFixed(0) : '';
   saveSyncMeta({ userId: Account.user.id, version: cloud.version, hash: localHash() });
@@ -6755,13 +6847,16 @@ const Motion = (() => {
 
   // --- numbers count up from zero ---
   function countUp(el, duration = 900) {
+    // Works for any number style: "$1,234.56", "1.234,56 €", "68%"...
     const text = el.textContent.trim();
-    const m = text.match(/^(\$?)(-?[\d,]+)(\.\d+)?(%?)$/);
+    const m = text.match(/^([^\d-]*)(-?\d[\d.,\s\u00a0\u202f]*?)(\D*)$/);
     if (!m || el.dataset.counting) return;
-    const decimals = m[3] ? m[3].length - 1 : 0;
-    const target = parseFloat((m[2] + (m[3] || '')).replace(/,/g, ''));
+    const [intPart, fracPart] = m[2].split(DEC_SEP);
+    const frac = (fracPart || '').replace(/\D/g, '');
+    const decimals = frac.length;
+    const target = parseFloat((m[2].trim().startsWith('-') ? '-' : '') + intPart.replace(/\D/g, '') + (decimals ? '.' + frac : ''));
     if (!isFinite(target) || target === 0) return;
-    const fmt = v => m[1] + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[4];
+    const fmt = v => m[1] + fmtNumber(v, decimals) + m[3];
     el.dataset.counting = '1';
     const start = performance.now();
     const step = now => {
@@ -6891,6 +6986,41 @@ const Motion = (() => {
 })();
 
 renderMotionSetting();
+
+function setMoneyPrefs(next, fromCloud) {
+  moneyPrefs = cleanMoneyPrefs({ ...moneyPrefs, ...next });
+  try { localStorage.setItem(MONEY_PREFS_KEY, JSON.stringify(moneyPrefs)); } catch (e) {}
+  buildFormatters();
+  heroShown = {};
+  if (fromCloud) return; // applyCloud re-renders everything itself
+  renderAll();
+  renderFeeRates();
+  renderMoneySettings();
+  queueCloudSave();
+}
+function renderMoneySettings() {
+  const opt = (key, value, main, sub) => {
+    const on = String(moneyPrefs[key]) === String(value);
+    return `<button type="button" class="opt-card${on ? ' selected' : ''}" data-md="${key}" data-value="${value}" aria-pressed="${on}"><span class="opt-main">${main}</span>${sub ? `<span class="opt-sub">${sub}</span>` : ''}</button>`;
+  };
+  const sym = code => (new Intl.NumberFormat('en-US', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(x => x.type === 'currency') || {}).value || code;
+  document.getElementById('md-currency').innerHTML = CURRENCIES.map(c => opt('currency', c.code, `<b class="opt-sym">${esc(sym(c.code))}</b> ${c.code}`, c.name)).join('');
+  document.getElementById('md-number').innerHTML = Object.entries(NUMBER_FORMATS).map(([id, loc]) => opt('numberFormat', id, (1234.56).toLocaleString(loc, { minimumFractionDigits: 2 }))).join('');
+  document.getElementById('md-week').innerHTML = opt('weekStart', 0, 'Sunday') + opt('weekStart', 1, 'Monday');
+  const today = isoDate(new Date());
+  const saved = moneyPrefs.dateFormat;
+  document.getElementById('md-date').innerHTML = Object.keys(DATE_FORMATS).map(id => { moneyPrefs.dateFormat = id; const html = opt('dateFormat', id, fmtDate(today)); return html; }).join('');
+  moneyPrefs.dateFormat = saved;
+  document.getElementById('md-date').querySelectorAll('.opt-card').forEach(b => { const on = b.dataset.value === saved; b.classList.toggle('selected', on); b.setAttribute('aria-pressed', on); });
+  document.getElementById('md-preview').innerHTML = `<span class="md-preview-label">Preview</span><span>Sold for <b>${fmtCents(123456)}</b> on <b>${fmtDate(today)}</b> &middot; margin ${fmtBps(4250)}</span>`;
+}
+document.getElementById('money-panel').addEventListener('click', e => {
+  const b = e.target.closest('[data-md]');
+  if (!b) return;
+  const key = b.dataset.md;
+  setMoneyPrefs({ [key]: key === 'weekStart' ? parseInt(b.dataset.value, 10) : b.dataset.value });
+});
+renderMoneySettings();
 wireSortHeaders('inv-table', sortState.inv, renderInventory);
 wireSortHeaders('sales-table', sortState.sales, renderSales);
 document.getElementById('sales-search').addEventListener('input', renderSales);

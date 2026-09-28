@@ -12,6 +12,10 @@ Open `index.html` in a browser — no build step or server required. The app sta
 - **Dashboard** — this month / this year / all time, with trends vs. last period, a monthly profit goal ring (set it in Settings) and your top 3 sellers.
 - **Analytics** — monthly revenue and net profit, sell-through, days to sell, and per-platform and per-category results.
 
+## Money & dates
+
+**Settings → Money & dates** sets the currency (USD, CAD, GBP, EUR, AUD, MXN), number style (1,234.56 · 1.234,56 · 1 234,56), date style, and which day your week starts. It's used everywhere: the Dashboard, tables, charts, Ledger and the fee editor. The Dashboard's **This week** view follows your week start. Changing currency changes the symbol only; amounts aren't converted. With an account, these sync to your other devices.
+
 ## Item codes
 
 Every item gets a code like `LGY-09182`. Search it in Inventory (the digits alone work too) to see every purchase of that item. When you buy the same thing again, type its code (or name) in **Add item → Buying something again?** and the form fills in from last time and keeps the same code. Units in a batch share one code.

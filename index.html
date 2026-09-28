@@ -1867,6 +1867,16 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
 .fifo-list .fifo-new { color: var(--accent-text); }
 .fifo-note { margin: 8px 0 0; font-size: 0.75rem; color: var(--ink-muted); }
 input:disabled { opacity: 0.6; cursor: not-allowed; }
+/* Recent additions */
+.history-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+.history-day { padding: 10px 18px 6px; font-family: var(--font-display); font-variant: small-caps; text-transform: lowercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-muted); border-bottom: 3px double var(--border); background: var(--bg); }
+.history-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+.history-row:last-child { border-bottom: none; }
+.history-time { font-family: var(--font-num); font-size: 0.8438rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.history-main { min-width: 0; }
+.order-ref { font-family: var(--font-num); font-size: 0.7188rem; }
+#history-range { min-height: 38px; }
+@media (max-width: 720px) { .history-row { grid-template-columns: 1fr auto; } .history-time { grid-column: 1 / -1; } }
 </style>
 </head>
 <body>
@@ -2000,6 +2010,7 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
       <div class="inv-tabs" role="tablist" aria-label="Inventory">
         <button type="button" role="tab" id="inv-tab-items" aria-controls="inv-items-pane" aria-selected="true" data-inv-tab="items">Items</button>
         <button type="button" role="tab" id="inv-tab-codes" aria-controls="inv-codes-pane" aria-selected="false" data-inv-tab="codes">LGY codes <span class="tab-count" id="inv-code-count"></span></button>
+        <button type="button" role="tab" id="inv-tab-history" aria-controls="inv-history-pane" aria-selected="false" data-inv-tab="history">Recent additions <span class="tab-count" id="inv-history-count"></span></button>
       </div>
       <div id="inv-items-pane" role="tabpanel" aria-labelledby="inv-tab-items">
       <div class="toolbar">
@@ -2038,6 +2049,18 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
         </div>
         <p class="codes-note">Each code groups every time you bought the same item. Made a mistake? Change a code, or delete it along with its items.</p>
         <div class="code-list" id="code-list"></div>
+      </div>
+      <div id="inv-history-pane" role="tabpanel" aria-labelledby="inv-tab-history" hidden>
+        <div class="toolbar">
+          <input type="search" id="history-search" aria-label="Search additions" placeholder="Search item, code or order…">
+          <select id="history-range" aria-label="How far back">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="">Everything</option>
+          </select>
+        </div>
+        <p class="codes-note">Every time you added stock, newest first. Added something by mistake? Remove it here; you can undo right after.</p>
+        <div class="history-list" id="history-list"></div>
       </div>
     </section>
 
@@ -3430,9 +3453,86 @@ function setInvTab(tab) {
   document.querySelectorAll('[data-inv-tab]').forEach(b => { const on = b.dataset.invTab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.getElementById('inv-items-pane').hidden = tab !== 'items';
   document.getElementById('inv-codes-pane').hidden = tab !== 'codes';
+  document.getElementById('inv-history-pane').hidden = tab !== 'history';
   if (tab === 'codes') renderCodes();
-  requestAnimationFrame(() => { Motion.slideAll(); Motion.enterView(document.getElementById(tab === 'codes' ? 'inv-codes-pane' : 'inv-items-pane')); });
+  if (tab === 'history') renderHistory();
+  requestAnimationFrame(() => { Motion.slideAll(); Motion.enterView(document.getElementById('inv-' + tab + '-pane')); });
 }
+/* ---------- Recent additions: each time stock was added, to the second ---------- */
+// One entry per save: same order number and same save time.
+function additionGroups() {
+  const groups = new Map();
+  items.forEach(i => {
+    const key = (i.purchase_order || 'item' + i.id) + '|' + (i.added_at || '');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+  return [...groups.entries()].map(([key, units]) => {
+    const first = units.reduce((a, b) => (b.id < a.id ? b : a));
+    const when = first.added_at ? new Date(first.added_at)
+      : first.purchase_date ? new Date(first.purchase_date + 'T' + (first.purchase_time || '00:00') + ':00') : null;
+    const known = units.map(u => u.purchase_cost_cents).filter(c => c !== null);
+    return {
+      key, units, first, when, exact: !!first.added_at,
+      total: known.length === units.length ? known.reduce((t, c) => t + c, 0) : null,
+      sold: units.filter(u => u.status === 'sold').length,
+      left: units.filter(inStock).length,
+      joined: !!first.batch_id && batchUnits(first.batch_id).some(u => !units.includes(u) && u.id < first.id), // added to stock bought earlier
+      names: [...new Set(units.map(u => u.item_name))],
+    };
+  }).sort((a, b) => (b.when ? b.when.getTime() : 0) - (a.when ? a.when.getTime() : 0) || b.first.id - a.first.id);
+}
+function fmtWhen(g) {
+  if (!g.when) return { date: 'Date not recorded', time: '' };
+  const d = isoDate(g.when);
+  const locale = (DATE_FORMATS[moneyPrefs.dateFormat].long || ['en-GB'])[0];
+  return {
+    date: fmtDate(d),
+    time: g.exact ? g.when.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+      : (g.first.purchase_time ? g.when.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }) : ''),
+  };
+}
+function renderHistory() {
+  const all = additionGroups();
+  const weekAgo = Date.now() - 7 * 86400000;
+  document.getElementById('inv-history-count').textContent = all.filter(g => g.when && g.when.getTime() >= weekAgo).length;
+  if (invTab !== 'history') return;
+  const q = document.getElementById('history-search').value.trim().toLowerCase();
+  const days = parseInt(document.getElementById('history-range').value, 10);
+  const since = days ? Date.now() - days * 86400000 : 0;
+  const code = cleanItemCode(q);
+  const shown = all.filter(g => (!since || (g.when && g.when.getTime() >= since))
+    && (!q || g.names.some(n => n.toLowerCase().includes(q)) || g.first.item_code.toLowerCase().includes(q) || g.first.item_code === code || (g.first.purchase_order || '').toLowerCase().includes(q)));
+  const list = document.getElementById('history-list');
+  if (!all.length) { list.innerHTML = emptyState('box', 'Nothing added yet', 'Everything you add to your inventory shows up here with the date and time.', '', true); return; }
+  if (!shown.length) { list.innerHTML = `<div class="empty-note">Nothing added ${days ? `in the last ${days} days` : 'matches your search'}. ${days ? 'Try “Everything”.' : ''}</div>`; return; }
+  let lastDay = '';
+  list.innerHTML = shown.map(g => {
+    const w = fmtWhen(g);
+    const day = g.when ? isoDate(g.when) : '';
+    const header = day !== lastDay ? `<div class="history-day">${esc(w.date)}</div>` : '';
+    lastDay = day;
+    const n = g.units.length;
+    const each = g.total !== null && n ? fmtCents(Math.round(g.total / n)) : null;
+    const label = g.names.length > 1 ? `${g.names.length}-item bundle` : esc(g.first.item_name);
+    return `${header}<div class="history-row" data-history="${esc(g.key)}">
+      <div class="history-time">${w.time ? esc(w.time) : '<span class="field-hint">time not recorded</span>'}</div>
+      <div class="history-main">
+        <div class="code-name">${itemThumb(g.first)}<span>${label}</span></div>
+        <div class="code-meta"><span class="code-tag">${esc(g.first.item_code)}</span>${n} added${each ? ` at ${each}${n > 1 ? ` each (${fmtCents(g.total)})` : ''}` : ' &middot; cost unknown'}
+          &middot; ${g.left} in stock${g.sold ? ` &middot; ${g.sold} sold` : ''}${g.joined ? ' &middot; joined existing stock' : ''}${g.first.purchase_order ? ` &middot; <span class="order-ref">${esc(g.first.purchase_order)}</span>` : ''}</div>
+      </div>
+      <div class="code-actions"><button type="button" class="btn btn-sm" data-history-remove="${esc(g.key)}">Remove</button></div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('history-search').addEventListener('input', renderHistory);
+document.getElementById('history-range').addEventListener('change', renderHistory);
+document.getElementById('inv-history-pane').addEventListener('click', e => {
+  const b = e.target.closest('[data-history-remove]');
+  if (b) askDeleteAddition(b.dataset.historyRemove, b);
+});
+
 function codeGroups() {
   const groups = new Map();
   items.forEach(i => { if (!groups.has(i.item_code)) groups.set(i.item_code, []); groups.get(i.item_code).push(i); });
@@ -4228,8 +4328,9 @@ function finishAddItem(form, existing, fields, costs, mergeInto) {
       expandedBatches.add(batchId);
     }
     // Quantity N creates N units (each can sell on its own), grouped as one batch.
+    const addedAt = new Date().toISOString(); // shown in Inventory → Recent additions
     costs.forEach(cost => {
-      const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }));
+      const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: cost, photo_ids: [...fields.photo_ids], added_at: addedAt }));
       items.push(item);
       addedIds.push(item.id);
     });
@@ -4362,6 +4463,7 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
       id: nextItemId++, item_name: name, category: '', size: '', color: '', condition: '',
       purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)), purchase_date: null,
       brand: '', listing_price_cents: null, listed_date: null, photo_ids: [], status: 'unsold', notes: '',
+      added_at: new Date().toISOString(),
     });
     items.push(newItem);
     itemId = newItem.id;
@@ -5711,8 +5813,9 @@ function saveBatch(batchId, fields, fd) {
   }
   // More units: copies of the batch.
   const addedIds = [];
+  const batchAddedAt = new Date().toISOString();
   while (units.length < qty) {
-    const unit = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: null, photo_ids: [...fields.photo_ids] }));
+    const unit = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: null, photo_ids: [...fields.photo_ids], added_at: batchAddedAt }));
     items.push(unit); units.push(unit); addedIds.push(unit.id);
   }
   // Shared details go to every unit; status only to units that haven't sold.
@@ -5760,6 +5863,19 @@ function askDeleteBatch(batchId, originEl) {
    ========================================================= */
 let pendingDelete = null;
 
+function askDeleteAddition(key, originEl) {
+  const g = additionGroups().find(x => x.key === key);
+  if (!g) return;
+  pendingDelete = { kind: 'addition', id: key };
+  const ids = new Set(g.units.map(u => u.id));
+  const saleCount = sales.filter(s => ids.has(s.item_id)).length;
+  const w = fmtWhen(g);
+  document.getElementById('confirm-delete-title').textContent = 'Remove this addition?';
+  document.getElementById('confirm-delete-item-name').textContent = `${g.units.length} × ${g.names.length > 1 ? 'bundle items' : g.first.item_name} added ${w.date}${w.time ? ' at ' + w.time : ''}`
+    + (saleCount ? `, and ${saleCount} sale${saleCount === 1 ? '' : 's'} of them` : '');
+  openOverlay('overlay-confirm-delete', originEl);
+}
+
 function askDeleteCode(code, originEl) {
   const list = items.filter(i => i.item_code === code);
   if (!list.length) return;
@@ -5795,6 +5911,11 @@ document.getElementById('confirm-delete-btn').addEventListener('click', () => {
     }
   } else if (pendingDelete.kind === 'batch') {
     const ids = new Set(batchUnits(pendingDelete.id).map(u => u.id));
+    for (let i = items.length - 1; i >= 0; i--) if (ids.has(items[i].id)) items.splice(i, 1);
+    for (let i = sales.length - 1; i >= 0; i--) if (ids.has(sales[i].item_id)) sales.splice(i, 1);
+  } else if (pendingDelete.kind === 'addition') {
+    const g = additionGroups().find(x => x.key === pendingDelete.id);
+    const ids = new Set(g ? g.units.map(u => u.id) : []);
     for (let i = items.length - 1; i >= 0; i--) if (ids.has(items[i].id)) items.splice(i, 1);
     for (let i = sales.length - 1; i >= 0; i--) if (ids.has(sales[i].item_id)) sales.splice(i, 1);
   } else if (pendingDelete.kind === 'code') {
@@ -6237,11 +6358,13 @@ document.getElementById('bundle-form').addEventListener('submit', e => {
   const purchaseOrder = form.elements.purchase_order.value || newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value);
   const before = snapshotData();
   const firstId = nextItemId;
+  const addedAt = new Date().toISOString();
   names.forEach((name, i) => items.push(normalizeItem({
     id: nextItemId++, item_name: name, brand: '', category: '', size: '', color: '', condition: '',
     purchase_cost_cents: parts[i], purchase_date: form.elements.purchase_date.value || null,
     purchase_time: form.elements.purchase_time.value || null, purchase_order: purchaseOrder, status: 'unsold',
     notes: `Part of a ${names.length}-item bundle, ${fmtCents(totalCents)} total`,
+    added_at: addedAt,
   })));
   closeOverlay('overlay-add-bundle');
   highlightItemIds = new Set(items.filter(i => i.id >= firstId).map(i => i.id));
@@ -6910,7 +7033,7 @@ function linkFieldLabels(root = document) {
   });
 }
 function renderAll() {
-  queueMicrotask(renderCodes); // keeps the LGY codes tab and its count current
+  queueMicrotask(() => { renderCodes(); renderHistory(); }); // keeps the LGY codes and Recent additions tabs current
   // Any new change makes an older Undo unsafe (it would also erase this
   // change), so the toast goes away; actions that offer Undo show it after.
   hideToast();
@@ -7004,7 +7127,7 @@ const Motion = (() => {
   }
 
   // --- a view's blocks cascade in; anything below the fold waits to be scrolled to ---
-  const ENTER_SEL = '.page-header, .inv-tabs, .toolbar, .hero-card, .stat-tile, .panel, .table-wrap:not([hidden]), .inv-grid:not([hidden]) > .inv-card, .code-row, .codes-note';
+  const ENTER_SEL = '.page-header, .inv-tabs, .toolbar, .hero-card, .stat-tile, .panel, .table-wrap:not([hidden]), .inv-grid:not([hidden]) > .inv-card, .code-row, .codes-note, .history-row';
   let revealObserver = null;
   function enterView(view) {
     if (!on() || !view) return;

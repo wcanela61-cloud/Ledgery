@@ -22,6 +22,8 @@ Every item gets a code like `LGY-09182`. Search it in Inventory (the digits alon
 
 Buying more of something you still have in stock? When you save it, Ledgery asks whether to **add it to your existing stock** (for example "You have 42 of 100 left"). Stock is sold **first in, first out**: each sale uses the cost of the oldest units left, so 100 bought at $9.87 then 100 at $8.88 sell as 100 × $9.87 followed by 100 × $8.88. Costs are never averaged.
 
+**Inventory → Recent additions** lists every time you added stock, newest first, with the date and time to the second (items added before this feature show their purchase date instead). Filter to the last 7 or 30 days, search by item, code or order number, and **Remove** an addition you made by mistake; Undo brings it back.
+
 Made a mistake? **Inventory → LGY codes** lists every code with its item. **Change** gives a code a new number (or type another item's code to combine them), and **×** deletes a code along with its items. Both can be undone right after.
 
 ## Your data

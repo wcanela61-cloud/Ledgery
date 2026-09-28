@@ -20,6 +20,10 @@ Open `index.html` in a browser — no build step or server required. The app sta
 
 Every item gets a code like `LGY-09182`. Search it in Inventory (the digits alone work too) to see every purchase of that item. When you buy the same thing again, type its code (or name) in **Add item → Buying something again?** and the form fills in from last time and keeps the same code. Units in a batch share one code.
 
+**Selling several at once:** when an item has more than one in stock, Record sale shows **How many did you sell?**. Enter the order's totals (price, fees, shipping); they're split across the units, which are taken oldest-first so each keeps its own cost. The order shows as one "×N" row in Sales. Every in-stock row and card in Inventory has a **Sell** button that opens Record sale with that item picked.
+
+**Returns:** marking a sale **Returned** puts the unit back in stock (Not listed, or Listed if it was listed) at its original cost and place in line, with a small "↩ returned" stamp. The **Returned** filter in Inventory shows them.
+
 Buying more of something you still have in stock? When you save it, Ledgery asks whether to **add it to your existing stock** (for example "You have 42 of 100 left"). Stock is sold **first in, first out**: each sale uses the cost of the oldest units left, so 100 bought at $9.87 then 100 at $8.88 sell as 100 × $9.87 followed by 100 × $8.88. Costs are never averaged.
 
 **Inventory → Recent additions** lists every time you added stock, newest first, with the date and time to the second (items added before this feature show their purchase date instead). Filter to the last 7 or 30 days, search by item, code or order number, and **Remove** an addition you made by mistake; Undo brings it back.
@@ -35,7 +39,7 @@ Everything is saved in the browser (items and sales in `localStorage`, photos in
 Out of the box, data is saved only in the browser. To let people **create an account, sign in, and sync across devices**, connect a free [Supabase](https://supabase.com) project:
 
 1. **Create a project** at supabase.com (free plan is fine). Pick any name and a strong database password.
-2. **Create the table:** open **SQL Editor → New query**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This also turns on row-level security, so each person can only ever read their own data.
+2. **Create the tables:** open **SQL Editor → New query**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This also turns on row-level security, so each person can only ever read their own data. *Already set up before photo sync existed?* Run [`supabase/photos.sql`](supabase/photos.sql) once to add the photos table.
 3. **Copy your keys:** **Project Settings → API**. Copy the **Project URL** and the **anon public** key into `index.html`, near the top of the script:
    ```js
    const LEDGERY_SUPABASE = {
@@ -63,7 +67,7 @@ How it behaves:
 - If a browser and the account both have different data (e.g. first sign-in on a computer you'd already been using), Ledgery asks which to keep instead of guessing.
 - Two devices can't silently overwrite each other: every save carries a version number, and a stale save stops and re-syncs.
 - Signing out removes the data from that browser (it stays in the account), so shared computers stay private.
-- Photos stay on the device they were added on (they're too large to sync in this version). Theme, font and Ledger chat history are per device too.
+- Photos sync too (after the photos table exists): each device uploads photos the others don't have and downloads the ones it's missing. Settings → Account shows how many are synced. Theme, font and Ledger chat history stay per device.
 
 ## Brand
 

@@ -1877,6 +1877,24 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
 .order-ref { font-family: var(--font-num); font-size: 0.7188rem; }
 #history-range { min-height: 38px; }
 @media (max-width: 720px) { .history-row { grid-template-columns: 1fr auto; } .history-time { grid-column: 1 / -1; } }
+/* Selling several at once */
+.rs-qty-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rs-qty-row input { width: 76px; text-align: center; font-family: var(--font-num); font-weight: 600; }
+.qty-step { min-width: 36px; font-size: 1rem; }
+.qty-pill { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 3px; font-family: var(--font-num); font-size: 0.6875rem; font-weight: 600; color: var(--accent-text); background: var(--accent-soft); vertical-align: 1px; }
+/* Quick Sell */
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.sell-btn { color: var(--success-text); border-color: color-mix(in srgb, var(--success) 45%, var(--border)); font-weight: 600; }
+.sell-btn:hover { background: var(--success-soft); border-color: var(--success); }
+.inv-card { position: relative; }
+.card-sell { position: absolute; top: 8px; right: 8px; z-index: 3; min-height: 28px; padding: 3px 12px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.card-hit { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.card-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 720px) { .row-actions { justify-content: flex-start; } }
+/* Returned units back in stock */
+.returned-mark { transform: rotate(-3deg); }
+.card-badges { position: absolute; top: 8px; left: 8px; z-index: 3; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
+.card-badges .badge { position: static; }
 </style>
 </head>
 <body>
@@ -2362,6 +2380,9 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
       <input type="hidden" name="editing_id">
       <div class="field-grid">
         <div class="field full"><label>Item *</label><select required name="item_id" id="rs-item-select"></select></div>
+        <div class="field full rs-qty-field" id="rs-qty-field" hidden><label for="rs-qty">How many did you sell?</label>
+          <div class="rs-qty-row"><button type="button" class="btn btn-sm qty-step" data-qty-step="-1" aria-label="One fewer">&minus;</button><input id="rs-qty" name="quantity" type="number" min="1" step="1" value="1"><button type="button" class="btn btn-sm qty-step" data-qty-step="1" aria-label="One more">+</button><span class="field-hint" id="rs-qty-hint"></span></div>
+        </div>
         <div class="field" data-new-item hidden><label>New item name *</label><input name="new_item_name" placeholder="Black tracksuit"></div>
         <div class="field" data-new-item hidden><label>What you paid</label><input name="new_item_cost" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"></div>
         <div class="field"><label>Platform *</label>
@@ -2371,7 +2392,7 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
             <option>Poshmark</option><option>Facebook Marketplace</option><option>Instagram</option><option>Other</option>
           </select>
         </div>
-        <div class="field"><label>Sale price *</label><input required name="sale_price" type="number" step="0.01" min="0"></div>
+        <div class="field"><label>Sale price *</label><input required name="sale_price" type="number" step="0.01" min="0"><span class="field-hint" id="rs-price-hint"></span></div>
         <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"><span class="field-hint" id="rs-fee-hint"></span></div>
         <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="0.00 (blank if buyer paid)"></div>
         <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="0.00"></div>
@@ -2556,6 +2577,7 @@ function normalizeItem(item) {
   if (item.batch_id === undefined) item.batch_id = null;
   if (!item.purchase_order) item.purchase_order = newOrderNumber(item.purchase_date, item.purchase_time);
   if (!ITEM_CODE_RE.test(item.item_code || '')) item.item_code = newItemCode();
+  if (item.status === 'returned') { item.status = item.listed_date ? 'listed' : 'unsold'; item.was_returned = true; }
   return item;
 }
 
@@ -2634,6 +2656,7 @@ const PhotoStore = (() => {
 
 function savePhoto(id, data) {
   photoCache.set(id, data);
+  try { if (Account.user) PhotoSync.schedule(); } catch (e) { /* still starting up */ }
   return PhotoStore.put(id, data).catch(() => {
     alert("A photo couldn't be saved (browser storage may be full or blocked).");
   });
@@ -2905,8 +2928,11 @@ function syncItemStatus(itemId) {
   const item = itemById(itemId);
   if (!item) return;
   const itemSales = sales.filter(s => s.item_id === itemId);
+  // Returned sales don't count, but they're remembered on the item.
+  item.was_returned = itemSales.some(s => s.status === 'returned');
   if (itemSales.some(s => s.status === 'completed')) item.status = 'sold';
-  else if (item.status === 'sold') item.status = itemSales.some(s => s.status === 'returned') ? 'returned' : 'unsold';
+  // Back in stock at its original cost and place in line (FIFO): listed again if it was listed.
+  else if (item.status === 'sold' || item.status === 'returned') item.status = item.listed_date ? 'listed' : 'unsold';
 }
 
 /* =========================================================
@@ -3165,7 +3191,7 @@ function renderTrendChart(completedSales) {
 }
 
 function renderInventoryDonut() {
-  const statusCounts = { unsold: 0, listed: 0, sold: 0, returned: 0 };
+  const statusCounts = { unsold: 0, listed: 0, sold: 0 };
   items.forEach(i => statusCounts[i.status] = (statusCounts[i.status] || 0) + 1);
   const total = items.length || 1;
   const colors = { unsold: 'var(--warning)', listed: 'var(--info-text)', sold: 'var(--success)', returned: 'var(--danger)' };
@@ -3352,13 +3378,17 @@ function renderDashboard() {
   renderTopSellers(periodSales);
 
   // Recent sales (always the latest five, whatever the period)
-  const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date)).slice(0, 5);
+  const seenOrders = new Set();
+  const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date) || b.id - a.id)
+    .filter(s => !s.group_id || (!seenOrders.has(s.group_id) && seenOrders.add(s.group_id))).slice(0, 5);
   document.getElementById('recent-sales').innerHTML = recent.length ? recent.map(s => {
     const item = itemById(s.item_id);
-    const r = calcProfit(s, item);
+    const order = saleGroupOf(s);
+    const rs = order.map(x => calcProfit(x, itemById(x.item_id)));
+    const r = { isComplete: rs.every(x => x.isComplete), netProfitCents: rs.reduce((t, x) => t + (x.netProfitCents || 0), 0) };
     return `<div class="row-line">
       <div class="item-cell">${itemThumb(item)}<div>
-        <div class="row-title">${item ? esc(item.item_name) : 'Unknown item'}</div>
+        <div class="row-title">${item ? esc(item.item_name) : 'Unknown item'}${order.length > 1 ? ` <span class="qty-pill">&times;${order.length}</span>` : ''}</div>
         <div class="row-sub top-sub">${platformChip(s.platform, true)} &middot; ${fmtDate(s.sale_date)}</div>
       </div></div>
       <div class="row-amt ${s.status === 'completed' && r.isComplete ? (r.netProfitCents >= 0 ? 'pos' : 'neg') : ''}">${s.status !== 'completed' ? `<span class="badge badge-${esc(s.status)}">${esc(statusLabel(s.status))}</span>` : r.isComplete ? (r.netProfitCents > 0 ? '+' : '') + fmtCents(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>'}</div>
@@ -3444,6 +3474,8 @@ function statusLabel(status) { return STATUS_LABELS[status] || (status.charAt(0)
 function statusBadge(status) {
   return `<span class="badge badge-${esc(status)}">${esc(statusLabel(status))}</span>`;
 }
+// Item status plus a small stamp when it came back from a returned sale.
+const itemStatusBadges = item => statusBadge(item.status) + (item.was_returned && item.status !== 'sold' ? ' <span class="badge badge-returned returned-mark" title="Came back from a returned sale">&#8617; returned</span>' : '');
 
 /* ---------- LGY codes tab: every code, and a way to fix mistakes ---------- */
 let invTab = 'items';
@@ -3626,7 +3658,7 @@ function renderInventory() {
   // Sold items live in Sales, so Inventory shows only what you still have.
   // Picking the Sold status (or a platform, which only sold items have) shows them.
   const showSold = statusFilter === 'sold' || !!platformFilter;
-  const inStock = u => showSold || u.status !== 'sold';
+  const shownInList = u => showSold || u.status !== 'sold';
 
   let rows = items.map(item => {
     // Only a completed sale counts: returned/cancelled sales earned nothing,
@@ -3641,8 +3673,8 @@ function renderInventory() {
       const code = cleanItemCode(search);
       if (!haystack.includes(search) && !(code && item.item_code === code)) return false;
     }
-    if (statusFilter && item.status !== statusFilter) return false;
-    if (!inStock(item)) return false;
+    if (statusFilter === 'returned' ? !item.was_returned || item.status === 'sold' : statusFilter && item.status !== statusFilter) return false;
+    if (!shownInList(item)) return false;
     if (platformFilter && (!sale || sale.platform !== platformFilter)) return false;
     return true;
   });
@@ -3686,8 +3718,11 @@ function renderInventory() {
       if (entry.batchId) {
         const b = batchSummary(entry.batchId);
         const item = b.units[0];
-        const pool = b.units.filter(inStock);
-        return `<button type="button" class="inv-card is-batch${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-edit-batch="${esc(entry.batchId)}" style="${delay}">
+        const pool = b.units.filter(shownInList);
+        const nextCard = b.units.filter(inStock).sort(fifoOrder)[0];
+        return `<div class="inv-card is-batch${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" style="${delay}">
+          <button type="button" class="card-hit" data-edit-batch="${esc(entry.batchId)}" aria-label="Edit ${esc(item.item_name)} batch"></button>
+          ${nextCard ? `<button type="button" class="btn btn-sm sell-btn card-sell" data-sell-item="${nextCard.id}" aria-label="Sell ${esc(item.item_name)}">Sell</button>` : ''}
           <div class="inv-card-media">${itemThumb(item)}<span class="qty-badge">&times;${pool.length}</span>${b.available ? `<span class="badge badge-${b.listed ? 'listed' : 'unsold'}">${b.available} left</span>` : statusBadge('sold')}</div>
           <div class="inv-card-body">
             <div class="inv-card-name">${esc(item.item_name)}</div>
@@ -3697,12 +3732,14 @@ function renderInventory() {
               ${b.profitCount ? `<span class="inv-card-profit ${moneyClass(b.profit)}">${b.profit >= 0 ? '+' : ''}${fmtCents(b.profit)}</span>` : b.sold ? '' : `<span class="inv-card-cost">${pool.length} units</span>`}
             </div>
           </div>
-        </button>`;
+        </div>`;
       }
       const { item, sale, r } = entry.row;
       const price = priceOf(item, sale);
-      return `<button type="button" class="inv-card${highlightItemIds.has(item.id) ? ' row-new' : ''}" data-edit-item="${item.id}" style="${delay}">
-        <div class="inv-card-media">${itemThumb(item)}${statusBadge(item.status)}${sale ? `<span class="inv-card-plat">${platformChip(sale.platform, 'mark')}</span>` : ''}</div>
+      return `<div class="inv-card${highlightItemIds.has(item.id) ? ' row-new' : ''}" style="${delay}">
+        <button type="button" class="card-hit" data-edit-item="${item.id}" aria-label="Edit ${esc(item.item_name)}"></button>
+        ${inStock(item) ? `<button type="button" class="btn btn-sm sell-btn card-sell" data-sell-item="${item.id}" aria-label="Sell ${esc(item.item_name)}">Sell</button>` : ''}
+        <div class="inv-card-media">${itemThumb(item)}<span class="card-badges">${itemStatusBadges(item)}</span>${sale ? `<span class="inv-card-plat">${platformChip(sale.platform, 'mark')}</span>` : ''}</div>
         <div class="inv-card-body">
           <div class="inv-card-name">${esc(item.item_name)}</div>
           <div class="inv-card-sub"><span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}</div>
@@ -3712,7 +3749,7 @@ function renderInventory() {
               : item.purchase_cost_cents !== null ? `<span class="inv-card-cost">cost ${fmtCents(item.purchase_cost_cents)}</span>` : ''}
           </div>
         </div>
-      </button>`;
+      </div>`;
     }).join('') : `<div style="grid-column:1/-1">${empty}</div>`;
     return;
   }
@@ -3724,18 +3761,18 @@ function renderInventory() {
         <div class="item-sub">${unit ? esc(item.notes || '') : `<span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}`}</div></div></div></td>
       <td data-label="Platform">${sale ? platformChip(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
-      <td data-label="Status">${statusBadge(item.status)}</td>
+      <td data-label="Status"><div class="batch-counts">${itemStatusBadges(item)}</div></td>
       <td data-label="${sale ? 'Sale price' : 'Listing price'}" class="num">${sale ? fmtCents(sale.sale_price_cents) : item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">listed</span>` : '&mdash;'}</td>
       <td data-label="Profit" class="num">${sale ? (r.isComplete ? moneyCell(r.netProfitCents) : '<span class="badge badge-incomplete">Incomplete</span>') : '&mdash;'}</td>
       <td data-label="${sale ? 'Sold' : 'Bought'}">${fmtDate(sale ? sale.sale_date : item.purchase_date)}${!sale && item.purchase_date ? '<span class="date-note">bought</span>' : ''}</td>
-      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></td>
+      <td class="cell-action"><div class="row-actions">${!unit && inStock(item) ? `<button type="button" class="btn btn-sm sell-btn" data-sell-item="${item.id}" aria-label="Sell ${esc(item.item_name)}">Sell</button>` : ''}<button class="btn btn-sm btn-ghost" data-edit-item="${item.id}">Edit</button></div></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-item="${item.id}" title="Delete ${unit ? 'this unit' : 'item'}" aria-label="Delete ${unit ? 'this unit' : 'item'}">&times;</button></td>
     </tr>`;
 
   const batchRows = entry => {
     const b = batchSummary(entry.batchId);
     const item = b.units[0];
-    const pool = b.units.filter(inStock); // units still in inventory
+    const pool = b.units.filter(shownInList); // units shown in inventory
     const open = expandedBatches.has(entry.batchId);
     const costs = [...new Set(b.units.map(u => u.purchase_cost_cents))];
     const nextUp = b.units.filter(inStock).sort(fifoOrder)[0];
@@ -3756,7 +3793,7 @@ function renderInventory() {
       <td data-label="Listing price" class="num">${item.listing_price_cents !== null ? `${fmtCents(item.listing_price_cents)} <span class="price-note">each</span>` : '&mdash;'}</td>
       <td data-label="Profit" class="num">${b.profitCount ? moneyCell(b.profit) : '&mdash;'}</td>
       <td data-label="Bought">${fmtDate(item.purchase_date)}${item.purchase_date ? '<span class="date-note">bought</span>' : ''}</td>
-      <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-batch="${esc(entry.batchId)}">Edit batch</button></td>
+      <td class="cell-action"><div class="row-actions">${nextUp ? `<button type="button" class="btn btn-sm sell-btn" data-sell-item="${nextUp.id}" aria-label="Sell ${esc(item.item_name)}">Sell</button>` : ''}<button class="btn btn-sm btn-ghost" data-edit-batch="${esc(entry.batchId)}">Edit batch</button></div></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-batch="${esc(entry.batchId)}" title="Delete the whole batch" aria-label="Delete the whole batch">&times;</button></td>
     </tr>`;
     return head + (open ? entry.rows.map(row => unitRow(row, { no: pool.indexOf(row.item) + 1, of: pool.length, name: item.item_name })).join('') : '');
@@ -3777,7 +3814,7 @@ function batchSummary(batchId) {
     if (r.isComplete) { profit += r.netProfitCents; profitCount++; }
   }));
   const unsold = count('unsold'), listed = count('listed');
-  return { units, unsold, listed, sold: count('sold'), returned: count('returned'), available: unsold + listed, profit, profitCount };
+  return { units, unsold, listed, sold: count('sold'), returned: units.filter(u => u.was_returned && u.status !== 'sold').length, available: unsold + listed, profit, profitCount };
 }
 
 // Batches opened up in the Inventory table (click the row to toggle).
@@ -3893,10 +3930,19 @@ function renderSales() {
   const statusFilter = document.getElementById('sales-status-filter').value;
   const platformFilter = document.getElementById('sales-platform-filter').value;
 
-  let rows = sales.map(s => {
-    const item = itemById(s.item_id);
-    const costs = s.platform_fees_cents === null ? null : s.platform_fees_cents + (s.shipping_cost_cents || 0) + (s.other_costs_cents || 0);
-    return { s, item, r: calcProfit(s, item), costs };
+  // An order of several units shows as one row with its totals.
+  const orders = new Map();
+  sales.forEach(s => { const k = s.group_id || 's' + s.id; if (!orders.has(k)) orders.set(k, []); orders.get(k).push(s); });
+  let rows = [...orders.values()].map(list => {
+    list.sort((a, b) => a.id - b.id);
+    const s = list[0], item = itemById(s.item_id), n = list.length;
+    const rs = list.map(x => calcProfit(x, itemById(x.item_id)));
+    const price = list.reduce((t, x) => t + x.sale_price_cents, 0);
+    const costs = list.some(x => x.platform_fees_cents === null) ? null : list.reduce((t, x) => t + x.platform_fees_cents + (x.shipping_cost_cents || 0) + (x.other_costs_cents || 0), 0);
+    const complete = rs.every(r => r.isComplete);
+    const profit = complete ? rs.reduce((t, r) => t + r.netProfitCents, 0) : null;
+    const r = { isComplete: complete, netProfitCents: profit, marginBps: complete && price ? Math.round(profit * 10000 / price) : null };
+    return { s: { ...s, sale_price_cents: price }, item, r, costs, n };
   }).filter(({ s, item }) => {
     if (search) {
       const haystack = [item ? item.item_name : '', item ? item.item_code : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
@@ -3920,10 +3966,10 @@ function renderSales() {
     ? emptyState('search', 'No matches', 'No sales fit these filters. Try a different search or status.')
     : emptyState('tag', 'No sales yet', 'When something sells, record it here. Fees are estimated for you.',
         '<button type="button" class="btn btn-sm btn-primary" data-open="record-sale">Record a sale</button>');
-  document.getElementById('sales-tbody').innerHTML = rows.length ? rows.map(({ s, item, r, costs }) => `<tr>
-      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div class="item-name">${item ? esc(item.item_name) : 'Unknown'}</div></div></td>
+  document.getElementById('sales-tbody').innerHTML = rows.length ? rows.map(({ s, item, r, costs, n }) => `<tr>
+      <td class="cell-title"><div class="item-cell">${itemThumb(item)}<div class="item-name">${item ? esc(item.item_name) : 'Unknown'}${n > 1 ? ` <span class="qty-pill">&times;${n}</span>` : ''}</div></div></td>
       <td data-label="Platform">${platformChip(s.platform)}</td>
-      <td data-label="Sale price" class="num">${fmtCents(s.sale_price_cents)}</td>
+      <td data-label="Sale price" class="num">${fmtCents(s.sale_price_cents)}${n > 1 ? `<span class="date-note">${fmtCents(Math.round(s.sale_price_cents / n))} each</span>` : ''}</td>
       <td data-label="Fees &amp; shipping" class="num">${costs !== null ? fmtCents(costs) : '<span class="badge badge-incomplete">Partial</span>'}</td>
       <td data-label="Net profit" class="num">${s.status !== 'completed' ? `<span class="price-note" title="${esc(statusLabel(s.status))} sales aren't counted in your totals">not counted</span>` : r.isComplete ? moneyCell(r.netProfitCents) : '&mdash;'}</td>
       <td data-label="Margin" class="num">${s.status === 'completed' && r.isComplete ? marginCell(r.marginBps) : '&mdash;'}</td>
@@ -4379,6 +4425,58 @@ function toggleNewItemFields() {
   form.elements.new_item_name.required = isNew;
 }
 
+/* ---------- Selling several units at once (first in, first out) ---------- */
+// In-stock units of the same stock as this item, oldest purchase first.
+function stockFor(itemId) {
+  const it = itemById(itemId);
+  if (!it) return [];
+  return (it.batch_id ? batchUnits(it.batch_id) : [it]).filter(inStock).sort(fifoOrder);
+}
+const saleGroupOf = s => (s && s.group_id ? sales.filter(x => x.group_id === s.group_id).sort((a, b) => a.id - b.id) : s ? [s] : []);
+function saleQty() {
+  const f = document.getElementById('rs-qty-field');
+  return f.hidden ? 1 : Math.max(1, parseInt(document.getElementById('rs-qty').value, 10) || 1);
+}
+// The units a sale of this size would use (or, when editing an order, the units it used).
+function unitsForSale() {
+  const form = document.getElementById('record-sale-form');
+  const editing = saleById(parseInt(form.elements.editing_id.value, 10));
+  if (editing) return saleGroupOf(editing).map(x => itemById(x.item_id)).filter(Boolean);
+  const id = parseInt(form.elements.item_id.value, 10);
+  return id ? stockFor(id).slice(0, saleQty()) : [];
+}
+function updateQtyField() {
+  const form = document.getElementById('record-sale-form');
+  const field = document.getElementById('rs-qty-field'), input = document.getElementById('rs-qty'), hint = document.getElementById('rs-qty-hint');
+  const editing = saleById(parseInt(form.elements.editing_id.value, 10));
+  if (editing) {
+    const group = saleGroupOf(editing);
+    field.hidden = group.length < 2;
+    input.value = group.length; input.disabled = true;
+    field.querySelectorAll('[data-qty-step]').forEach(b => { b.disabled = true; });
+    hint.textContent = 'Amounts are for the whole order';
+    return;
+  }
+  input.disabled = false;
+  field.querySelectorAll('[data-qty-step]').forEach(b => { b.disabled = false; });
+  const id = parseInt(form.elements.item_id.value, 10);
+  const pool = id ? stockFor(id) : [];
+  field.hidden = pool.length < 2;
+  // A hidden quantity box must never block saving (a max of 0 would make the form invalid).
+  if (field.hidden) { input.removeAttribute('max'); input.value = 1; return; }
+  input.max = pool.length;
+  const qty = Math.min(pool.length, saleQty());
+  input.value = qty;
+  const costs = [...new Set(pool.slice(0, qty).map(u => u.purchase_cost_cents))];
+  hint.textContent = `${pool.length} in stock · oldest sell first` + (costs.length === 1 && costs[0] !== null ? ` at ${fmtCents(costs[0])} each` : costs.length > 1 ? ' at their own costs' : '');
+}
+function updatePriceHint() {
+  const form = document.getElementById('record-sale-form');
+  const n = unitsForSale().length, raw = form.elements.sale_price.value;
+  document.getElementById('rs-price-hint').textContent = n > 1
+    ? (raw === '' ? `Total for all ${n}` : `Total for all ${n} · ${fmtCents(Math.round(money(parseFloat(raw)) / n))} each`) : '';
+}
+
 // Pre-fills the fee from the platform's rate until the user types their
 // own fee (clearing the field hands it back to the estimate).
 function autoFillFee() {
@@ -4407,7 +4505,10 @@ function updateSaleCalc() {
     item = { purchase_cost_cents: cost === '' ? null : money(parseFloat(cost)) };
   } else {
     item = itemById(parseInt(fd.get('item_id'), 10));
+    const units = unitsForSale();
+    if (units.length > 1) item = { purchase_cost_cents: units.some(u => u.purchase_cost_cents === null) ? null : units.reduce((t, u) => t + u.purchase_cost_cents, 0) };
   }
+  updatePriceHint();
   const salePrice = fd.get('sale_price');
   const fees = fd.get('platform_fees');
   const shipping = fd.get('shipping_cost');
@@ -4438,18 +4539,40 @@ function updateSaleCalc() {
 
 document.getElementById('record-sale-form').addEventListener('input', e => {
   const name = e.target.name;
+  const priceInput = e.currentTarget.elements.sale_price;
   if (name === 'item_id') {
     toggleNewItemFields();
+    document.getElementById('rs-qty').value = 1;
+    updateQtyField();
     const picked = itemById(parseInt(e.target.value, 10));
-    const priceInput = e.currentTarget.elements.sale_price;
-    if (picked && picked.listing_price_cents !== null && priceInput.value === '') {
+    if (picked && picked.listing_price_cents !== null && (priceInput.value === '' || priceInput.dataset.auto)) {
       priceInput.value = (picked.listing_price_cents / 100).toFixed(2);
+      priceInput.dataset.auto = priceInput.value;
+      autoFillFee();
+    }
+  }
+  if (name === 'sale_price') delete priceInput.dataset.auto;
+  if (name === 'quantity') {
+    updateQtyField();
+    // A price filled in from the listing price follows the quantity.
+    const picked = itemById(parseInt(e.currentTarget.elements.item_id.value, 10));
+    if (priceInput.dataset.auto && picked && picked.listing_price_cents !== null) {
+      priceInput.value = (picked.listing_price_cents * saleQty() / 100).toFixed(2);
+      priceInput.dataset.auto = priceInput.value;
       autoFillFee();
     }
   }
   if (name === 'platform_fees') e.target.dataset.manual = e.target.value === '' ? '0' : '1';
   if (name === 'platform' || name === 'sale_price' || name === 'platform_fees') autoFillFee();
   updateSaleCalc();
+});
+document.getElementById('rs-qty-field').addEventListener('click', e => {
+  const b = e.target.closest('[data-qty-step]');
+  if (!b || b.disabled) return;
+  const input = document.getElementById('rs-qty');
+  const max = parseInt(input.max, 10) || 1;
+  input.value = Math.min(max, Math.max(1, saleQty() + parseInt(b.dataset.qtyStep, 10)));
+  input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 document.getElementById('record-sale-form').addEventListener('submit', e => {
   e.preventDefault();
@@ -4468,6 +4591,8 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     items.push(newItem);
     itemId = newItem.id;
   }
+  // Editing an order of several units: the item picker is locked, so use the order's own item.
+  if (!itemId && fd.get('editing_id')) { const ex = saleById(parseInt(fd.get('editing_id'), 10)); if (ex) itemId = ex.item_id; }
   if (!itemId) return;
   const editingId = fd.get('editing_id');
   const fees = fd.get('platform_fees'), shipping = fd.get('shipping_cost'), other = fd.get('other_costs');
@@ -4484,15 +4609,33 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     notes: fd.get('notes') || '',
   };
   let previousItemId = null;
-  if (editingId) {
-    const existing = sales.find(s => s.id === parseInt(editingId, 10));
-    if (existing) {
-      previousItemId = existing.item_id;
-      Object.assign(existing, fields);
-    }
+  const existing = editingId ? sales.find(s => s.id === parseInt(editingId, 10)) : null;
+  const group = existing ? saleGroupOf(existing) : null;
+  // Several units: one sale record per unit (so each keeps its own FIFO cost),
+  // with the order's amounts split evenly across them.
+  const splitOrder = (units, apply) => {
+    const n = units.length;
+    const part = c => (c === null ? Array(n).fill(null) : splitCents(c, n));
+    const price = part(fields.sale_price_cents), fee = part(fields.platform_fees_cents), ship = part(fields.shipping_cost_cents), oth = part(fields.other_costs_cents);
+    units.forEach((u, i) => apply(u, { ...fields, sale_price_cents: price[i], platform_fees_cents: fee[i], shipping_cost_cents: ship[i], other_costs_cents: oth[i] }));
+  };
+  const touched = new Set([itemId]);
+  if (group && group.length > 1) {
+    splitOrder(group, (sl, f) => { Object.assign(sl, f, { item_id: sl.item_id }); touched.add(sl.item_id); });
+  } else if (existing) {
+    previousItemId = existing.item_id;
+    Object.assign(existing, fields);
   } else {
-    sales.push(Object.assign({ id: nextSaleId++ }, fields));
+    const units = fd.get('item_id') === '__new__' ? [itemById(itemId)] : stockFor(itemId).slice(0, saleQty());
+    if (units.length > 1) {
+      const groupId = 'G' + nextSaleId;
+      splitOrder(units, (u, f) => { sales.push(Object.assign({ id: nextSaleId++, group_id: groupId }, f, { item_id: u.id })); touched.add(u.id); });
+    } else {
+      sales.push(Object.assign({ id: nextSaleId++ }, fields, { item_id: units.length ? units[0].id : itemId }));
+      if (units.length) touched.add(units[0].id);
+    }
   }
+  touched.forEach(id => syncItemStatus(id));
   // Re-check both the item this sale now points at and, if the sale
   // was moved, the item it used to point at.
   syncItemStatus(itemId);
@@ -4514,7 +4657,10 @@ function resetRecordSaleFormForCreate() {
   form.elements.other_costs.value = '0.00'; // most sales have none; still editable
   form.elements.platform_fees.dataset.manual = '0';
   document.getElementById('rs-fee-hint').textContent = '';
+  form.elements.item_id.disabled = false;
+  delete form.elements.sale_price.dataset.auto;
   populateItemSelect();
+  updateQtyField();
   document.getElementById('record-sale-modal-title').textContent = 'Record sale';
   document.getElementById('record-sale-modal-sub').textContent = "Profit and margin are calculated by the app as you type — they're not editable fields.";
   document.getElementById('record-sale-submit-btn').textContent = 'Save sale';
@@ -4527,10 +4673,16 @@ function editSale(sale, originEl) {
   form.elements.editing_id.value = sale.id;
   form.elements.item_id.value = sale.item_id;
   form.elements.platform.value = sale.platform;
-  form.elements.sale_price.value = (sale.sale_price_cents / 100).toFixed(2);
-  form.elements.platform_fees.value = sale.platform_fees_cents === null ? '' : (sale.platform_fees_cents / 100).toFixed(2);
-  form.elements.shipping_cost.value = sale.shipping_cost_cents === null ? '' : (sale.shipping_cost_cents / 100).toFixed(2);
-  form.elements.other_costs.value = sale.other_costs_cents === null ? '' : (sale.other_costs_cents / 100).toFixed(2);
+  // An order of several units is edited as a whole: show its totals.
+  const group = saleGroupOf(sale);
+  const sum = key => (group.some(x => x[key] === null) ? null : group.reduce((t, x) => t + (x[key] || 0), 0));
+  const m2 = c => (c === null ? '' : (c / 100).toFixed(2));
+  form.elements.sale_price.value = m2(sum('sale_price_cents'));
+  form.elements.platform_fees.value = m2(sum('platform_fees_cents'));
+  form.elements.shipping_cost.value = m2(sum('shipping_cost_cents'));
+  form.elements.other_costs.value = m2(sum('other_costs_cents'));
+  form.elements.item_id.disabled = group.length > 1;
+  updateQtyField();
   form.elements.order_number.value = sale.order_number || '';
   form.elements.sale_date.value = sale.sale_date || '';
   form.elements.status.value = sale.status || 'completed';
@@ -4554,8 +4706,9 @@ function saleById(id) { return sales.find(s => s.id === id); }
 function askDeleteSale(sale, originEl) {
   const item = itemById(sale.item_id);
   pendingDelete = { kind: 'sale', id: sale.id };
-  document.getElementById('confirm-delete-title').textContent = 'Delete sale?';
-  document.getElementById('confirm-delete-item-name').textContent = `the ${item ? item.item_name : 'Unknown item'} sale`;
+  const n = saleGroupOf(sale).length;
+  document.getElementById('confirm-delete-title').textContent = n > 1 ? `Delete this order of ${n}?` : 'Delete sale?';
+  document.getElementById('confirm-delete-item-name').textContent = n > 1 ? `the ${n} × ${item ? item.item_name : 'item'} sale (they go back into stock)` : `the ${item ? item.item_name : 'Unknown item'} sale`;
   openOverlay('overlay-confirm-delete', originEl);
 }
 
@@ -5606,6 +5759,28 @@ function playButtonPress(btn, e) {
   setTimeout(() => btn.classList.remove('pressed'), 450);
 }
 
+// Quick Sell from Inventory: Record sale opens with that stock already picked.
+function openSaleFor(itemId, originEl) {
+  resetRecordSaleFormForCreate();
+  const first = stockFor(itemId)[0];
+  const sel = document.getElementById('rs-item-select');
+  if (first && [...sel.options].some(o => o.value === String(first.id))) {
+    sel.value = String(first.id);
+    sel.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  updateSaleCalc();
+  openOverlay('overlay-record-sale', originEl);
+  const next = document.querySelector('#record-sale-form [name=platform]');
+  if (next) next.focus({ preventScroll: true });
+}
+document.body.addEventListener('click', e => {
+  const sell = e.target.closest('[data-sell-item]');
+  if (!sell) return;
+  e.stopPropagation();
+  playButtonPress(sell, e);
+  openSaleFor(parseInt(sell.dataset.sellItem, 10), sell);
+}, true);
+
 // Delegated, so buttons drawn later (empty states) open forms too.
 document.body.addEventListener('click', e => {
   const btn = e.target.closest('[data-open]');
@@ -5924,12 +6099,13 @@ document.getElementById('confirm-delete-btn').addEventListener('click', () => {
     for (let i = sales.length - 1; i >= 0; i--) if (ids.has(sales[i].item_id)) sales.splice(i, 1);
   } else if (pendingDelete.kind === 'sale') {
     const sale = saleById(pendingDelete.id);
-    const idx = sales.findIndex(s => s.id === pendingDelete.id);
-    if (idx !== -1) sales.splice(idx, 1);
-    // If no completed sale is left for this item, it's no longer
-    // actually sold — put it back so it shows up in the Record Sale
+    const group = saleGroupOf(sale);
+    const ids = new Set(group.map(x => x.id));
+    for (let i = sales.length - 1; i >= 0; i--) if (ids.has(sales[i].id)) sales.splice(i, 1);
+    // If no completed sale is left for these items, they're no longer
+    // actually sold — put them back so they show up in the Record Sale
     // item picker again.
-    if (sale) syncItemStatus(sale.item_id);
+    group.forEach(x => syncItemStatus(x.item_id));
   }
   pendingDelete = null;
   closeOverlay('overlay-confirm-delete');
@@ -6535,7 +6711,69 @@ function syncDone(version) {
   saveSyncMeta({ userId: Account.user.id, version, hash: meta.userId === Account.user.id && meta.version === version ? meta.hash : localHash() });
   Account.sync = 'synced'; Account.syncError = ''; Account.lastSyncedAt = new Date(); Account.conflict = null;
   renderAccountUI();
+  PhotoSync.schedule();
 }
+/* ---------- Photo sync: photos live in their own table (supabase/schema.sql → photos) ---------- */
+// Each photo is uploaded once; devices download the ones their items use but they don't have.
+const PhotoSync = (() => {
+  const state = { status: 'idle', count: 0, pending: 0, error: '' }; // idle | syncing | ready | missing | error
+  let timer = null, running = false, again = false;
+  const MISSING = /PGRST205|42P01|does not exist|schema cache|Could not find the table/i;
+  function schedule() { clearTimeout(timer); timer = setTimeout(run, 1500); }
+  async function run() {
+    if (!Account.client || !Account.user || !photosAvailable) return;
+    if (running) { again = true; return; }
+    running = true;
+    const uid = Account.user.id;
+    try {
+      const listed = await Account.client.from('photos').select('id, created_at').eq('user_id', uid);
+      if (listed.error) throw listed.error;
+      const remote = new Map((listed.data || []).map(r => [r.id, r.created_at]));
+      const used = new Set(items.flatMap(i => i.photo_ids || []));
+      const toUpload = [...used].filter(id => !remote.has(id) && photoCache.has(id));
+      const toDownload = [...used].filter(id => remote.has(id) && !photoCache.has(id));
+      // Only tidy up photos nothing uses that are over an hour old, in case another device is mid-save.
+      const hourAgo = Date.now() - 3600000;
+      const toDelete = [...remote.keys()].filter(id => !used.has(id) && new Date(remote.get(id)).getTime() < hourAgo);
+      state.status = 'syncing'; state.pending = toUpload.length + toDownload.length; renderAccountUI();
+      for (const id of toUpload) {
+        const res = await Account.client.from('photos').upsert({ user_id: uid, id, data: photoCache.get(id) }, { onConflict: 'user_id,id' });
+        if (res.error) throw res.error;
+        remote.set(id, new Date().toISOString()); state.pending--;
+      }
+      for (let i = 0; i < toDownload.length; i += 5) {
+        const res = await Account.client.from('photos').select('id, data').eq('user_id', uid).in('id', toDownload.slice(i, i + 5));
+        if (res.error) throw res.error;
+        await Promise.all((res.data || []).map(r => savePhoto(r.id, r.data)));
+        state.pending -= (res.data || []).length;
+      }
+      if (toDelete.length) {
+        const res = await Account.client.from('photos').delete().eq('user_id', uid).in('id', toDelete);
+        if (!res.error) toDelete.forEach(id => remote.delete(id));
+      }
+      state.status = 'ready'; state.error = ''; state.pending = 0;
+      state.count = [...used].filter(id => remote.has(id)).length;
+      if (toDownload.length) renderAll();
+    } catch (e) {
+      const msg = (e && (e.message || e.code)) || '';
+      state.status = MISSING.test(msg + ' ' + ((e && e.code) || '')) ? 'missing' : 'error';
+      state.error = msg;
+    } finally {
+      running = false;
+      renderAccountUI();
+      if (again) { again = false; schedule(); }
+    }
+  }
+  function line() {
+    if (state.status === 'syncing') return state.pending > 0 ? `Syncing photos (${state.pending} to go)…` : 'Syncing photos…';
+    if (state.status === 'ready') return state.count ? `${state.count} photo${state.count === 1 ? '' : 's'} synced` : 'Photos sync to this account';
+    if (state.status === 'missing') return 'Photo sync needs a one-time setup (README → Accounts, step 2)';
+    if (state.status === 'error') return "Photos couldn't sync; will retry";
+    return '';
+  }
+  return { schedule, run, line, state };
+})();
+
 function syncFailed(e) {
   Account.sync = 'error';
   Account.syncError = (e && e.message) || 'Network problem';
@@ -6700,7 +6938,8 @@ function renderAccountUI() {
     } else {
       panel.innerHTML = `<div class="account-row"><div class="account-who"><span class="account-avatar" aria-hidden="true"></span><div>
           <div class="account-name"></div><div class="account-email"></div>
-          <div class="account-sync ${Account.sync === 'error' ? 'bad' : ''}">${esc(syncLine())}${Account.sync === 'error' && Account.syncError ? ` <span class="field-hint">(${esc(Account.syncError)})</span>` : ''}</div></div></div>
+          <div class="account-sync ${Account.sync === 'error' ? 'bad' : ''}">${esc(syncLine())}${Account.sync === 'error' && Account.syncError ? ` <span class="field-hint">(${esc(Account.syncError)})</span>` : ''}</div>
+          ${PhotoSync.line() ? `<div class="account-sync ${PhotoSync.state.status === 'missing' || PhotoSync.state.status === 'error' ? 'bad' : ''}">${esc(PhotoSync.line())}</div>` : ''}</div></div>
         <div class="account-actions"><button type="button" class="btn" data-account="profile">Edit profile</button><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>`;
       panel.querySelector('.account-avatar').textContent = (displayName()[0] || '?').toUpperCase();
       panel.querySelector('.account-name').textContent = [profileName(), shopName()].filter(Boolean).join(' · ') || 'Add your name and shop';

@@ -19,7 +19,8 @@ const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUP
   auth: { persistSession: false },
 });
 
-const SITE_URL = Deno.env.get('SITE_URL') ?? '';
+// Trimmed and ending in "/", so a stray space or missing slash in the secret doesn't break redirects.
+const SITE_URL = ((raw) => (raw && !raw.endsWith('/') ? raw + '/' : raw))((Deno.env.get('SITE_URL') ?? '').trim());
 const PRICES: Record<string, string | undefined> = {
   month: Deno.env.get('STRIPE_PRICE_MONTHLY'),
   year: Deno.env.get('STRIPE_PRICE_YEARLY'),
@@ -29,15 +30,20 @@ const LIVE = ['trialing', 'active', 'past_due'];
 // Tags these Checkout Sessions in the Stripe Dashboard so this flow can be tracked.
 const INTEGRATION_ID = 'ledgery-pro-signup-qhtwmzkd';
 
-// Only the Ledgery site may call this function from a browser.
-const cors = {
-  'Access-Control-Allow-Origin': SITE_URL ? new URL(SITE_URL).origin : '',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  Vary: 'Origin',
-};
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+// Only the Ledgery site may call this function from a browser. The allowed headers echo
+// what the browser asks for, so a newer Supabase library adding a header can't break it.
+const ALLOWED_ORIGINS = new Set(['https://wcanela61-cloud.github.io']);
+try { if (SITE_URL) ALLOWED_ORIGINS.add(new URL(SITE_URL).origin); } catch { /* checked by the self-check below */ }
+function corsFor(req: Request) {
+  const origin = req.headers.get('Origin') ?? '';
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.has(origin) ? origin : [...ALLOWED_ORIGINS][0],
+    'Access-Control-Allow-Headers': req.headers.get('Access-Control-Request-Headers') ?? 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin, Access-Control-Request-Headers',
+  };
+}
 
 // Links every Ledgery account to exactly one Stripe customer.
 async function customerFor(user: { id: string; email?: string; user_metadata?: Record<string, unknown> }) {
@@ -56,7 +62,24 @@ async function customerFor(user: { id: string; email?: string; user_metadata?: R
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  // Self-check: open this function's address in a browser to see whether it's set up.
+  // Shows only yes/no and the kind of key, never a secret's value.
+  if (req.method === 'GET') {
+    const key = Deno.env.get('STRIPE_API_KEY') ?? '';
+    return json({
+      ok: true,
+      function: 'billing',
+      site: SITE_URL || null,
+      allowedOrigins: [...ALLOWED_ORIGINS],
+      stripeKey: key ? key.split('_').slice(0, 2).join('_') + '_…' : 'MISSING',
+      monthlyPrice: PRICES.month ? (PRICES.month.startsWith('price_') ? 'set' : 'NOT a price_ ID') : 'MISSING',
+      yearlyPrice: PRICES.year ? (PRICES.year.startsWith('price_') ? 'set' : 'NOT a price_ ID') : 'MISSING',
+    });
+  }
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');

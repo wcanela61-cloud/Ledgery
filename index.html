@@ -48,11 +48,18 @@
   try {
     var raw = localStorage.getItem('ledgerly-theme-settings');
     var parsed = raw ? JSON.parse(raw) : null;
-    var vibe = parsed && VALID.indexOf(parsed.vibe) !== -1 ? parsed.vibe : 'notepad';
+    // Vibes are gone: an old non-default vibe becomes that vibe's colors.
+    var oldVibe = parsed && VALID.indexOf(parsed.vibe) !== -1 ? parsed.vibe : 'notepad';
+    var override = (parsed && parsed.colorOverrides) || {};
+    if (oldVibe !== 'notepad') {
+      var ov = BASE_COLORS[oldVibe];
+      override = { bg: override.bg || ov.bg, accent: override.accent || ov.accent, fg: override.fg || ov.fg };
+    }
+    var vibe = override.bg && !isDark(override.bg) ? 'clean' : 'notepad'; // light or dark base style
     document.documentElement.setAttribute('data-vibe', vibe);
-    var override = parsed && parsed.colorOverrides;
+    if (parsed && (parsed.density === 'compact' || parsed.density === 'spacious')) document.documentElement.setAttribute('data-density', parsed.density);
     if (override && (override.bg || override.accent || override.fg)) {
-      var base = BASE_COLORS[vibe];
+      var base = BASE_COLORS.notepad;
       var bg = override.bg || base.bg, accent = override.accent || base.accent, fg = override.fg || base.fg;
       var dark = isDark(bg);
       var root = document.documentElement.style;
@@ -804,23 +811,14 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .vibe-check { position: absolute; top: 114px; right: 12px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); opacity: 0; transform: scale(.6); transition: opacity 160ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 .vibe-check svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .vibe-card.selected .vibe-check { opacity: 1; transform: scale(1); }
-/* The little app drawn in each vibe's own colors */
-.vibe-preview { --pv-font: var(--font-sans); display: flex; height: 96px; border-radius: calc(var(--radius-lg) - 4px); overflow: hidden; background: var(--pv-bg); border: 1px solid var(--pv-border); font-family: var(--pv-font); }
-.pv-side { width: 22%; display: flex; flex-direction: column; gap: 5px; padding: 8px 6px; background: var(--pv-surface); border-right: 1px solid var(--pv-border); }
-.pv-side i { display: block; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--pv-muted) 45%, transparent); }
-.pv-side i.pv-logo { width: 12px; height: 12px; border-radius: 4px; background: var(--pv-accent); margin-bottom: 3px; }
-.pv-side i.on { background: var(--pv-accent); }
-.pv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; }
-.pv-head { display: flex; align-items: center; justify-content: space-between; }
-.pv-head b { width: 42%; height: 6px; border-radius: 3px; background: var(--pv-ink); opacity: .85; }
-.pv-btn { width: 22px; height: 9px; border-radius: 4px; background: var(--pv-accent); }
-.pv-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.pv-tile { display: flex; flex-direction: column; gap: 1px; padding: 4px 5px; border-radius: 5px; background: var(--pv-surface); border: 1px solid var(--pv-border); min-width: 0; }
-.pv-tile em { font-style: normal; font-size: 7px; line-height: 1; color: var(--pv-muted); }
-.pv-tile strong { font-size: 10.5px; line-height: 1.1; color: var(--pv-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pv-tile:first-child strong { color: var(--pv-accent); }
-.pv-chart { flex: 1; display: flex; align-items: flex-end; gap: 3px; padding: 0 1px; }
-.pv-chart span { flex: 1; border-radius: 2px 2px 0 0; background: linear-gradient(180deg, var(--pv-accent), color-mix(in srgb, var(--pv-accent) 35%, var(--pv-bg))); }
+.density-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.density-preview { display: flex; flex-direction: column; justify-content: flex-start; gap: var(--g); height: 96px; overflow: hidden; padding: 12px 12px 0; border-radius: calc(var(--radius-lg) - 4px); background: var(--bg); border: 1px solid var(--border); }
+.dp-row { display: flex; align-items: center; gap: 7px; padding-bottom: var(--g); border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent); }
+.dp-row:last-child { border-bottom: none; padding-bottom: 0; }
+.dp-row i { display: block; height: var(--h); border-radius: 3px; background: color-mix(in srgb, var(--ink-muted) 45%, transparent); }
+.dp-row i.dp-dot { flex: none; width: calc(var(--h) + 4px); height: calc(var(--h) + 4px); border-radius: 4px; background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.dp-row b { margin-left: auto; width: 16%; height: var(--h); border-radius: 3px; background: var(--accent); opacity: .8; }
+.density-card .vibe-check { top: 114px; }
 
 /* Colors */
 .color-studio { padding-top: 18px; margin-top: 16px; border-top: 1px solid var(--border); }
@@ -869,7 +867,11 @@ tbody tr:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
 .read-fix { align-self: flex-start; }
 @media (max-width: 720px) {
   .finetune { grid-template-columns: 1fr; }
-  .vibe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .vibe-grid { gap: 8px; }
+  .density-preview { height: 84px; padding: 0 8px; }
+  .density-card .vibe-check { top: 12px; right: 10px; }
+  .density-card .vibe-meta { padding-right: 6px; }
+  .density-card .vibe-desc { display: none; }
   .palette-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 380px) { .finetune-tiles { grid-template-columns: 1fr 1fr 1fr; gap: 6px; } .color-tile-info { padding: 6px 8px 8px; } .hex-input { font-size: 0.72rem; } }
@@ -1605,6 +1607,28 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
 #aging-inventory .row-title, #recent-sales .row-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .hero-card:hover, .stat-tile:hover { transform: none; } }
 @media (max-width: 480px) { .stat-icon { display: none; } .stat-fix { font-size: 0.7188rem; } }
+/* ---------- Layout density (Settings → Appearance) ---------- */
+:root[data-density="compact"] { --d: 0.7; }
+:root[data-density="spacious"] { --d: 1.3; }
+:root[data-density] .main { padding: calc(32px * var(--d)) calc(40px * var(--d)) 64px; padding-top: calc(32px * var(--d) + env(safe-area-inset-top, 0px)); }
+:root[data-density] .page-header { margin-bottom: calc(24px * var(--d)); }
+:root[data-density] .panel { margin-bottom: calc(16px * var(--d)); }
+:root[data-density] .panel-head { padding: calc(18px * var(--d)) calc(20px * var(--d)) calc(4px * var(--d)); }
+:root[data-density] .panel-body { padding: calc(8px * var(--d)) calc(20px * var(--d)) calc(16px * var(--d)); }
+:root[data-density] :is(.panel-grid, .hero-grid) { gap: calc(16px * var(--d)); }
+:root[data-density] .hero-grid { margin-bottom: calc(16px * var(--d)); }
+:root[data-density] .stat-grid { gap: calc(12px * var(--d)); margin-bottom: calc(24px * var(--d)); }
+:root[data-density] .stat-tile { padding: calc(16px * var(--d)) calc(18px * var(--d)) calc(17px * var(--d)); }
+:root[data-density] .hero-card { padding: calc(22px * var(--d)) calc(24px * var(--d)) 14px; }
+:root[data-density] .row-line { padding: calc(11px * var(--d)) 0; }
+:root[data-density] th { padding-top: calc(12px * var(--d)); padding-bottom: calc(12px * var(--d)); }
+:root[data-density] td { padding-top: calc(13px * var(--d)); padding-bottom: calc(13px * var(--d)); }
+@media (min-width: 721px) { :root[data-density] .nav-item { padding-top: calc(9px * var(--d)); padding-bottom: calc(9px * var(--d)); } }
+:root[data-density="compact"] .hero-value { font-size: 2.75rem; margin: 10px 0 4px; }
+@media (max-width: 720px) {
+  :root[data-density] .main { padding: calc(22px * var(--d)) calc(16px * var(--d)) calc(92px + env(safe-area-inset-bottom, 0px)); }
+  :root[data-density] .table-wrap tbody tr { padding: calc(14px * var(--d)) calc(16px * var(--d)); margin-bottom: calc(10px * var(--d)); }
+}
 </style>
 </head>
 <body>
@@ -1853,8 +1877,8 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
       <div class="panel">
         <div class="panel-head"><h2>Appearance</h2><span class="page-sub" style="margin:0">Changes apply instantly and are remembered</span></div>
         <div class="panel-body">
-          <div class="appear-label">Vibe</div>
-          <div class="vibe-grid" id="vibe-grid"></div>
+          <div class="appear-label" id="density-label">Layout density</div>
+          <div class="vibe-grid density-grid" id="density-grid" role="group" aria-labelledby="density-label"></div>
           <div id="custom-color-controls"></div>
           <label class="switch-row">
             <input type="checkbox" id="motion-full-toggle">
@@ -1897,7 +1921,6 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
               <p class="tp-body">Vintage Levi&rsquo;s 501 sold on Depop for $58.00 after $5.80 in fees.</p>
             </div>
           </div>
-          <div class="custom-note" id="font-terminal-note" hidden>The Terminal vibe keeps numbers in monospace so columns line up.</div>
         </div>
       </div>
 
@@ -4482,16 +4505,17 @@ if (window.claude && typeof window.claude.use === 'function') {
    every component reads its colors from the CSS variables
    defined per [data-vibe] above. No per-component theme logic.
    ========================================================= */
-// p = the colors each vibe's preview card is drawn in (mirrors its CSS block).
-const VIBE_PRESETS = [
-  { id: 'notepad', name: 'Notepad', desc: 'Charcoal notebook, soft green. The default.', p: { bg: '#14161A', surface: '#1A1D21', border: '#2A2E33', ink: '#E7E9E5', muted: '#9AA39B', accent: '#4FAE84', soft: '#1C2B23' } },
-  { id: 'midnight', name: 'Midnight', desc: 'Deep navy-black with electric blue.', p: { bg: '#0A0C10', surface: '#10131A', border: '#222732', ink: '#F5F6F8', muted: '#8E96A6', accent: '#5B8CFF', soft: '#182238' } },
-  { id: 'clean', name: 'Clean', desc: 'Bright, airy workspace in forest green.', p: { bg: '#F7F7F5', surface: '#FFFFFF', border: '#E3E1DA', ink: '#1C2321', muted: '#5B655F', accent: '#1F6F54', soft: '#E4F0EA' } },
-  { id: 'terminal', name: 'Terminal', desc: 'Monospace and compact, for data nerds.', mono: true, p: { bg: '#0D0F0C', surface: '#12140F', border: '#232A20', ink: '#D8E8D0', muted: '#8CA283', accent: '#7FDB6E', soft: '#1B2818' } },
-  { id: 'paper', name: 'Paper', desc: 'Warm cream pages and bronze ink.', p: { bg: '#F6F1E7', surface: '#FBF8F1', border: '#E4DAC5', ink: '#2B2620', muted: '#6B6155', accent: '#8A6D3B', soft: '#EFE6D2' } },
+const DENSITY_OPTIONS = [
+  { id: 'compact', name: 'Compact', desc: 'More on screen: tighter tables, cards and lists.', gap: 3, h: 5 },
+  { id: 'comfortable', name: 'Comfortable', desc: 'Balanced spacing. The default.', gap: 6, h: 6 },
+  { id: 'spacious', name: 'Spacious', desc: 'Extra breathing room, easier to tap.', gap: 10, h: 7 },
 ];
 // One-tap palettes for Settings → Appearance (background, accent, text).
 const SIGNATURE_PALETTES = [
+  { name: 'Midnight', bg: '#0A0C10', accent: '#5B8CFF', fg: '#F5F6F8' },
+  { name: 'Terminal', bg: '#0D0F0C', accent: '#7FDB6E', fg: '#D8E8D0' },
+  { name: 'Clean', bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
+  { name: 'Paper', bg: '#F6F1E7', accent: '#8A6D3B', fg: '#2B2620' },
   { name: 'Obsidian Gold', bg: '#0E0E10', accent: '#D4AF37', fg: '#F3EFE6' },
   { name: 'Deep Ocean', bg: '#0B1622', accent: '#38BDF8', fg: '#E6F1F8' },
   { name: 'Forest Night', bg: '#0F1A14', accent: '#5FD08F', fg: '#E4EFE7' },
@@ -4499,7 +4523,6 @@ const SIGNATURE_PALETTES = [
   { name: 'Espresso', bg: '#1B1512', accent: '#D08A4E', fg: '#F1E7DD' },
   { name: 'Ivory Ink', bg: '#FAF8F3', accent: '#1E3A8A', fg: '#1A1C22' },
   { name: 'Rosé', bg: '#FBF4F3', accent: '#B83A62', fg: '#2A1E22' },
-  { name: 'Mint Paper', bg: '#F3F8F5', accent: '#0F766E', fg: '#16211D' },
 ];
 // Each vibe's own bg/accent/fg — used as the fallback when a color
 // override leaves a field unset. Mirrors the CSS blocks above; keep
@@ -4555,9 +4578,10 @@ function isDarkColor(hex) {
 
 /* =========================================================
    THEME SETTINGS — single source of truth
-   { vibe: 'notepad', colorOverrides: { bg, accent, fg }, fontScale }
+   { colorOverrides: { bg, accent, fg }, fontScale, fontFamily, density }
    colorOverrides fields are independently nullable — null means
-   "use this vibe's own color." fontScale is a continuous multiplier
+   "use the default (Classic) color." The light or dark base style
+   (data-vibe) follows the background color. fontScale is a continuous multiplier
    with its own default (1), clamped to [0.85, 1.25]. Layout and font
    FAMILY override slots will be added the same way later.
    ========================================================= */
@@ -4574,15 +4598,18 @@ function getThemeSettings() {
     var raw = localStorage.getItem(THEME_STORAGE_KEY);
     if (raw) {
       var parsed = JSON.parse(raw);
+      const o = Object.assign({ bg: null, accent: null, fg: null }, parsed.colorOverrides);
+      // Settings saved when there were vibes: keep that vibe's colors as a palette.
+      const old = parsed.vibe && parsed.vibe !== 'notepad' && VIBE_BASE_COLORS[parsed.vibe];
       return {
-        vibe: VIBE_BASE_COLORS[parsed.vibe] ? parsed.vibe : 'notepad',
-        colorOverrides: Object.assign({ bg: null, accent: null, fg: null }, parsed.colorOverrides),
+        colorOverrides: old ? { bg: o.bg || old.bg, accent: o.accent || old.accent, fg: o.fg || old.fg } : o,
         fontScale: clampFontScale(parsed.fontScale),
         fontFamily: parsed.fontFamily && fontFamilyCss(parsed.fontFamily) ? parsed.fontFamily : null,
+        density: DENSITY_OPTIONS.some(d => d.id === parsed.density) ? parsed.density : 'comfortable',
       };
     }
   } catch (e) {}
-  return { vibe: 'notepad', colorOverrides: { bg: null, accent: null, fg: null }, fontScale: 1, fontFamily: null };
+  return { colorOverrides: { bg: null, accent: null, fg: null }, fontScale: 1, fontFamily: null, density: 'comfortable' };
 }
 
 function saveThemeSettings(settings) {
@@ -4604,10 +4631,14 @@ const TOKEN_KEYS = [
 // pure CSS, identical to having no theme system at all. Font scale
 // always applies (it has its own default, not a vibe fallback).
 function applyTheme(settings) {
-  document.documentElement.setAttribute('data-vibe', settings.vibe);
+  // The base style (shadows, status colors, form controls) follows the background: light or dark.
+  const bgNow = settings.colorOverrides.bg;
+  document.documentElement.setAttribute('data-vibe', bgNow && !isDarkColor(bgNow) ? 'clean' : 'notepad');
+  if (settings.density && settings.density !== 'comfortable') document.documentElement.setAttribute('data-density', settings.density);
+  else document.documentElement.removeAttribute('data-density');
   TOKEN_KEYS.forEach(k => document.documentElement.style.removeProperty('--' + k));
   if (hasColorOverride(settings.colorOverrides)) {
-    const base = VIBE_BASE_COLORS[settings.vibe];
+    const base = VIBE_BASE_COLORS.notepad;
     const bg = settings.colorOverrides.bg || base.bg;
     const accent = settings.colorOverrides.accent || base.accent;
     const fg = settings.colorOverrides.fg || base.fg;
@@ -4680,7 +4711,6 @@ function renderFontFamilyControl() {
     </button>`).join('');
   const opt = FONT_FAMILY_OPTIONS.find(o => o.id === current);
   document.getElementById('tp-font-name').textContent = opt ? opt.label.replace(' (default)', '') : 'Inter';
-  document.getElementById('font-terminal-note').hidden = settings.vibe !== 'terminal';
 }
 document.getElementById('font-grid').addEventListener('click', e => {
   const card = e.target.closest('[data-font]');
@@ -4693,16 +4723,12 @@ document.getElementById('size-presets').addEventListener('click', e => {
   if (b) setFontScale(parseFloat(b.dataset.size));
 });
 
-function setVibe(vibe) {
-  // Overrides are layered on top of whichever vibe is selected, so
-  // switching vibes keeps them active rather than clearing them.
+function setDensity(id) {
   const settings = getThemeSettings();
-  settings.vibe = vibe;
+  settings.density = id;
   saveThemeSettings(settings);
   applyTheme(settings);
-  renderVibeGrid();
-  renderColorControls();
-  renderFontFamilyControl();
+  renderDensityGrid();
 }
 
 function setColorOverride(key, value, rerender) {
@@ -4742,36 +4768,26 @@ const sameHex = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
-function vibePreview(v) {
-  const c = v.p;
-  const bars = [38, 62, 46, 80, 58, 92];
-  return `<div class="vibe-preview" aria-hidden="true" style="--pv-bg:${c.bg};--pv-surface:${c.surface};--pv-border:${c.border};--pv-ink:${c.ink};--pv-muted:${c.muted};--pv-accent:${c.accent};--pv-soft:${c.soft};${v.mono ? "--pv-font:var(--font-mono);" : ''}">
-    <div class="pv-side"><i class="pv-logo"></i><i></i><i class="on"></i><i></i></div>
-    <div class="pv-main">
-      <div class="pv-head"><b></b><span class="pv-btn"></span></div>
-      <div class="pv-tiles"><div class="pv-tile"><em>Profit</em><strong>$1,284</strong></div><div class="pv-tile"><em>Sold</em><strong>36</strong></div></div>
-      <div class="pv-chart">${bars.map(h => `<span style="height:${h}%"></span>`).join('')}</div>
-    </div>
-  </div>`;
-}
-
-function renderVibeGrid() {
-  const settings = getThemeSettings();
-  document.getElementById('vibe-grid').innerHTML = VIBE_PRESETS.map(v => `
-    <button class="vibe-card ${v.id === settings.vibe ? 'selected' : ''}" data-vibe-select="${v.id}" type="button" aria-pressed="${v.id === settings.vibe}">
-      ${vibePreview(v)}
+// Each option draws a little card whose rows sit at that density's spacing.
+function renderDensityGrid() {
+  const current = getThemeSettings().density;
+  document.getElementById('density-grid').innerHTML = DENSITY_OPTIONS.map(d => `
+    <button type="button" class="vibe-card density-card ${d.id === current ? 'selected' : ''}" data-density-select="${d.id}" aria-pressed="${d.id === current}">
+      <span class="density-preview" aria-hidden="true" style="--g:${d.gap}px;--h:${d.h}px">
+        ${[72, 54, 64, 46, 58, 50].map(w => `<span class="dp-row"><i class="dp-dot"></i><i style="width:${w}%"></i><b></b></span>`).join('')}
+      </span>
       <span class="vibe-check" aria-hidden="true">${CHECK_SVG}</span>
-      <span class="vibe-meta"><span class="vibe-name">${v.name}</span><span class="vibe-desc">${v.desc}</span></span>
-    </button>
-  `).join('');
-  document.querySelectorAll('[data-vibe-select]').forEach(btn => {
-    btn.addEventListener('click', () => setVibe(btn.dataset.vibeSelect));
-  });
+      <span class="vibe-meta"><span class="vibe-name">${d.name}</span><span class="vibe-desc">${d.desc}</span></span>
+    </button>`).join('');
 }
+document.getElementById('density-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-density-select]');
+  if (b) setDensity(b.dataset.densitySelect);
+});
 
 function effectiveColors() {
   const settings = getThemeSettings();
-  const base = VIBE_BASE_COLORS[settings.vibe];
+  const base = VIBE_BASE_COLORS.notepad;
   return {
     bg: settings.colorOverrides.bg || base.bg,
     accent: settings.colorOverrides.accent || base.accent,
@@ -4803,14 +4819,14 @@ function renderColorControls() {
   container.innerHTML = `
     <div class="color-studio">
       <div class="custom-color-header">
-        <div><div class="appear-label" style="margin:0">Colors</div>${overridden ? `<span class="customized-tag">${activePalette ? esc(activePalette.name) : 'Custom colors'} on ${esc(VIBE_PRESETS.find(v => v.id === settings.vibe).name)}</span>` : ''}</div>
+        <div><div class="appear-label" style="margin:0">Colors</div>${overridden ? `<span class="customized-tag">${activePalette ? esc(activePalette.name) : 'Custom colors'}</span>` : ''}</div>
       </div>
 
       <div class="studio-sub" id="palette-label">Palettes</div>
       <div class="palette-grid" role="group" aria-labelledby="palette-label">
         <button type="button" class="palette-card ${overridden ? '' : 'selected'}" data-palette="default" aria-pressed="${!overridden}">
-          ${(() => { const vb = VIBE_BASE_COLORS[settings.vibe]; return `<span class="palette-swatch" style="--p-bg:${vb.bg};--p-accent:${vb.accent};--p-fg:${vb.fg}" aria-hidden="true"><i></i><i></i><i></i></span>`; })()}
-          <span class="palette-name">${esc(VIBE_PRESETS.find(v => v.id === settings.vibe).name)}<span class="palette-sub">Vibe default</span></span>
+          ${(() => { const vb = VIBE_BASE_COLORS.notepad; return `<span class="palette-swatch" style="--p-bg:${vb.bg};--p-accent:${vb.accent};--p-fg:${vb.fg}" aria-hidden="true"><i></i><i></i><i></i></span>`; })()}
+          <span class="palette-name">Classic<span class="palette-sub">Default</span></span>
         </button>
         ${SIGNATURE_PALETTES.map((pl, i) => `<button type="button" class="palette-card ${activePalette === pl ? 'selected' : ''}" data-palette="${i}" aria-pressed="${activePalette === pl}">
           <span class="palette-swatch" style="--p-bg:${pl.bg};--p-accent:${pl.accent};--p-fg:${pl.fg}" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -4832,7 +4848,7 @@ function renderColorControls() {
         </div>
         <div class="readability" id="readability" aria-live="polite">${readabilityHtml(eff)}</div>
       </div>
-      <div class="custom-note">Colors sit on top of your vibe, so layout and style stay the same. Surfaces, borders and muted text are worked out from these three. Profit green and warning red never change, so your numbers always read the same.</div>
+      <div class="custom-note">Light backgrounds switch the app to its light style automatically. Surfaces, borders and muted text are worked out from these three. Profit green and warning red never change, so your numbers always read the same.</div>
     </div>
   `;
   // Picks near-black or near-white text, whichever reads better on this background.
@@ -6300,7 +6316,7 @@ function renderAll() {
 
 populatePlatformFilter();
 linkFieldLabels();
-renderVibeGrid();
+renderDensityGrid();
 renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();

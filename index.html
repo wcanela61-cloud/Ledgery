@@ -2042,6 +2042,29 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
 /* Bot protection: Turnstile only shows when it needs a tick */
 .captcha-slot { display: flex; justify-content: center; }
 .captcha-slot:has(iframe) { margin: 2px 0 8px; }
+/* Plans (Billing): shown on the sign-in page */
+.plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 4px 0 16px; }
+.plan-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 18px 16px 14px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); transition: border-color 160ms ease, box-shadow 160ms ease; }
+.plan-card:hover { border-color: var(--accent); }
+.plan-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plan-card.is-best { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.plan-card:disabled { opacity: 0.6; cursor: progress; }
+.plan-badge { position: absolute; top: -10px; right: 12px; padding: 1px 7px; border: 1.5px solid var(--success-text); border-radius: 3px; background: var(--surface-2);
+  color: var(--success-text); font-family: var(--font-num); font-size: 0.625rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(2deg); }
+.plan-name { font-family: var(--font-display); font-variant: small-caps; text-transform: lowercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-muted); }
+.plan-price { font-family: var(--font-display); font-size: 2rem; font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; }
+.plan-price small { font-family: var(--font-sans); font-size: 0.8rem; font-weight: 500; color: var(--ink-muted); letter-spacing: 0; margin-left: 2px; }
+.plan-note { font-size: 0.78rem; color: var(--ink-muted); }
+.plan-cta { margin-top: 10px; align-self: stretch; text-align: center; padding: 8px 10px; border-radius: var(--radius); background: var(--accent); color: #fff; font-weight: 600; font-size: 0.85rem; }
+:root[data-vibe="notepad"] .plan-cta { color: #101312; }
+.plan-card:not(.is-best) .plan-cta { background: transparent; color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
+.plan-card.is-busy .plan-cta { opacity: 0.7; }
+.plan-card.is-busy .plan-cta::after { content: '…'; }
+.plan-perks { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; font-size: 0.85rem; color: var(--ink-muted); }
+.plan-perks li { padding-left: 22px; position: relative; }
+.plan-perks li::before { content: ''; position: absolute; left: 2px; top: 0.35em; width: 10px; height: 5px; border-left: 2px solid var(--success-text); border-bottom: 2px solid var(--success-text); transform: rotate(-45deg); }
+@media (max-width: 380px) { .plan-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -2648,7 +2671,7 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
   <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-account-title" aria-describedby="delete-account-body">
     <div class="modal-head"><h3 id="delete-account-title">Delete your account?</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
     <div id="delete-account-body">
-      <p class="confirm-body">This permanently deletes <strong id="delete-account-email"></strong>, every item and sale in it, and all your photos, on every device. It can't be undone.</p>
+      <p class="confirm-body">This permanently deletes <strong id="delete-account-email"></strong>, every item and sale in it, and all your photos, on every device, and cancels any subscription straight away. It can't be undone.</p>
       <p class="custom-note">Want a copy first? <button type="button" class="link-btn" id="delete-account-backup">Download a backup</button>.</p>
     </div>
     <form id="delete-account-form" novalidate>
@@ -6761,6 +6784,9 @@ const LEDGERY_SUPABASE = {
   // Bot protection with Cloudflare Turnstile (README → Bot protection). Paste the site key here
   // and deploy BEFORE switching CAPTCHA on in Supabase. Empty = off.
   captcha: { siteKey: '' },
+  // Paid plan via Stripe (README → Billing). Leave off until the Stripe and Supabase
+  // setup is done; when on, signed-in people need a trial or subscription to use the app.
+  billing: { enabled: false, trialDays: 7, month: '$9', year: '$90', yearPerMonth: '$7.50' },
 };
 // Read before Supabase tidies the address bar: did we arrive from an email link?
 const AUTH_LANDING = (() => {
@@ -6842,7 +6868,11 @@ async function handleSession(session) {
   const user = session ? session.user : null;
   const changed = (user && user.id) !== (Account.user && Account.user.id);
   Account.user = user;
-  if (changed && user) await startSync();
+  if (changed) Billing.reset();
+  if (changed && user) {
+    if (BILLING_LANDING.value === 'success') { BILLING_LANDING.value = ''; Billing.waitForPlan(); } else Billing.load();
+    await startSync();
+  }
   if (!user) { Account.sync = 'idle'; Account.conflict = null; }
   renderAccountUI();
   if (changed) renderDashboard();
@@ -6971,6 +7001,100 @@ const PhotoSync = (() => {
   return { schedule, run, line, state };
 })();
 
+/* ---------- Billing: the paid plan (Stripe; README → Billing) ----------
+   Stripe is the source of truth. Its webhook (supabase/functions/stripe-webhook) keeps
+   public.subscriptions current and this reads that row. Checkout and "Manage subscription"
+   are Stripe's own pages, opened by supabase/functions/billing; no key lives in this file. */
+// Where Stripe sent us back from: ?billing=success | cancel | portal (read once, then tidied away).
+const BILLING_LANDING = (() => {
+  const params = new URLSearchParams(location.search);
+  const value = params.get('billing') || '';
+  if (value) {
+    params.delete('billing');
+    const q = params.toString();
+    try { history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (e) {}
+  }
+  return { value };
+})();
+const BILLING_CACHE_KEY = 'ledgery-billing';
+const Billing = (() => {
+  const cfg = LEDGERY_SUPABASE.billing || {};
+  const LIVE = ['trialing', 'active', 'past_due']; // past_due: Stripe is still retrying the card
+  const state = { status: 'idle', row: null, waiting: false }; // idle | loading | ready | error
+  const on = () => !!cfg.enabled && Account.status === 'ready' && !!Account.user;
+  const live = row => !!row && LIVE.includes(row.status);
+  function cached() {
+    try { const c = JSON.parse(localStorage.getItem(BILLING_CACHE_KEY) || 'null'); return c && c.userId === Account.user.id ? c.row : undefined; } catch (e) { return undefined; }
+  }
+  function hasAccess() {
+    if (!on()) return true;
+    if (state.status === 'ready') return live(state.row);
+    // Can't reach the account service: go by the last status seen here, and never lock
+    // someone out just because the very first check failed.
+    if (state.status === 'error') { const c = cached(); return c === undefined || live(c); }
+    return false;
+  }
+  const checking = () => on() && (state.status === 'idle' || state.status === 'loading' || state.waiting);
+  const blocked = () => on() && !checking() && !hasAccess();
+  function reset() { state.status = 'idle'; state.row = null; state.waiting = false; }
+  async function load() {
+    if (!on()) return;
+    if (state.status === 'idle') state.status = 'loading'; // a refresh keeps showing the last known state
+    const uid = Account.user.id;
+    try {
+      const { data, error } = await Account.client.from('subscriptions')
+        .select('status, billing_interval, trial_end, current_period_end, cancel_at_period_end, trial_used, stripe_subscription_id')
+        .eq('user_id', uid).maybeSingle();
+      if (error) throw error;
+      if (!Account.user || Account.user.id !== uid) return;
+      state.row = data; state.status = 'ready';
+      try { localStorage.setItem(BILLING_CACHE_KEY, JSON.stringify({ userId: uid, row: data })); } catch (e) {}
+    } catch (e) {
+      if (Account.user && Account.user.id === uid) state.status = 'error';
+    }
+    renderAccountUI();
+  }
+  // Back from Checkout: Stripe's webhook usually lands within a few seconds.
+  async function waitForPlan() {
+    if (!on()) return;
+    state.waiting = true; renderAccountUI();
+    for (let i = 0; i < 15; i++) {
+      await load();
+      if (live(state.row) || !on()) break;
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    state.waiting = false;
+    if (on() && !live(state.row)) Account.notice = '!Stripe is still confirming your subscription. Refresh this page in a minute; you won’t be charged twice.';
+    renderAccountUI();
+  }
+  // Opens Stripe Checkout (action 'checkout' with plan 'month' | 'year') or the billing portal ('portal').
+  async function open(action, plan, btn) {
+    if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+    try {
+      const { data, error } = await Account.client.functions.invoke('billing', { body: { action, plan } });
+      if (error || !data || !data.url) throw error || new Error('no url');
+      location.assign(data.url);
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
+      const msg = 'Couldn’t open the secure payment page. Check your connection and try again.';
+      if (gateOpen()) { Account.notice = '!' + msg; renderGate(true); } else showUndo(msg, null);
+      load();
+    }
+  }
+  // Settings → Account: "Free trial · ends Oct 5", "Yearly plan · renews …".
+  function line() {
+    const r = state.row;
+    if (!on() || !r || !r.status) return '';
+    const day = ts => (ts ? fmtDate(isoDate(new Date(ts))) : '');
+    const plan = r.billing_interval === 'year' ? 'Yearly plan' : 'Monthly plan';
+    if (r.status === 'trialing') return `Free trial · ${r.cancel_at_period_end ? 'ends' : 'first payment'} ${day(r.trial_end)}`;
+    if (r.status === 'active') return `${plan} · ${r.cancel_at_period_end ? 'ends' : 'renews'} ${day(r.current_period_end)}`;
+    if (r.status === 'past_due') return `${plan} · payment failed, update your card`;
+    return 'No active plan';
+  }
+  return { cfg, state, on, live, hasAccess, checking, blocked, reset, load, waitForPlan, open, line };
+})();
+
 function syncFailed(e) {
   Account.sync = 'error';
   Account.syncError = (e && e.message) || 'Network problem';
@@ -7071,6 +7195,17 @@ document.getElementById('delete-account-form').addEventListener('submit', async 
   errBox.hidden = true;
   btn.disabled = true; btn.textContent = 'Deleting…';
   const uid = Account.user.id;
+  // Stop billing first: if that fails, delete nothing, so nobody is charged for a deleted account.
+  if (Billing.on()) {
+    let cancelled = false;
+    try { const r = await Account.client.functions.invoke('billing', { body: { action: 'cancel' } }); cancelled = !r.error; } catch (e2) {}
+    if (!cancelled) {
+      errBox.textContent = "Couldn't cancel your subscription, so nothing was deleted. Check your connection and try again.";
+      errBox.hidden = false;
+      btn.disabled = false; btn.textContent = 'Delete account';
+      return;
+    }
+  }
   let removedLogin = true;
   try {
     const res = await Account.client.rpc('delete_my_account');
@@ -7127,8 +7262,10 @@ const displayName = () => shopName() || profileName() || (Account.user && Accoun
 
 // The sign-in page covers the app whenever accounts are on and nobody is signed in.
 const AUTH_MODES = ['signin', 'signup', 'reset', 'check-email'];
-const gateWanted = () => LEDGERY_SUPABASE.requireSignIn !== false && accountsConfigured() && !Account.inPreview
-  && (Account.status === 'loading' || (Account.status === 'ready' && !Account.user));
+// It also covers it while a signed-in person has no trial or subscription (Billing), showing the plans.
+const gateWanted = () => accountsConfigured() && !Account.inPreview && (
+  (LEDGERY_SUPABASE.requireSignIn !== false && (Account.status === 'loading' || (Account.status === 'ready' && !Account.user)))
+  || Billing.checking() || Billing.blocked());
 const gateOpen = () => !document.getElementById('auth-gate').hidden;
 let gateKey = '';
 function renderGate(force) {
@@ -7139,17 +7276,65 @@ function renderGate(force) {
   document.documentElement.classList.toggle('gated', show);
   if (!show) { gateKey = ''; return; }
   if (!document.querySelector('#auth-pencil .pencil')) document.getElementById('auth-pencil').innerHTML = pencilSvg();
-  const key = Account.status + '|' + Account.modalMode;
+  const billingView = Account.user ? (Billing.checking() ? 'wait' : 'plans') : '';
+  const key = [Account.status, Account.modalMode, billingView, Billing.state.waiting, Billing.state.row && Billing.state.row.status].join('|');
   if (!force && key === gateKey) return; // don't wipe what someone is typing
   gateKey = key;
-  if (Account.status === 'loading') {
+  if (Account.status === 'loading' || billingView === 'wait') {
     document.getElementById('auth-title').textContent = 'Ledgery';
-    document.getElementById('auth-body').innerHTML = '<div class="auth-loading" role="status"><span class="auth-spinner" aria-hidden="true"></span>Opening your ledger…</div>';
+    document.getElementById('auth-body').innerHTML = `<div class="auth-loading" role="status"><span class="auth-spinner" aria-hidden="true"></span>${Billing.state.waiting ? 'Finishing your subscription…' : 'Opening your ledger…'}</div>`;
     return;
   }
+  if (billingView === 'plans') { renderPlans(document.getElementById('auth-body'), document.getElementById('auth-title')); return; }
   if (!AUTH_MODES.includes(Account.modalMode)) Account.modalMode = 'signin';
   renderAuthForm(document.getElementById('auth-body'), document.getElementById('auth-title'), true);
 }
+// The plan picker: shown on the sign-in page to anyone signed in without a trial or subscription.
+function renderPlans(body, titleEl) {
+  const cfg = Billing.cfg, row = Billing.state.row;
+  const trial = !(row && row.trial_used);
+  const stuck = row && ['unpaid', 'incomplete', 'paused'].includes(row.status); // a subscription exists but isn't paid
+  const ended = row && row.status === 'canceled';
+  titleEl.textContent = stuck ? 'Update your payment' : ended ? 'Welcome back' : trial ? 'Start your free trial' : 'Choose your plan';
+  const sub = stuck ? 'Your last payment didn’t go through. Update your card to keep going. Your ledger is safe.'
+    : ended ? 'Your subscription has ended. Pick a plan to carry on where you left off. Your ledger is safe.'
+    : trial ? `Try everything free for ${cfg.trialDays} days. You’ll add a card now, but you won’t be charged until the trial ends, and you can cancel any time before then.`
+    : 'Pick a plan to start using Ledgery.';
+  const notice = Account.notice ? `<div class="account-notice ${Account.notice.startsWith('!') ? 'bad' : ''}" role="alert">${esc(Account.notice.replace(/^!/, ''))}</div>` : '';
+  const cta = trial ? 'Start free trial' : 'Subscribe';
+  body.innerHTML = `<p class="auth-sub">${sub}</p>${notice}
+    ${stuck ? '<button type="button" class="btn btn-primary auth-submit" data-billing="portal">Update payment method</button>' : `
+    <div class="plan-grid" role="group" aria-label="Plans">
+      <button type="button" class="plan-card is-best" data-plan="year">
+        <span class="plan-badge">2 months free</span>
+        <span class="plan-name">Yearly</span>
+        <span class="plan-price">${esc(cfg.year)}<small>/year</small></span>
+        <span class="plan-note">${esc(cfg.yearPerMonth)} a month</span>
+        <span class="plan-cta">${cta}</span>
+      </button>
+      <button type="button" class="plan-card" data-plan="month">
+        <span class="plan-name">Monthly</span>
+        <span class="plan-price">${esc(cfg.month)}<small>/month</small></span>
+        <span class="plan-note">Cancel any time</span>
+        <span class="plan-cta">${cta}</span>
+      </button>
+    </div>
+    <ul class="plan-perks">
+      <li>Inventory, sales and real profit after fees</li>
+      <li>Sync between your phone and computer, photos included</li>
+      <li>Unlimited items, analytics and spreadsheet exports</li>
+    </ul>`}
+    ${row && row.stripe_subscription_id && !stuck ? '<p class="account-switch"><button type="button" class="link-btn" data-billing="portal">Manage billing</button></p>' : ''}
+    <p class="auth-legal">Payments are handled securely by Stripe. By subscribing you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>.</p>
+    <p class="account-switch">Signed in as <strong class="acct-sent-to"></strong> &middot; <button type="button" class="link-btn" data-account="signout">Sign out</button></p>`;
+  body.querySelector('.acct-sent-to').textContent = (Account.user && Account.user.email) || '';
+}
+document.body.addEventListener('click', e => {
+  const plan = e.target.closest('[data-plan]');
+  if (plan) { Account.notice = ''; Billing.open('checkout', plan.dataset.plan, plan); return; }
+  const portal = e.target.closest('[data-billing="portal"]');
+  if (portal) Billing.open('portal', undefined, portal);
+});
 // Re-draw whichever surface is showing the sign-in forms right now.
 function renderAuthSurface() { if (gateOpen()) renderGate(true); else renderAccountModal(); }
 
@@ -7194,8 +7379,9 @@ function renderAccountUI() {
       panel.innerHTML = `<div class="account-row"><div class="account-who"><span class="account-avatar" aria-hidden="true"></span><div>
           <div class="account-name"></div><div class="account-email"></div>
           <div class="account-sync ${Account.sync === 'error' ? 'bad' : ''}">${esc(syncLine())}${Account.sync === 'error' && Account.syncError ? ` <span class="field-hint">(${esc(Account.syncError)})</span>` : ''}</div>
-          ${PhotoSync.line() ? `<div class="account-sync ${PhotoSync.state.status === 'missing' || PhotoSync.state.status === 'error' ? 'bad' : ''}">${esc(PhotoSync.line())}</div>` : ''}</div></div>
-        <div class="account-actions"><button type="button" class="btn" data-account="profile">Edit profile</button><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>
+          ${PhotoSync.line() ? `<div class="account-sync ${PhotoSync.state.status === 'missing' || PhotoSync.state.status === 'error' ? 'bad' : ''}">${esc(PhotoSync.line())}</div>` : ''}
+          ${Billing.line() ? `<div class="account-sync ${Billing.state.row.status === 'past_due' ? 'bad' : ''}">${esc(Billing.line())}</div>` : ''}</div></div>
+        <div class="account-actions">${Billing.on() && Billing.state.row && Billing.state.row.stripe_subscription_id ? '<button type="button" class="btn" data-billing="portal">Manage subscription</button>' : ''}<button type="button" class="btn" data-account="profile">Edit profile</button><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>
         <div class="account-danger"><span class="custom-note">Permanently remove your account, ledger and photos.</span><button type="button" class="btn btn-sm btn-danger-outline" data-account="delete">Delete account</button></div>`;
       panel.querySelector('.account-avatar').textContent = (displayName()[0] || '?').toUpperCase();
       panel.querySelector('.account-name').textContent = [profileName(), shopName()].filter(Boolean).join(' · ') || 'Add your name and shop';
@@ -7554,7 +7740,11 @@ document.querySelector('.sidebar-foot').addEventListener('click', e => {
 }, true);
 
 // Pick up changes made on another device when you come back, and retry after going offline.
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Account.user && Account.sync !== 'syncing' && Account.sync !== 'conflict') startSync(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !Account.user) return;
+  if (Account.sync !== 'syncing' && Account.sync !== 'conflict') startSync();
+  if (Billing.on() && !Billing.state.waiting) Billing.load(); // e.g. back from managing the plan in another tab
+});
 window.addEventListener('online', () => { if (Account.user && Account.sync === 'error') startSync(); });
 setInterval(() => { if (Account.user && Account.sync === 'synced') renderAccountUI(); }, 60000); // keeps "Synced N min ago" fresh
 

@@ -86,6 +86,47 @@ Do the steps **in this order**. If Supabase starts requiring a CAPTCHA before th
 
 To turn it off, switch it off in Supabase first, then empty `siteKey`.
 
+## Billing (Stripe)
+
+Ledgery is a paid app: **$9 a month or $90 a year, with a 7-day free trial** (card needed to start it). People sign up, then pick a plan on Stripe's own checkout page. Without a trial or subscription, the app shows the plans instead of the dashboard. Their data is kept either way.
+
+How it fits together (the Stripe key never goes in `index.html`):
+- [`supabase/functions/billing`](supabase/functions/billing/index.ts) opens Stripe Checkout, opens the Customer Portal ("Manage subscription"), and cancels the subscription when someone deletes their account.
+- [`supabase/functions/stripe-webhook`](supabase/functions/stripe-webhook/index.ts) hears from Stripe (trial started, renewed, payment failed, cancelled…) and updates the `subscriptions` table.
+- `index.html` reads that table. It's switched **off** (`billing: { enabled: false }`) until the steps below are done.
+
+Do everything in a Stripe **sandbox** first (a test copy of your account where no real money moves), then repeat steps 1–4 and 6 in live mode to launch.
+
+1. **Create a sandbox:** in the [Stripe Dashboard](https://dashboard.stripe.com), open the account menu (top left) → **Sandboxes → Create sandbox**, and switch into it.
+2. **Create the plan:** **Product catalog → Add product**. Name it `Ledgery`, add a **recurring** price of **$9 / month**, save, then **Add another price** of **$90 / year**. Copy both price IDs (`price_…`).
+3. **Create a restricted key** (safer than the secret key): **Developers → API keys → Create restricted key**, name it `Ledgery Supabase`, and set only these to the level shown: **Customers: Write, Checkout Sessions: Write, Customer portal: Write, Subscriptions: Read, Prices: Read, Products: Read**. Copy the key (`rk_test_…`). Don't paste it anywhere except step 6.
+4. **Set up the Customer Portal:** **Settings → Billing → Customer portal**. Turn on: update payment methods, view invoices, **cancel subscriptions (at the end of the billing period)**, and **switch plans** (add the Ledgery product so people can move between monthly and yearly). Save.
+5. **Emails:** **Settings → Billing → Subscriptions and emails**: turn on the **trial ending reminder** (card networks require it for trials) and **failed payment** emails. **Settings → Customer emails**: turn on receipts.
+6. **Supabase:**
+   1. **SQL Editor:** run [`supabase/billing.sql`](supabase/billing.sql) (already in `schema.sql` for new projects).
+   2. **Edge Functions → Deploy a new function → Via editor.** Name it `billing` and paste [`supabase/functions/billing/index.ts`](supabase/functions/billing/index.ts). Deploy. Do the same for `stripe-webhook` with [`supabase/functions/stripe-webhook/index.ts`](supabase/functions/stripe-webhook/index.ts), then open its **Details** and switch **Enforce JWT verification off** (Stripe can't sign in; the function checks Stripe's signature instead).
+      *With the Supabase CLI instead:* `supabase functions deploy billing` and `supabase functions deploy stripe-webhook --no-verify-jwt`.
+   3. **Edge Functions → Secrets**, add:
+      | Name | Value |
+      | --- | --- |
+      | `STRIPE_API_KEY` | the `rk_test_…` key from step 3 |
+      | `STRIPE_PRICE_MONTHLY` | the $9/month `price_…` |
+      | `STRIPE_PRICE_YEARLY` | the $90/year `price_…` |
+      | `SITE_URL` | `https://wcanela61-cloud.github.io/Ledgery/` (with the trailing `/`) |
+      | `STRIPE_WEBHOOK_SECRET` | from step 7 |
+7. **Webhook:** in Stripe, **Developers → Webhooks → Add destination**, endpoint URL `https://xbmclxwzanvrvsaddgib.supabase.co/functions/v1/stripe-webhook`, with these events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `customer.subscription.trial_will_end`, `invoice.paid`, `invoice.payment_failed`. Copy its **signing secret** (`whsec_…`) into the `STRIPE_WEBHOOK_SECRET` secret.
+8. **Switch it on:** in `index.html`, set `billing: { enabled: true, … }` and deploy.
+9. **Test** on the live site with Stripe's test cards (any future date, any CVC):
+   - `4242 4242 4242 4242`: the trial starts; Settings → Account shows "Free trial · first payment …" and **Manage subscription**.
+   - Cancel in **Manage subscription**: it shows when access ends. In the sandbox, cancel immediately from the Stripe Dashboard to see the plans screen come back.
+   - `4000 0000 0000 0341`: the card is saved but the first charge fails. Use Stripe's **test clocks** to jump past the trial and see "payment failed".
+   - Delete a test account: its Stripe customer and subscription disappear too.
+10. **Go live:** activate your Stripe account (business and bank details), then repeat steps 2–5 and 7 in **live mode** and replace the four Stripe secrets with the live values (`rk_live_…`, live `price_…`, new `whsec_…`). Run through Stripe's [go-live checklist](https://docs.stripe.com/get-started/checklist/go-live).
+
+**Sales tax:** if you'll be charging US or EU customers, you may need to collect sales tax or VAT. Look at [Stripe Tax](https://docs.stripe.com/billing/taxes/collect-taxes) before launch. It's left off on purpose, because switching it on without a tax registration collects nothing and gives no error.
+
+**Keeping keys safe:** Stripe keys live only in Supabase's secrets. Never commit one. `.githooks/pre-commit` blocks commits that contain one; turn it on once with `git config core.hooksPath .githooks`. If a key ever leaks, roll it straight away in **Developers → API keys**.
+
 ## Install as an app
 
 Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens offline (`sw.js`): pages are always fetched fresh when online, so new deploys show up right away, and the last copy is used offline. Account and sync requests are never cached. **Settings → App** shows an **Install app** button where the browser supports it (Chrome, Edge, Android), and "Share → Add to Home Screen" instructions on iPhone. Shared links show a preview card (`brand/og-image.png`).
@@ -100,6 +141,7 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 - [ ] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
 - [ ] **Authentication → SMTP:** connect your own email sender (Resend, Postmark, SendGrid…). The built-in one only sends a few emails an hour. Then brand the email templates.
 - [ ] Bot protection: set up Cloudflare Turnstile (see **Bot protection** below).
+- [ ] Billing: finish the **Billing (Stripe)** steps in a sandbox, test with `4242 4242 4242 4242`, then switch to live keys.
 - [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
 - [x] Put a real contact email in `privacy.html` and `terms.html`.
 - [ ] Check plan limits: the free Supabase plan has 500 MB of database (photos count) and pauses after a week without activity.

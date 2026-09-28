@@ -1,0 +1,7 @@
+#!/bin/sh
+# Stops a commit that contains a Stripe key or webhook secret. They belong in Supabase secrets.
+# Turn on once per clone: git config core.hooksPath .githooks
+if git diff --cached -U0 | grep -E '^\+' | grep -qE '(sk|rk)_(live|test)_[0-9A-Za-z]{10,}|whsec_[0-9A-Za-z]{10,}'; then
+  echo "Commit blocked: it contains a Stripe key or webhook secret. Put it in Supabase → Edge Functions → Secrets instead." >&2
+  exit 1
+fi

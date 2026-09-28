@@ -1967,7 +1967,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
         <div class="field-grid">
           <div class="field full"><label>Order number</label><div class="order-no" id="ai-order-no"></div><input type="hidden" name="purchase_order"><span class="field-hint">Generated automatically from the date, time and a random code</span></div>
           <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
-          <div class="field"><label>Time purchased</label><input name="purchase_time" type="time"></div>
+          <div class="field"><label>Time entered</label><input name="purchase_time" type="time"></div>
           <div class="field"><label>Total spent</label><input name="total_spent" type="number" step="0.01" min="0" placeholder="Blank if unknown"></div>
           <div class="field" data-create-only data-batch-field><label>Quantity</label><input name="quantity" type="number" min="1" max="100" step="1" value="1"><span class="field-hint" id="ai-qty-hint" hidden></span></div>
           <div class="field"><label>Cost per item</label><div class="calc-inline" id="ai-cost-each">&mdash;</div><span class="field-hint" id="ai-cost-hint">Worked out automatically</span></div>
@@ -2065,7 +2065,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
         <div class="field"><label>Total paid *</label><input required name="total_cost" type="number" step="0.01" min="0"></div>
         <div class="field full"><label>Order number</label><div class="order-no" id="bundle-order-no"></div><input type="hidden" name="purchase_order"></div>
         <div class="field"><label>Date purchased</label><input name="purchase_date" type="date"></div>
-        <div class="field"><label>Time purchased</label><input name="purchase_time" type="time"></div>
+        <div class="field"><label>Time entered</label><input name="purchase_time" type="time"></div>
         <div class="field full"><label>Items * <span class="field-hint">one per line</span></label><textarea required name="item_names" rows="5" placeholder="Levi's 501 jeans&#10;Champion hoodie&#10;Nike Air Max 90"></textarea></div>
       </div>
       <div class="calc-box" id="bundle-calc"><div class="calc-item"><div class="calc-label">Each item's cost</div><div class="calc-val" id="bundle-each">&mdash;</div></div></div>
@@ -5472,7 +5472,7 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
   const kind = btn.dataset.export;
   let csv;
   if (kind === 'inventory') {
-    csv = toCsv(['ID', 'Item', 'Brand', 'Department', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time purchased', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
+    csv = toCsv(['ID', 'Item', 'Brand', 'Department', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time entered', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
       items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(DEPARTMENTS[i.department] || ''), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
         csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));

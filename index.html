@@ -1736,7 +1736,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
 :root[data-vibe] {
   --glow: transparent;
   --highlight: 0 0 0 transparent;
-  --card-bg: var(--surface);
+  --card-bg: linear-gradient(var(--surface), var(--surface)); /* an image layer: used as `background: var(--card-bg), <color>` */
   --hairline: var(--border);
   --shadow-sm: 0 1px 0 rgba(31, 28, 23, 0.05);
   --shadow: 0 1px 0 rgba(31, 28, 23, 0.06), 0 2px 6px -4px rgba(31, 28, 23, 0.18);
@@ -1858,6 +1858,15 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
 .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .pchip-logo { background: none; box-shadow: none; border-radius: 0; }
 .pchip-logo svg { width: 100%; height: 100%; display: block; }
+/* Add-to-stock question with FIFO order */
+.merge-modal { max-width: 460px; }
+.fifo-box { margin: 12px 0 4px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--bg); }
+.fifo-title { font-family: var(--font-display); font-variant: small-caps; text-transform: lowercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-muted); margin-bottom: 6px; }
+.fifo-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-family: var(--font-num); font-size: 0.8438rem; }
+.fifo-list li span { margin-left: 8px; font-family: var(--font-sans); font-size: 0.75rem; color: var(--ink-muted); }
+.fifo-list .fifo-new { color: var(--accent-text); }
+.fifo-note { margin: 8px 0 0; font-size: 0.75rem; color: var(--ink-muted); }
+input:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -2419,6 +2428,19 @@ td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
 </div>
 
 <!-- DELETE CONFIRM MODAL — shared by Inventory and Sales -->
+<!-- ADD TO EXISTING STOCK? — asked when a new item matches stock you still have -->
+<div class="overlay" id="overlay-merge">
+  <div class="modal confirm-modal merge-modal" role="alertdialog" aria-modal="true" aria-labelledby="merge-title" aria-describedby="merge-body">
+    <div class="modal-head"><h3 id="merge-title">Add to your existing stock?</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
+    <div id="merge-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" data-close>Back</button>
+      <button type="button" class="btn" id="merge-separate">Keep separate</button>
+      <button type="button" class="btn btn-primary" id="merge-add">Add to stock</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay-confirm-delete">
   <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-body">
     <div class="modal-head"><h3 id="confirm-delete-title">Delete item?</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
@@ -2823,6 +2845,12 @@ function itemById(id) { return items.find(i => i.id === id); }
 // Batches: buying several of the same thing (quantity > 1) makes one unit per
 // piece, so each can sell on its own, tied together by a shared batch_id.
 function batchUnits(batchId) { return batchId ? items.filter(i => i.batch_id === batchId) : []; }
+// First in, first out: the oldest purchase sells first, each unit at its own cost.
+const fifoOrder = (a, b) => (a.purchase_date || '9999-99-99').localeCompare(b.purchase_date || '9999-99-99')
+  || (a.purchase_time || '').localeCompare(b.purchase_time || '') || a.id - b.id;
+const inStock = u => u.status === 'unsold' || u.status === 'listed' || u.status === 'returned';
+// Each "Add item" save is one purchase (lot), identified by its order number.
+const lotsOf = units => { const m = new Map(); [...units].sort(fifoOrder).forEach(u => { const k = u.purchase_order || 'u' + u.id; if (!m.has(k)) m.set(k, []); m.get(k).push(u); }); return [...m.values()]; };
 function isBatched(item) { return !!item && !!item.batch_id && batchUnits(item.batch_id).length > 1; }
 // Older data: units added with a quantity share an order number and a name.
 function groupLegacyBatches() {
@@ -3610,8 +3638,10 @@ function renderInventory() {
     const pool = b.units.filter(inStock); // units still in inventory
     const open = expandedBatches.has(entry.batchId);
     const costs = [...new Set(b.units.map(u => u.purchase_cost_cents))];
+    const nextUp = b.units.filter(inStock).sort(fifoOrder)[0];
     const costText = costs.includes(null) ? '<span class="badge badge-incomplete">Unknown</span>'
       : costs.length === 1 ? `${fmtCents(costs[0])} <span class="price-note">each</span>`
+      : nextUp ? `${fmtCents(nextUp.purchase_cost_cents)} <span class="price-note" title="First in, first out: the oldest purchase sells first">next (FIFO)</span>`
       : `${fmtCents(Math.min(...costs))}–${fmtCents(Math.max(...costs))}`;
     const counts = [['unsold', b.unsold], ['listed', b.listed], ['sold', showSold ? b.sold : 0], ['returned', b.returned]].filter(([, n]) => n);
     const platforms = [...new Set(b.units.map(u => (sales.find(s => s.item_id === u.id && s.status === 'completed') || {}).platform).filter(Boolean))];
@@ -3916,6 +3946,7 @@ function updateItemCostEach() {
   const qty = Math.max(1, parseInt(form.elements.quantity.value, 10) || 1);
   const out = document.getElementById('ai-cost-each');
   const hint = document.getElementById('ai-cost-hint');
+  if (form.elements.total_spent.disabled) return; // several purchases: editBatch shows each one's cost
   if (totalRaw === '') { out.innerHTML = '&mdash;'; hint.textContent = 'Blank total = cost unknown'; return; }
   const parts = splitCents(money(parseFloat(totalRaw)), qty);
   out.textContent = fmtCents(parts[parts.length - 1]);
@@ -4128,6 +4159,59 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
   };
   const batchId = fd.get('editing_batch');
   if (batchId) { saveBatch(batchId, fields, fd); return; }
+  // More of something you already have in stock? Ask before adding it.
+  if (!existing) {
+    const same = findSameStock(fields);
+    if (same) { askMerge(same, fields, costs, form); return; }
+  }
+  finishAddItem(form, existing, fields, costs, null);
+});
+
+// Units still in stock that look like the item being added: same LGY code,
+// or the same name, size and category.
+function findSameStock(fields) {
+  const norm = v => (v || '').trim().toLowerCase();
+  const byCode = items.filter(i => inStock(i) && i.item_code === fields.item_code);
+  const byName = byCode.length ? [] : items.filter(i => inStock(i) && norm(i.item_name) === norm(fields.item_name)
+    && norm(i.size) === norm(fields.size) && norm(i.category) === norm(fields.category));
+  const hits = byCode.length ? byCode : byName;
+  if (!hits.length) return null;
+  const code = hits[0].item_code;
+  // Everything bought under that code (sold units too) makes up the stock.
+  const all = items.filter(i => i.item_code === code || hits.some(h => h.batch_id && h.batch_id === i.batch_id) || hits.includes(i));
+  return { code, name: hits[0].item_name, inStock: all.filter(inStock), all };
+}
+
+let pendingMerge = null;
+function askMerge(same, fields, costs, form) {
+  pendingMerge = { same, fields, costs, form };
+  const n = costs.length;
+  const lots = lotsOf(same.inStock);
+  const known = costs.filter(c => c !== null);
+  const newEach = known.length ? fmtCents(Math.round(known.reduce((t, c) => t + c, 0) / known.length)) : 'unknown cost';
+  const lotLine = l => `<li><b>${l.length}</b> at ${l[0].purchase_cost_cents === null ? 'unknown cost' : fmtCents(l[0].purchase_cost_cents)}<span>bought ${fmtDate(l[0].purchase_date)}</span></li>`;
+  document.getElementById('merge-body').innerHTML = `
+    <p class="confirm-body">You have <strong>${same.inStock.length} of ${same.all.length}</strong> <strong>${esc(same.name)}</strong> <span class="code-tag">${esc(same.code)}</span> left in stock. Add these ${n} to it?</p>
+    <div class="fifo-box"><div class="fifo-title">They'll sell first in, first out</div>
+      <ol class="fifo-list">${lots.map(lotLine).join('')}<li class="fifo-new"><b>${n}</b> at ${newEach}<span>this purchase</span></li></ol>
+      <p class="fifo-note">Each sale uses the cost of the oldest units left. Nothing is averaged.</p></div>`;
+  openOverlay('overlay-merge', document.getElementById('add-item-submit-btn'));
+}
+document.getElementById('merge-add').addEventListener('click', () => {
+  if (!pendingMerge) return;
+  const { same, fields, costs, form } = pendingMerge; pendingMerge = null;
+  closeOverlay('overlay-merge');
+  finishAddItem(form, null, fields, costs, same);
+});
+document.getElementById('merge-separate').addEventListener('click', () => {
+  if (!pendingMerge) return;
+  const { fields, costs, form } = pendingMerge; pendingMerge = null;
+  closeOverlay('overlay-merge');
+  // Its own stock line; the LGY code still ties it to the same product.
+  finishAddItem(form, null, fields, costs, null);
+});
+
+function finishAddItem(form, existing, fields, costs, mergeInto) {
   const before = existing ? null : snapshotData();
   const addedIds = [];
   if (existing) {
@@ -4135,8 +4219,15 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     // pointing at this item.id automatically sees the new details.
     Object.assign(existing, fields, { purchase_cost_cents: costs[0] });
   } else {
+    let batchId = costs.length > 1 ? 'B' + nextItemId : null;
+    if (mergeInto) {
+      // Join the existing stock: one batch, one code; each unit keeps its own cost and purchase date.
+      batchId = (mergeInto.all.find(u => u.batch_id) || {}).batch_id || 'B' + nextItemId;
+      mergeInto.all.forEach(u => { u.batch_id = batchId; u.item_code = mergeInto.code; });
+      fields = { ...fields, item_code: mergeInto.code };
+      expandedBatches.add(batchId);
+    }
     // Quantity N creates N units (each can sell on its own), grouped as one batch.
-    const batchId = qty > 1 ? 'B' + nextItemId : null;
     costs.forEach(cost => {
       const item = normalizeItem(Object.assign({ id: nextItemId++ }, fields, { batch_id: batchId, purchase_cost_cents: cost, photo_ids: [...fields.photo_ids] }));
       items.push(item);
@@ -4149,8 +4240,9 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
   highlightItemIds = new Set(addedIds);
   renderAll();
   highlightItemIds = new Set();
-  if (!existing) showUndo(addedIds.length > 1 ? `Added ${addedIds.length} × ${fields.item_name}` : `Added ${fields.item_name}`, before);
-});
+  if (!existing) showUndo(mergeInto ? `Added ${addedIds.length} to ${fields.item_name} (${mergeInto.inStock.length + addedIds.length} in stock)`
+    : addedIds.length > 1 ? `Added ${addedIds.length} × ${fields.item_name}` : `Added ${fields.item_name}`, before);
+}
 
 /* =========================================================
    RECORD SALE MODAL — live profit calculation
@@ -4167,8 +4259,7 @@ function populateItemSelect(includeItemId) {
     if (!isBatched(i) || i.id === includeItemId) { options.push(`<option value="${i.id}">${esc(i.item_name)}${isBatched(i) ? ' (this unit)' : ''} · ${esc(i.item_code)}</option>`); return; }
     if (batchesShown.has(i.batch_id)) return;
     batchesShown.add(i.batch_id);
-    const left = choices.filter(u => u.batch_id === i.batch_id && u.id !== includeItemId)
-      .sort((a, b) => (a.status === 'listed' ? 0 : 1) - (b.status === 'listed' ? 0 : 1) || a.id - b.id);
+    const left = choices.filter(u => u.batch_id === i.batch_id && u.id !== includeItemId).sort(fifoOrder); // FIFO: oldest purchase first
     options.push(`<option value="${left[0].id}">${esc(i.item_name)} (${left.length} of ${batchUnits(i.batch_id).length} left) · ${esc(i.item_code)}</option>`);
   });
   sel.innerHTML = '<option value="">Select an item</option>'
@@ -5432,7 +5523,7 @@ document.querySelectorAll('.overlay').forEach(ov => {
 });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(ov => closeOverlay(ov.id));
+  if (e.key === 'Escape') { const open = [...document.querySelectorAll('.overlay.open')]; if (open.length) closeOverlay(open[open.length - 1].id); } // top dialog only
   // Keep Tab inside an open dialog.
   const open = document.querySelector('.overlay.open:not(.closing) .modal');
   if (e.key === 'Tab' && open) {
@@ -5467,6 +5558,8 @@ function setItemStatusControl(status) {
 function resetAddItemFormForCreate() {
   const form = document.getElementById('add-item-form');
   form.reset();
+  form.elements.total_spent.disabled = form.elements.quantity.disabled = false;
+  document.getElementById('ai-cost-hint').textContent = 'Worked out automatically';
   form.elements.editing_id.value = '';
   setBatchMode(null);
   form.elements.purchase_date.value = isoDate(new Date());
@@ -5492,6 +5585,8 @@ function fillItemForm(item) {
   const form = document.getElementById('add-item-form');
   const money2 = c => (c === null || c === undefined ? '' : (c / 100).toFixed(2));
   form.reset();
+  form.elements.total_spent.disabled = form.elements.quantity.disabled = false;
+  document.getElementById('ai-cost-hint').textContent = 'Worked out automatically';
   form.elements.editing_id.value = item.id;
   setBatchMode(null);
   form.elements.item_name.value = item.item_name || '';
@@ -5555,7 +5650,15 @@ function editBatch(batchId, originEl) {
   form.dataset.batchTotal = total;
   form.dataset.batchQty = b.units.length;
   form.querySelector('[data-batch-field]').hidden = false;
-  document.getElementById('ai-qty-hint').textContent = withSales
+  // Several purchases in one batch: costs stay per purchase, so total and quantity are read-only here.
+  const lots = lotsOf(b.units);
+  form.elements.total_spent.disabled = form.elements.quantity.disabled = lots.length > 1;
+  if (lots.length > 1) { const next = b.units.filter(inStock).sort(fifoOrder)[0]; document.getElementById('ai-cost-each').textContent = next && next.purchase_cost_cents !== null ? `${fmtCents(next.purchase_cost_cents)} next` : '—'; }
+  document.getElementById('ai-cost-hint').textContent = lots.length > 1
+    ? `${lots.length} purchases, sold first in, first out: ${lots.map(l => `${l.length} at ${l[0].purchase_cost_cents === null ? '?' : fmtCents(l[0].purchase_cost_cents)}`).join(', then ')}`
+    : 'Worked out automatically';
+  if (lots.length > 1) { document.getElementById('ai-qty-hint').textContent = 'Add more with Add item; it will ask to join this stock'; }
+  else document.getElementById('ai-qty-hint').textContent = withSales
     ? `At least ${withSales}: units with a sale can’t be removed`
     : 'Lower it to remove unsold units, raise it to add more';
   if (b.available) setItemStatusControl(b.listed ? 'listed' : 'unsold');
@@ -5594,7 +5697,9 @@ function saveBatch(batchId, fields, fd) {
   const hasSale = u => sales.some(s => s.item_id === u.id);
   let units = batchSummary(batchId).units;
   const keep = units.filter(hasSale).length;
-  const qty = Math.min(100, Math.max(1, keep, parseInt(fd.get('quantity'), 10) || units.length));
+  // Never shrink a batch by accident: no quantity given (or a batch past 100 units) keeps every unit.
+  const requested = parseInt(fd.get('quantity'), 10);
+  const qty = isNaN(requested) ? units.length : Math.min(Math.max(100, units.length), Math.max(1, keep, requested));
 
   // Fewer units: drop ones with no sale, not-listed and newest first.
   if (qty < units.length) {
@@ -5611,14 +5716,17 @@ function saveBatch(batchId, fields, fd) {
     items.push(unit); units.push(unit); addedIds.push(unit.id);
   }
   // Shared details go to every unit; status only to units that haven't sold.
-  const { status, listed_date, ...shared } = fields;
+  // A batch made of several purchases keeps each unit's own date, order number and cost (FIFO).
+  const multiLot = lotsOf(units).length > 1;
+  const { status, listed_date, purchase_order, purchase_date, purchase_time, ...shared } = fields;
+  if (!multiLot) Object.assign(shared, { purchase_order, purchase_date, purchase_time });
   units.forEach(u => {
     Object.assign(u, shared, { photo_ids: [...fields.photo_ids] });
     if (u.status === 'unsold' || u.status === 'listed') { u.status = status; u.listed_date = listed_date; }
   });
   // Total spent is for the whole batch: re-split it only if it or the count changed.
   const totalRaw = fd.get('total_spent');
-  if (totalRaw !== '' && (totalRaw !== form.dataset.batchTotal || qty !== Number(form.dataset.batchQty))) {
+  if (!multiLot && totalRaw !== null && totalRaw !== '' && (totalRaw !== form.dataset.batchTotal || qty !== Number(form.dataset.batchQty))) {
     const parts = splitCents(money(parseFloat(totalRaw)), qty);
     units.forEach((u, i) => { u.purchase_cost_cents = parts[i]; });
   }

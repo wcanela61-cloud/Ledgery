@@ -20,6 +20,8 @@ Open `index.html` in a browser — no build step or server required. The app sta
 
 Every item gets a code like `LGY-09182`. Search it in Inventory (the digits alone work too) to see every purchase of that item. When you buy the same thing again, type its code (or name) in **Add item → Buying something again?** and the form fills in from last time and keeps the same code. Units in a batch share one code.
 
+Buying more of something you still have in stock? When you save it, Ledgery asks whether to **add it to your existing stock** (for example "You have 42 of 100 left"). Stock is sold **first in, first out**: each sale uses the cost of the oldest units left, so 100 bought at $9.87 then 100 at $8.88 sell as 100 × $9.87 followed by 100 × $8.88. Costs are never averaged.
+
 Made a mistake? **Inventory → LGY codes** lists every code with its item. **Change** gives a code a new number (or type another item's code to combine them), and **×** deletes a code along with its items. Both can be undone right after.
 
 ## Your data

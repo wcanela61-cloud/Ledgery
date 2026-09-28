@@ -1592,6 +1592,12 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
 #aging-inventory .row-title, #recent-sales .row-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .hero-card:hover, .stat-tile:hover { transform: none; } }
 @media (max-width: 480px) { .stat-icon { display: none; } .stat-fix { font-size: 0.7188rem; } }
+/* Item codes (LGY-01234) */
+.code-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.6875rem; line-height: 1.5; letter-spacing: 0.02em; color: var(--ink-muted); background: color-mix(in srgb, var(--ink) 7%, transparent); vertical-align: 1px; }
+.item-code-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.item-code-chip { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.04em; color: var(--accent-text); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.buy-again input { font-family: var(--font-mono); letter-spacing: 0.02em; }
+#ai-reuse-hint.ok { color: var(--success-text); }
 </style>
 </head>
 <body>
@@ -1720,7 +1726,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
         </div>
       </div>
       <div class="toolbar">
-        <input type="search" id="inv-search" aria-label="Search inventory" placeholder="Search name, category, size, color, order…">
+        <input type="search" id="inv-search" aria-label="Search inventory" placeholder="Search name, code (LGY-…), category, size…">
         <select id="inv-status-filter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="unsold">Not listed</option>
@@ -1938,6 +1944,15 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
       <fieldset class="form-section">
         <legend>Product</legend>
         <div class="field-grid">
+          <div class="field full item-code-field"><label>Item code</label>
+            <div class="item-code-row"><span class="item-code-chip" id="ai-item-code"></span><input type="hidden" name="item_code">
+              <span class="field-hint" id="ai-code-hint">Search this code any time to find every purchase of this item.</span></div>
+          </div>
+          <div class="field full buy-again" data-create-only><label for="ai-reuse-code">Buying something again?</label>
+            <input id="ai-reuse-code" name="reuse_code" list="item-code-options" placeholder="Type its code (LGY-09182) or name" autocomplete="off">
+            <span class="field-hint" id="ai-reuse-hint">Fills in the details from last time and keeps the same code.</span>
+            <datalist id="item-code-options"></datalist>
+          </div>
           <div class="field full"><label>Name *</label><input required name="item_name" placeholder="Carhartt Detroit jacket"></div>
           <div class="field full"><label>Department</label>
             <div class="seg seg-radio" id="ai-dept-choice" role="radiogroup" aria-label="Department">
@@ -2167,6 +2182,29 @@ function newOrderNumber(date, time) {
   do { num = buildOrderNumber(date, time, randomOrderCode()); } while (taken.has(num));
   return num;
 }
+// Item code (like a SKU): LGY- plus 5 digits. Buying the same thing again can
+// reuse its code, so searching the code shows every purchase of that item.
+const ITEM_CODE_RE = /^LGY-\d{5}$/;
+function newItemCode(taken = new Set(items.map(i => i.item_code))) {
+  let code;
+  do { code = 'LGY-' + String(Math.floor(Math.random() * 100000)).padStart(5, '0'); } while (taken.has(code));
+  return code;
+}
+// "09182", "lgy09182" or "LGY-09182" all mean LGY-09182.
+function cleanItemCode(text) {
+  const digits = String(text || '').replace(/^\s*lgy[\s-]*/i, '').trim();
+  return /^\d{1,5}$/.test(digits) ? 'LGY-' + digits.padStart(5, '0') : '';
+}
+// Older items get a code; every unit of a batch shares one.
+function assignItemCodes() {
+  const taken = new Set(items.map(i => i.item_code).filter(c => ITEM_CODE_RE.test(c || '')));
+  const batchCode = {};
+  [...items].sort((a, b) => a.id - b.id).forEach(i => {
+    if (i.batch_id && batchCode[i.batch_id]) { i.item_code = batchCode[i.batch_id]; return; }
+    if (!ITEM_CODE_RE.test(i.item_code || '')) { i.item_code = newItemCode(taken); taken.add(i.item_code); }
+    if (i.batch_id) batchCode[i.batch_id] = i.item_code;
+  });
+}
 const nowTime = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 
 // Fill in fields added later so older saved data and backups keep working.
@@ -2180,6 +2218,7 @@ function normalizeItem(item) {
   if (item.department === undefined) item.department = '';
   if (item.batch_id === undefined) item.batch_id = null;
   if (!item.purchase_order) item.purchase_order = newOrderNumber(item.purchase_date, item.purchase_time);
+  if (!ITEM_CODE_RE.test(item.item_code || '')) item.item_code = newItemCode();
   return item;
 }
 
@@ -2187,6 +2226,7 @@ function replaceData(newItems, newSales) {
   items.splice(0, items.length, ...newItems.map(normalizeItem));
   sales.splice(0, sales.length, ...newSales);
   groupLegacyBatches();
+  assignItemCodes();
   nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   nextSaleId = sales.reduce((max, s) => Math.max(max, s.id), 0) + 1;
 }
@@ -3017,8 +3057,9 @@ function renderInventory() {
 
   rows = rows.filter(({ item, sale }) => {
     if (search) {
-      const haystack = [item.item_name, item.brand, DEPARTMENTS[item.department], item.category, item.size, item.color, item.purchase_order, item.purchase_name, item.storage_location].join(' ').toLowerCase();
-      if (!haystack.includes(search)) return false;
+      const haystack = [item.item_name, item.brand, DEPARTMENTS[item.department], item.category, item.size, item.color, item.purchase_order, item.item_code, item.purchase_name, item.storage_location].join(' ').toLowerCase();
+      const code = cleanItemCode(search);
+      if (!haystack.includes(search) && !(code && item.item_code === code)) return false;
     }
     if (statusFilter && item.status !== statusFilter) return false;
     if (platformFilter && (!sale || sale.platform !== platformFilter)) return false;
@@ -3065,7 +3106,7 @@ function renderInventory() {
           <div class="inv-card-media">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span>${b.available ? `<span class="badge badge-${b.listed ? 'listed' : 'unsold'}">${b.available} left</span>` : statusBadge('sold')}</div>
           <div class="inv-card-body">
             <div class="inv-card-name">${esc(item.item_name)}</div>
-            <div class="inv-card-sub">${subOf(item)}</div>
+            <div class="inv-card-sub"><span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}</div>
             <div class="inv-card-foot">
               <span class="inv-card-price">${item.listing_price_cents !== null ? fmtCents(item.listing_price_cents) + '<span class="inv-card-cost"> each</span>' : '<span class="inv-card-cost">No price yet</span>'}</span>
               ${b.profitCount ? `<span class="inv-card-profit ${moneyClass(b.profit)}">${b.profit >= 0 ? '+' : ''}${fmtCents(b.profit)}</span>` : b.sold ? '' : `<span class="inv-card-cost">${b.units.length} units</span>`}
@@ -3079,7 +3120,7 @@ function renderInventory() {
         <div class="inv-card-media">${itemThumb(item)}${statusBadge(item.status)}${sale ? `<span class="inv-card-plat">${platformChip(sale.platform, 'mark')}</span>` : ''}</div>
         <div class="inv-card-body">
           <div class="inv-card-name">${esc(item.item_name)}</div>
-          <div class="inv-card-sub">${subOf(item)}</div>
+          <div class="inv-card-sub"><span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}</div>
           <div class="inv-card-foot">
             <span class="inv-card-price">${price || '<span class="inv-card-cost">No price yet</span>'}</span>
             ${sale && r.isComplete ? `<span class="inv-card-profit ${moneyClass(r.netProfitCents)}">${r.netProfitCents >= 0 ? '+' : ''}${fmtCents(r.netProfitCents)}</span>`
@@ -3095,7 +3136,7 @@ function renderInventory() {
   const unitRow = ({ item, sale, r }, unit) => `<tr data-item-id="${item.id}" class="${unit ? 'unit-row' : ''}${highlightItemIds.has(item.id) ? ' row-new' : ''}">
       <td class="cell-title"><div class="item-cell">${unit ? `<span class="unit-no">#${unit.no}</span>` : itemThumb(item)}<div>
         <div class="item-name">${unit ? (item.item_name === unit.name ? `Unit ${unit.no} of ${unit.of}` : esc(item.item_name)) : esc(item.item_name)}</div>
-        <div class="item-sub">${unit ? esc(item.notes || '') : subOf(item)}</div></div></div></td>
+        <div class="item-sub">${unit ? esc(item.notes || '') : `<span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}`}</div></div></div></td>
       <td data-label="Platform">${sale ? platformChip(sale.platform) : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${item.purchase_cost_cents === null ? '<span class="badge badge-incomplete">Unknown</span>' : fmtCents(item.purchase_cost_cents)}</td>
       <td data-label="Status">${statusBadge(item.status)}</td>
@@ -3120,7 +3161,7 @@ function renderInventory() {
     const head = `<tr class="batch-row${open ? ' open' : ''}${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-batch-toggle="${esc(entry.batchId)}">
       <td class="cell-title"><div class="item-cell"><span class="batch-thumb">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span></span><div>
         <button type="button" class="item-name batch-toggle" aria-expanded="${open}"><svg class="batch-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${esc(item.item_name)}</button>
-        <div class="item-sub">${[subOf(item), `${b.units.length} units${filtered}`].filter(Boolean).join(' &middot; ')}</div></div></div></td>
+        <div class="item-sub"><span class="code-tag">${esc(item.item_code)}</span>${[subOf(item), `${b.units.length} units${filtered}`].filter(Boolean).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${platforms.length ? platforms.map(p => platformChip(p, platforms.length > 1 ? 'mark' : false)).join(' ') : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${costText}</td>
       <td data-label="Status"><div class="batch-counts">${counts.map(([st, n]) => `<span class="badge badge-${st}">${n} ${esc(statusLabel(st).toLowerCase())}</span>`).join('')}</div></td>
@@ -3264,7 +3305,7 @@ function renderSales() {
     return { s, item, r: calcProfit(s, item), costs };
   }).filter(({ s, item }) => {
     if (search) {
-      const haystack = [item ? item.item_name : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
+      const haystack = [item ? item.item_name : '', item ? item.item_code : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     if (statusFilter && s.status !== statusFilter) return false;
@@ -3511,6 +3552,47 @@ function refreshNewOrderNumber(form, displayId) {
   showOrderNumber(form, displayId, buildOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value, code));
 }
 
+function showItemCode(code) {
+  document.getElementById('add-item-form').elements.item_code.value = code || '';
+  document.getElementById('ai-item-code').textContent = code || '';
+}
+function setReuseHint(text, ok) {
+  const hint = document.getElementById('ai-reuse-hint');
+  hint.textContent = text || 'Fills in the details from last time and keeps the same code.';
+  hint.classList.toggle('ok', !!ok);
+}
+// Codes you can reuse, newest purchase first, labelled with the item name.
+function fillItemCodeOptions() {
+  const seen = new Map();
+  [...items].sort((a, b) => b.id - a.id).forEach(i => { if (!seen.has(i.item_code)) seen.set(i.item_code, i); });
+  document.getElementById('item-code-options').innerHTML = [...seen.values()].map(i => `<option value="${esc(i.item_code)}">${esc(i.item_name)}</option>`).join('');
+}
+// Typing a known code fills the form from the most recent purchase with that code.
+function reuseItemCode(text) {
+  const form = document.getElementById('add-item-form');
+  const code = cleanItemCode(text);
+  const matches = code ? items.filter(i => i.item_code === code) : [];
+  if (!matches.length) {
+    if (form.dataset.freshCode) showItemCode(form.dataset.freshCode); // back to this item's own new code
+    setReuseHint(text.trim() && code.length === 9 ? `No item with code ${code} yet.` : '');
+    return;
+  }
+  const last = matches.reduce((a, b) => (b.id > a.id ? b : a));
+  form.elements.item_name.value = last.item_name || '';
+  form.elements.brand.value = last.brand || '';
+  setProductFields(last.department || '', last.category || '', last.size || '');
+  form.elements.color.value = last.color || '';
+  form.elements.condition.value = last.condition || '';
+  const qty = Math.max(1, parseInt(form.elements.quantity.value, 10) || 1);
+  if (last.purchase_cost_cents !== null && !form.elements.total_spent.value) form.elements.total_spent.value = (last.purchase_cost_cents * qty / 100).toFixed(2);
+  if (last.listing_price_cents !== null) form.elements.listing_price.value = (last.listing_price_cents / 100).toFixed(2);
+  showItemCode(code);
+  updateItemCostEach();
+  const times = new Set(matches.map(i => i.batch_id || 'i' + i.id)).size;
+  setReuseHint(`Filled in from ${last.item_name}. Bought ${times} time${times === 1 ? '' : 's'} before; this purchase keeps ${code}.`, true);
+}
+document.getElementById('ai-reuse-code').addEventListener('input', e => reuseItemCode(e.target.value));
+
 // Listing price / date only matter once the item is listed.
 function updateListingFields() {
   const form = document.getElementById('add-item-form');
@@ -3571,6 +3653,7 @@ document.getElementById('add-item-form').addEventListener('submit', e => {
     color: (fd.get('color') || '').trim(),
     condition: fd.get('condition') || '',
     purchase_order: fd.get('purchase_order') || newOrderNumber(fd.get('purchase_date'), fd.get('purchase_time')),
+    item_code: ITEM_CODE_RE.test(fd.get('item_code') || '') ? fd.get('item_code') : newItemCode(),
     purchase_date: fd.get('purchase_date') || null,
     purchase_time: fd.get('purchase_time') || null,
     status,
@@ -3617,12 +3700,12 @@ function populateItemSelect(includeItemId) {
   // A batch appears once; picking it sells its next available unit.
   const options = [], batchesShown = new Set();
   choices.forEach(i => {
-    if (!isBatched(i) || i.id === includeItemId) { options.push(`<option value="${i.id}">${esc(i.item_name)}${isBatched(i) ? ' (this unit)' : ''}</option>`); return; }
+    if (!isBatched(i) || i.id === includeItemId) { options.push(`<option value="${i.id}">${esc(i.item_name)}${isBatched(i) ? ' (this unit)' : ''} · ${esc(i.item_code)}</option>`); return; }
     if (batchesShown.has(i.batch_id)) return;
     batchesShown.add(i.batch_id);
     const left = choices.filter(u => u.batch_id === i.batch_id && u.id !== includeItemId)
       .sort((a, b) => (a.status === 'listed' ? 0 : 1) - (b.status === 'listed' ? 0 : 1) || a.id - b.id);
-    options.push(`<option value="${left[0].id}">${esc(i.item_name)} (${left.length} of ${batchUnits(i.batch_id).length} left)</option>`);
+    options.push(`<option value="${left[0].id}">${esc(i.item_name)} (${left.length} of ${batchUnits(i.batch_id).length} left) · ${esc(i.item_code)}</option>`);
   });
   sel.innerHTML = '<option value="">Select an item</option>'
     + '<option value="__new__">+ New item (not in inventory yet)</option>'
@@ -4927,10 +5010,14 @@ function resetAddItemFormForCreate() {
   form.elements.purchase_date.value = isoDate(new Date());
   form.elements.purchase_time.value = nowTime();
   showOrderNumber(form, 'ai-order-no', newOrderNumber(form.elements.purchase_date.value, form.elements.purchase_time.value));
+  form.dataset.freshCode = newItemCode();
+  showItemCode(form.dataset.freshCode);
+  setReuseHint('');
   setProductFields('', '', '');
   form.querySelectorAll('[data-create-only]').forEach(el => { el.hidden = false; });
   formPhotos = [];
   fillItemSuggestions();
+  fillItemCodeOptions();
   setItemStatusControl('unsold');
   renderFormPhotos();
   updateItemCostEach();
@@ -4951,6 +5038,7 @@ function fillItemForm(item) {
   form.elements.color.value = item.color || '';
   form.elements.condition.value = item.condition || '';
   showOrderNumber(form, 'ai-order-no', item.purchase_order);
+  showItemCode(item.item_code);
   form.elements.purchase_date.value = item.purchase_date || '';
   form.elements.purchase_time.value = item.purchase_time || '';
   form.elements.total_spent.value = money2(item.purchase_cost_cents);
@@ -5472,8 +5560,8 @@ document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('
   const kind = btn.dataset.export;
   let csv;
   if (kind === 'inventory') {
-    csv = toCsv(['ID', 'Item', 'Brand', 'Department', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time entered', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
-      items.map(i => [i.id, csvText(i.item_name), csvText(i.brand), csvText(DEPARTMENTS[i.department] || ''), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
+    csv = toCsv(['ID', 'Item code', 'Item', 'Brand', 'Department', 'Category', 'Size', 'Color', 'Condition', 'Order number', 'Date purchased', 'Time entered', 'Cost', 'Status', 'Listing price', 'Date listed', 'Photos', 'Notes'],
+      items.map(i => [i.id, csvText(i.item_code), csvText(i.item_name), csvText(i.brand), csvText(DEPARTMENTS[i.department] || ''), csvText(i.category), csvText(i.size), csvText(i.color), csvText(i.condition),
         csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {

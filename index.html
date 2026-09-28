@@ -1635,6 +1635,97 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
   .code-name > span:last-child { white-space: normal; }
   .code-actions { justify-content: flex-end; }
 }
+/* =========================================================
+   MOTION LAYER (html.motion-on) — see the Motion module in the script.
+   ========================================================= */
+.motion-on { scroll-behavior: smooth; }
+/* Page entrances: blocks rise, unblur and settle in a cascade. */
+@keyframes motion-rise { from { opacity: 0; transform: translateY(18px) scale(0.985); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes motion-reveal { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.motion-on .enter { animation: motion-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+.motion-on .reveal-wait { opacity: 0; transform: translateY(24px); }
+.motion-on .reveal-in { animation: motion-reveal 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.motion-on .view.active { animation: none; }
+.motion-on :is(.stat-tile, .panel, .table-wrap) { animation: none; }
+.motion-on :is(.stat-tile, .panel, .table-wrap).enter { animation: motion-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+.motion-on :is(.stat-tile, .panel, .table-wrap).reveal-in { animation: motion-reveal 650ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Cursor spotlight on cards and panels. */
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .vibe-card, .panel, .code-row) { --mx: 50%; --my: 0%; }
+.motion-on :is(.stat-tile, .inv-card, .font-card, .palette-card, .panel) { position: relative; }
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .panel)::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  background: radial-gradient(420px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 11%, transparent), transparent 45%);
+  opacity: 0; transition: opacity 300ms ease;
+}
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .panel):hover::after { opacity: 1; }
+.motion-on .panel::after { background: radial-gradient(600px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 6%, transparent), transparent 40%); }
+/* Gentle 3D tilt that follows the pointer (set by Motion). */
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .vibe-card) {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease, border-color 300ms ease;
+  will-change: transform;
+}
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .vibe-card):hover { --lift: -3px; }
+.motion-on .is-tilting { transition: transform 120ms linear, box-shadow 300ms ease, border-color 300ms ease; }
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .vibe-card):active { transform: perspective(900px) scale(0.985); }
+
+/* Magnetic header buttons (translate set by Motion) + a sheen across primary buttons. */
+.motion-on .header-actions .btn { transition: translate 380ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease, box-shadow 200ms ease; }
+.motion-on .btn-primary { position: relative; overflow: hidden; }
+.motion-on .btn-primary[data-open] { overflow: visible; }
+.motion-on .btn-primary::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg) translateX(0); opacity: 0;
+}
+.motion-on .btn-primary:hover::before { animation: btn-sheen 850ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes btn-sheen { 0% { opacity: 1; transform: skewX(-18deg) translateX(0); } 100% { opacity: 0; transform: skewX(-18deg) translateX(420%); } }
+.motion-on .btn-primary[data-open]::before { display: none; }
+
+/* Sliding indicator for the period switch, layout toggle and Inventory tabs. */
+.seg, .inv-tabs, #inv-view-toggle { position: relative; }
+.seg-thumb { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: var(--radius); opacity: 0;
+  transition: transform 460ms cubic-bezier(0.34, 1.4, 0.64, 1), width 460ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 200ms ease; }
+.seg.has-thumb .seg-thumb, #inv-view-toggle.has-thumb .seg-thumb { background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.seg.has-thumb button, #inv-view-toggle.has-thumb button, .inv-tabs.has-thumb button { position: relative; z-index: 1; }
+.seg.has-thumb button.active, #inv-view-toggle.has-thumb button.active { background: transparent !important; box-shadow: none !important; }
+.inv-tabs.has-thumb .seg-thumb { background: none; box-shadow: none; }
+.inv-tabs.has-thumb .seg-thumb::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.inv-tabs.has-thumb button.active::after { display: none; }
+:root:not(.motion-on) .seg-thumb { transition: none; }
+
+/* Sidebar icons nudge on hover; the active one gets a soft glow. */
+@keyframes icon-nudge { 0%, 100% { transform: none; } 35% { transform: translateY(-2px) rotate(-8deg) scale(1.1); } 70% { transform: translateY(0) rotate(4deg); } }
+.motion-on .nav-item:hover .nav-icon { animation: icon-nudge 520ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.motion-on .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent)); transition: filter 300ms ease; }
+
+/* Ambient background: two soft glows drift slowly. */
+.motion-on .page-bg::before {
+  content: ''; position: absolute; inset: -20%;
+  background:
+    radial-gradient(38% 32% at 20% 20%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    radial-gradient(30% 28% at 80% 70%, color-mix(in srgb, var(--info-text) 7%, transparent), transparent 70%);
+  animation: bg-drift 38s ease-in-out infinite alternate;
+}
+@keyframes bg-drift { 0% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(4%, 3%, 0) rotate(8deg); } 100% { transform: translate3d(-3%, 5%, 0) rotate(-6deg); } }
+
+/* Table rows: an accent edge slides in on hover. */
+.motion-on tbody tr td:first-child { transition: box-shadow 260ms ease, background-color 150ms ease; }
+.motion-on tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* Lists inside dashboard panels slide a touch on hover. */
+.motion-on .row-line { transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.motion-on .row-line:hover { transform: translateX(4px); }
+
+/* Toasts spring up; modals get a deeper, blurrier backdrop fade. */
+@keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(24px) scale(0.92); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+.motion-on .toast:not([hidden]) { animation: toast-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes backdrop-in { from { backdrop-filter: blur(0); background-color: rgba(8, 10, 12, 0); } to { backdrop-filter: blur(6px); background-color: rgba(8, 10, 12, 0.55); } }
+.motion-on .overlay.open { animation: backdrop-in 260ms ease both; }
+
+/* Progress bars and the goal ring fill with a little overshoot. */
+.motion-on .bar-fill { transition: width 1100ms cubic-bezier(0.34, 1.2, 0.64, 1); }
+@media (prefers-reduced-motion: reduce) { :root:not(.motion-full) .page-bg::before { animation: none; } }
 </style>
 </head>
 <body>
@@ -3102,6 +3193,7 @@ function setInvTab(tab) {
   document.getElementById('inv-items-pane').hidden = tab !== 'items';
   document.getElementById('inv-codes-pane').hidden = tab !== 'codes';
   if (tab === 'codes') renderCodes();
+  requestAnimationFrame(() => { Motion.slideAll(); Motion.enterView(document.getElementById(tab === 'codes' ? 'inv-codes-pane' : 'inv-items-pane')); });
 }
 function codeGroups() {
   const groups = new Map();
@@ -6531,8 +6623,161 @@ document.getElementById('motion-full-toggle').addEventListener('change', e => {
   motionMode = e.target.checked ? 'full' : 'auto';
   try { localStorage.setItem(MOTION_STORAGE_KEY, motionMode); } catch (err) {}
   document.documentElement.classList.toggle('motion-full', motionMode === 'full');
+  Motion.sync();
   renderMotionSetting();
 });
+/* =========================================================
+   MOTION LAYER — page entrances, scroll reveal, count-ups, chart
+   wipes, card tilt + spotlight, magnetic buttons and sliding tab
+   indicators. Everything keys off html.motion-on, which is only set
+   when motion is allowed (device setting, or "Always play animations").
+   Only transform/opacity/clip-path animate, so it stays smooth.
+   ========================================================= */
+const Motion = (() => {
+  const root = document.documentElement;
+  const on = () => !prefersReducedMotion();
+  const finePointer = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : { matches: false };
+  const sync = () => root.classList.toggle('motion-on', on());
+  sync();
+  if (window.matchMedia) { const mq = window.matchMedia('(prefers-reduced-motion: reduce)'); (mq.addEventListener ? mq.addEventListener('change', sync) : mq.addListener(sync)); }
+
+  // --- numbers count up from zero ---
+  function countUp(el, duration = 900) {
+    const text = el.textContent.trim();
+    const m = text.match(/^(\$?)(-?[\d,]+)(\.\d+)?(%?)$/);
+    if (!m || el.dataset.counting) return;
+    const decimals = m[3] ? m[3].length - 1 : 0;
+    const target = parseFloat((m[2] + (m[3] || '')).replace(/,/g, ''));
+    if (!isFinite(target) || target === 0) return;
+    const fmt = v => m[1] + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + m[4];
+    el.dataset.counting = '1';
+    const start = performance.now();
+    const step = now => {
+      if (!el.isConnected) return;
+      const t = Math.min(1, (now - start) / duration), eased = 1 - Math.pow(1 - t, 4);
+      el.textContent = fmt(t < 1 ? target * eased : target);
+      if (t < 1) requestAnimationFrame(step); else delete el.dataset.counting;
+    };
+    el.textContent = fmt(0);
+    requestAnimationFrame(step);
+  }
+
+  // --- charts wipe in left to right; the donut sweeps round ---
+  function drawCharts(scope) {
+    scope.querySelectorAll('.trend-svg, .hero-spark, .tile-spark').forEach((svg, i) => {
+      svg.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }],
+        { duration: 1100, delay: 120 + i * 60, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'backwards' });
+    });
+    scope.querySelectorAll('#inventory-donut svg circle[stroke-dasharray]').forEach((c, i) => {
+      c.animate([{ opacity: 0, strokeWidth: 2 }, { opacity: 1, strokeWidth: 11 }],
+        { duration: 700, delay: 200 + i * 110, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' });
+    });
+    scope.querySelectorAll('.donut-wrap svg').forEach(svg => svg.animate(
+      [{ transform: 'rotate(-120deg) scale(0.8)' }, { transform: 'none' }],
+      { duration: 900, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }));
+  }
+
+  // --- a view's blocks cascade in; anything below the fold waits to be scrolled to ---
+  const ENTER_SEL = '.page-header, .inv-tabs, .toolbar, .hero-card, .stat-tile, .panel, .table-wrap:not([hidden]), .inv-grid:not([hidden]) > .inv-card, .code-row, .codes-note';
+  let revealObserver = null;
+  function enterView(view) {
+    if (!on() || !view) return;
+    const blocks = [...view.querySelectorAll(ENTER_SEL)].filter(el => el.offsetParent !== null && !el.closest('[hidden]'));
+    const fold = window.innerHeight;
+    let i = 0;
+    if (revealObserver) revealObserver.disconnect();
+    revealObserver = 'IntersectionObserver' in window ? new IntersectionObserver(entries => entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      en.target.classList.remove('reveal-wait'); en.target.classList.add('reveal-in');
+      revealObserver.unobserve(en.target);
+    }), { rootMargin: '0px 0px -8% 0px' }) : null;
+    blocks.forEach(el => {
+      el.classList.remove('enter', 'reveal-in', 'reveal-wait');
+      if (el.getBoundingClientRect().top < fold || !revealObserver) {
+        el.style.setProperty('--i', Math.min(i++, 14));
+        void el.offsetWidth;
+        el.classList.add('enter');
+      } else {
+        el.classList.add('reveal-wait');
+        revealObserver.observe(el);
+      }
+    });
+    view.querySelectorAll('.stat-value, .donut-center-value, .goal-pct, .tp-stats strong').forEach(el => countUp(el));
+    drawCharts(view);
+  }
+  document.addEventListener('animationend', e => { if (e.animationName === 'motion-rise' || e.animationName === 'motion-reveal') e.target.classList.remove('enter', 'reveal-in'); });
+
+  // Replay the entrance whenever a page becomes active (nav, links, shortcuts).
+  new MutationObserver(muts => muts.forEach(m => {
+    const t = m.target;
+    if (t.classList.contains('view') && t.classList.contains('active') && !(m.oldValue || '').split(' ').includes('active')) requestAnimationFrame(() => enterView(t));
+  })).observe(document.querySelector('.main'), { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+
+  // --- sliding indicators for segmented controls and the Inventory tabs ---
+  function slideThumb(group) {
+    if (!group) return;
+    const active = group.querySelector('button.active, button[aria-selected="true"]');
+    let thumb = group.querySelector(':scope > .seg-thumb');
+    if (!thumb) { thumb = document.createElement('span'); thumb.className = 'seg-thumb'; thumb.setAttribute('aria-hidden', 'true'); group.prepend(thumb); group.classList.add('has-thumb'); }
+    if (!active || !active.offsetWidth) { thumb.style.opacity = 0; return; }
+    thumb.style.opacity = 1;
+    thumb.style.width = active.offsetWidth + 'px';
+    thumb.style.height = active.offsetHeight + 'px';
+    thumb.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+  }
+  const thumbGroups = () => [document.getElementById('period-switch'), document.querySelector('.inv-tabs'), document.getElementById('inv-view-toggle')];
+  const slideAll = () => thumbGroups().forEach(slideThumb);
+  document.addEventListener('click', e => { if (e.target.closest('#period-switch, .inv-tabs, #inv-view-toggle, .nav-item, [data-goto]')) requestAnimationFrame(slideAll); });
+  window.addEventListener('resize', slideAll);
+  document.getElementById('period-switch').addEventListener('click', e => {
+    if (!e.target.closest('[data-period]')) return;
+    requestAnimationFrame(() => { const v = document.getElementById('view-dashboard'); v.querySelectorAll('.stat-value').forEach(el => countUp(el, 700)); if (on()) drawCharts(v); });
+  });
+
+  // --- cursor spotlight + gentle 3D tilt on cards; magnetic primary buttons ---
+  const TILT = '.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .vibe-card';
+  const GLOW = TILT + ', .panel, .code-row';
+  let pending = null, queued = false, tilted = null, magnet = null;
+  function onMove(e) {
+    if (!on() || !finePointer.matches) return;
+    pending = e;
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      const ev = pending; pending = null;
+      if (!ev) return;
+      const card = ev.target.closest && ev.target.closest(GLOW);
+      if (tilted && tilted !== card) { tilted.style.removeProperty('--rx'); tilted.style.removeProperty('--ry'); tilted.classList.remove('is-tilting'); }
+      if (card) {
+        const r = card.getBoundingClientRect();
+        const x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height;
+        card.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+        card.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+        if (card.matches(TILT)) {
+          const k = r.width > 360 ? 2.5 : 5; // big cards tilt less
+          card.style.setProperty('--rx', ((0.5 - y) * k).toFixed(2) + 'deg');
+          card.style.setProperty('--ry', ((x - 0.5) * k).toFixed(2) + 'deg');
+          card.classList.add('is-tilting');
+        }
+        tilted = card;
+      } else tilted = null;
+      const btn = ev.target.closest && ev.target.closest('.page-header .btn-primary, .header-actions .btn');
+      if (magnet && magnet !== btn) { magnet.style.translate = ''; }
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        const dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
+        btn.style.translate = `${(dx * 0.18).toFixed(1)}px ${(dy * 0.28).toFixed(1)}px`;
+      }
+      magnet = btn;
+    });
+  }
+  document.addEventListener('pointermove', onMove, { passive: true });
+  document.addEventListener('pointerleave', () => { if (magnet) magnet.style.translate = ''; if (tilted) { tilted.style.removeProperty('--rx'); tilted.style.removeProperty('--ry'); tilted.classList.remove('is-tilting'); } magnet = tilted = null; });
+
+  return { enterView, slideAll, sync, countUp };
+})();
+
 renderMotionSetting();
 wireSortHeaders('inv-table', sortState.inv, renderInventory);
 wireSortHeaders('sales-table', sortState.sales, renderSales);
@@ -6545,6 +6790,7 @@ renderBackupNote();
 renderAll();
 loadPhotos();
 initAccounts();
+requestAnimationFrame(() => { Motion.slideAll(); Motion.enterView(document.querySelector('.view.active')); });
 if (loadProblem) alert("Your saved data couldn't be read, so Ledgery started empty. A copy of it was kept in this browser. If you have a backup file, restore it in Settings.");
 </script>
 </body>

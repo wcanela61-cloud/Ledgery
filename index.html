@@ -85,8 +85,27 @@
 })();
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E %3Cdefs%3E%3ClinearGradient id="lgGrad" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="#2A5E91"/%3E%3Cstop offset="1" stop-color="#1F4B7A"/%3E%3C/linearGradient%3E%3C/defs%3E %3Crect width="64" height="64" rx="16" fill="url%28#lgGrad%29"/%3E %3Crect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/%3E %3Cg transform="translate%28-1.5 2.5%29" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"%3E %3Cpath d="M18 13v33h18l11-17" stroke-width="7"/%3E %3Cpath d="M40.5 29.7l7.6-2.4 1 7.9" stroke-width="5"/%3E %3C/g%3E %3C/svg%3E ">
-<link rel="apple-touch-icon" href="brand/ledgery-icon-180.png">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#F3EEE3">
+<meta name="description" content="Inventory, sales and real profit after fees for resellers. Syncs between your phone and computer.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ledgery">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ledgery">
+<meta property="og:title" content="Ledgery — Know what you actually make on every flip">
+<meta property="og:description" content="Inventory, sales and real profit after fees for resellers. Syncs between your phone and computer.">
+<meta property="og:url" content="https://wcanela61-cloud.github.io/Ledgery/">
+<meta property="og:image" content="https://wcanela61-cloud.github.io/Ledgery/brand/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ledgery: Know what you actually make on every flip.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ledgery — Know what you actually make on every flip">
+<meta name="twitter:description" content="Inventory, sales and real profit after fees for resellers.">
+<meta name="twitter:image" content="https://wcanela61-cloud.github.io/Ledgery/brand/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -2010,6 +2029,16 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
   .custom-note { font-size: 0.68rem; }
   .field-grid { gap: 10px 12px; }
 }
+/* Launch: legal links, install row, delete account */
+.auth-foot a, .auth-legal a, .legal-links a { color: var(--accent-text, var(--accent)); }
+.auth-legal { margin: 10px 0 0; font-size: 0.75rem; line-height: 1.5; color: var(--ink-muted); text-align: center; }
+.install-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.legal-links { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.85rem; }
+.account-danger { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.account-danger .custom-note { margin: 0; }
+#delete-account-form .field { margin: 14px 0 4px; }
+#delete-account-form input { font-family: var(--font-num); letter-spacing: 0.08em; }
+#delete-account-error { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -2365,6 +2394,17 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
         </div>
       </div>
 
+      <div class="panel" id="app-panel">
+        <div class="panel-head"><h2>App</h2><span class="page-sub" style="margin:0">Install Ledgery and read the fine print</span></div>
+        <div class="panel-body">
+          <div class="install-row" id="install-row">
+            <div><strong>Install Ledgery</strong><div class="custom-note" id="install-note" style="margin:4px 0 0">Add it to your home screen or dock. It opens in its own window and works offline.</div></div>
+            <button type="button" class="btn btn-primary" id="install-btn" hidden>Install app</button>
+          </div>
+          <div class="legal-links"><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of Service</a></div>
+        </div>
+      </div>
+
       <div class="panel" id="data-panel">
         <div class="panel-head"><h2>Data &amp; backup</h2><span class="page-sub" style="margin:0" id="last-backup-note"></span></div>
         <div class="panel-body">
@@ -2568,7 +2608,7 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
     <div class="auth-card">
       <h1 id="auth-title">Ledgery</h1>
       <div id="auth-body"><div class="auth-loading" role="status"><span class="auth-spinner" aria-hidden="true"></span>Opening your ledger…</div></div>
-      <p class="auth-foot">Your data is private to your account.</p>
+      <p class="auth-foot">Your data is private to your account.<br><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> &middot; <a href="terms.html" target="_blank" rel="noopener">Terms</a></p>
     </div>
   </div>
 </div>
@@ -2597,6 +2637,25 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
       <button type="button" class="btn" id="merge-separate">Keep separate</button>
       <button type="button" class="btn btn-primary" id="merge-add">Add to stock</button>
     </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT — type DELETE to confirm -->
+<div class="overlay" id="overlay-delete-account">
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-account-title" aria-describedby="delete-account-body">
+    <div class="modal-head"><h3 id="delete-account-title">Delete your account?</h3><button type="button" class="close-x" data-close aria-label="Close">&times;</button></div>
+    <div id="delete-account-body">
+      <p class="confirm-body">This permanently deletes <strong id="delete-account-email"></strong>, every item and sale in it, and all your photos, on every device. It can't be undone.</p>
+      <p class="custom-note">Want a copy first? <button type="button" class="link-btn" id="delete-account-backup">Download a backup</button>.</p>
+    </div>
+    <form id="delete-account-form" novalidate>
+      <div class="field"><label for="delete-account-confirm">Type <strong>DELETE</strong> to confirm</label><input id="delete-account-confirm" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <div class="account-notice bad" id="delete-account-error" role="alert" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-danger" id="delete-account-btn" disabled>Delete account</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -6982,6 +7041,64 @@ async function signOutAccount() {
   renderAccountUI();
 }
 
+/* ---------- delete account (supabase/schema.sql → delete_my_account) ---------- */
+function openDeleteAccount(originEl) {
+  if (!Account.user) return;
+  closeOverlay('overlay-account');
+  document.getElementById('delete-account-email').textContent = Account.user.email || 'your account';
+  const input = document.getElementById('delete-account-confirm');
+  input.value = '';
+  document.getElementById('delete-account-btn').disabled = true;
+  document.getElementById('delete-account-error').hidden = true;
+  openOverlay('overlay-delete-account', originEl);
+  setTimeout(() => input.focus({ preventScroll: true }), 60);
+}
+document.getElementById('delete-account-confirm').addEventListener('input', e => {
+  document.getElementById('delete-account-btn').disabled = e.target.value.trim().toUpperCase() !== 'DELETE';
+});
+document.getElementById('delete-account-backup').addEventListener('click', () => document.getElementById('backup-btn').click());
+document.getElementById('delete-account-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('delete-account-btn');
+  if (btn.disabled || !Account.user) return;
+  const errBox = document.getElementById('delete-account-error');
+  errBox.hidden = true;
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  const uid = Account.user.id;
+  let removedLogin = true;
+  try {
+    const res = await Account.client.rpc('delete_my_account');
+    if (res.error) throw res.error;
+  } catch (err) {
+    // The one-time SQL setup hasn't been run: remove the data itself, which the row rules allow.
+    removedLogin = false;
+    try { await Account.client.from('photos').delete().eq('user_id', uid); } catch (e2) { /* no photos table */ }
+    let res;
+    try { res = await Account.client.from('ledgers').delete().eq('user_id', uid); } catch (e2) { res = { error: e2 }; }
+    if (res && res.error) {
+      errBox.textContent = "Couldn't delete your account right now. Check your connection and try again.";
+      errBox.hidden = false;
+      btn.disabled = false; btn.textContent = 'Delete account';
+      return;
+    }
+  }
+  try { await Account.client.auth.signOut({ scope: 'local' }); } catch (e2) { /* already gone */ }
+  Account.user = null;
+  saveSyncMeta(null);
+  resetData();
+  try { localStorage.removeItem(GOAL_KEY); } catch (e2) {}
+  document.getElementById('goal-input').value = '';
+  btn.textContent = 'Delete account';
+  closeOverlay('overlay-delete-account');
+  const msg = removedLogin ? 'Your account and all its data were deleted.'
+    : 'Your ledger and photos were deleted. To remove the login itself too, contact us (see the Privacy Policy).';
+  Account.modalMode = 'signin'; Account.notice = msg;
+  renderAll();
+  renderAccountUI();
+  if (gateOpen()) renderGate(true);
+  else showUndo(msg, null);
+});
+
 /* ---------- account UI: sign-in page, sidebar status, Settings panel, dialogs ---------- */
 const timeAgo = d => {
   if (!d) return '';
@@ -7072,7 +7189,8 @@ function renderAccountUI() {
           <div class="account-name"></div><div class="account-email"></div>
           <div class="account-sync ${Account.sync === 'error' ? 'bad' : ''}">${esc(syncLine())}${Account.sync === 'error' && Account.syncError ? ` <span class="field-hint">(${esc(Account.syncError)})</span>` : ''}</div>
           ${PhotoSync.line() ? `<div class="account-sync ${PhotoSync.state.status === 'missing' || PhotoSync.state.status === 'error' ? 'bad' : ''}">${esc(PhotoSync.line())}</div>` : ''}</div></div>
-        <div class="account-actions"><button type="button" class="btn" data-account="profile">Edit profile</button><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>`;
+        <div class="account-actions"><button type="button" class="btn" data-account="profile">Edit profile</button><button type="button" class="btn" data-account="sync-now">Sync now</button><button type="button" class="btn" data-account="signout">Sign out</button></div></div>
+        <div class="account-danger"><span class="custom-note">Permanently remove your account, ledger and photos.</span><button type="button" class="btn btn-sm btn-danger-outline" data-account="delete">Delete account</button></div>`;
       panel.querySelector('.account-avatar').textContent = (displayName()[0] || '?').toUpperCase();
       panel.querySelector('.account-name').textContent = [profileName(), shopName()].filter(Boolean).join(' · ') || 'Add your name and shop';
       panel.querySelector('.account-email').textContent = Account.user.email || '';
@@ -7148,6 +7266,7 @@ function renderAuthForm(body, titleEl, inGate) {
         ${passwordField('Password', m === 'signin' ? 'current-password' : 'new-password', m === 'signup' ? 'At least 8 characters' : '')}
         ${m === 'signin' ? '<div class="auth-forgot"><button type="button" class="link-btn" data-account="reset">Forgot password?</button></div>' : ''}
         <button type="submit" class="btn btn-primary auth-submit">${m === 'signin' ? 'Sign in' : 'Create account'}</button>
+        ${m === 'signup' ? '<p class="auth-legal">By creating an account you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>' : ''}
       </form>
       <p class="account-switch">${m === 'signin' ? 'New to Ledgery? <button type="button" class="link-btn" data-account="signup">Create an account</button>' : 'Already have an account? <button type="button" class="link-btn" data-account="signin">Sign in</button>'}</p>`;
   } else if (m === 'reset') {
@@ -7346,6 +7465,7 @@ document.body.addEventListener('click', e => {
   } else if (a === 'open') openAccountModal();
   else if (a === 'profile') { Account.modalMode = 'profile'; Account.notice = ''; if (document.getElementById('overlay-account').classList.contains('open')) renderAccountModal(); else openAccountModal('profile'); }
   else if (a === 'signout') { closeOverlay('overlay-account'); signOutAccount(); }
+  else if (a === 'delete') openDeleteAccount(btn);
   else if (a === 'sync-now') startSync();
   else if (a === 'keep-cloud') resolveConflict('cloud');
   else if (a === 'keep-local') resolveConflict('local');
@@ -7420,6 +7540,37 @@ linkFieldLabels();
 renderColorControls();
 renderFontScaleControl();
 renderFontFamilyControl();
+/* ---------- install as an app (manifest.webmanifest + sw.js) ---------- */
+(() => {
+  let deferred = null;
+  const standalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function render() {
+    const btn = document.getElementById('install-btn'), note = document.getElementById('install-note');
+    if (standalone()) { btn.hidden = true; note.textContent = "You're using the installed app."; return; }
+    btn.hidden = !deferred;
+    note.textContent = deferred ? 'Add it to your home screen or dock. It opens in its own window and works offline.'
+      : ios ? 'On iPhone or iPad: open this site in Safari, tap Share, then "Add to Home Screen".'
+      : 'Use your browser\'s menu and choose "Install app" or "Add to Home screen".';
+  }
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; render(); });
+  window.addEventListener('appinstalled', () => { deferred = null; render(); });
+  document.getElementById('install-btn').addEventListener('click', async () => {
+    if (!deferred) return;
+    const ev = deferred; deferred = null;
+    ev.prompt();
+    try { await ev.userChoice; } catch (e) {}
+    render();
+  });
+  render();
+  // Offline support; skipped inside the Claude preview and on plain http.
+  const inPreview = !!(window.claude && typeof window.claude.use === 'function');
+  const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!inPreview && secure && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  }
+})();
+
 document.getElementById('reset-data-btn').addEventListener('click', () => {
   if (!confirm(Account.user ? 'Erase all your items and sales? This also erases them from your account.' : 'Erase all your items and sales?')) return;
   const before = snapshotData();

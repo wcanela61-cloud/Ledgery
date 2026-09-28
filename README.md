@@ -39,7 +39,7 @@ Everything is saved in the browser (items and sales in `localStorage`, photos in
 Out of the box, data is saved only in the browser. To let people **create an account, sign in, and sync across devices**, connect a free [Supabase](https://supabase.com) project:
 
 1. **Create a project** at supabase.com (free plan is fine). Pick any name and a strong database password.
-2. **Create the tables:** open **SQL Editor → New query**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This also turns on row-level security, so each person can only ever read their own data. *Already set up before photo sync existed?* Run [`supabase/photos.sql`](supabase/photos.sql) once to add the photos table.
+2. **Create the tables:** open **SQL Editor → New query**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and click **Run**. This also turns on row-level security, so each person can only ever read their own data. *Set up with an older copy?* Run [`supabase/photos.sql`](supabase/photos.sql) (photo sync) and [`supabase/delete-account.sql`](supabase/delete-account.sql) (the **Delete account** button) once each.
 3. **Copy your keys:** **Project Settings → API**. Copy the **Project URL** and the **anon public** key into `index.html`, near the top of the script:
    ```js
    const LEDGERY_SUPABASE = {
@@ -68,6 +68,26 @@ How it behaves:
 - Two devices can't silently overwrite each other: every save carries a version number, and a stale save stops and re-syncs.
 - Signing out removes the data from that browser (it stays in the account), so shared computers stay private.
 - Photos sync too (after the photos table exists): each device uploads photos the others don't have and downloads the ones it's missing. Settings → Account shows how many are synced. Theme, font and Ledger chat history stay per device.
+- **Settings → Account → Delete account** (type DELETE to confirm) permanently removes the login, ledger and photos. Without `delete-account.sql` it still deletes the ledger and photos, and tells the person to contact you to remove the login.
+
+## Install as an app
+
+Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens offline (`sw.js`): pages are always fetched fresh when online, so new deploys show up right away, and the last copy is used offline. Account and sync requests are never cached. **Settings → App** shows an **Install app** button where the browser supports it (Chrome, Edge, Android), and "Share → Add to Home Screen" instructions on iPhone. Shared links show a preview card (`brand/og-image.png`).
+
+## Privacy & terms
+
+[`privacy.html`](privacy.html) and [`terms.html`](terms.html) are linked from sign-up, the sign-in page and **Settings → App**. Before launch, replace **"Contact email coming soon"** in both files with a real contact address. They are a plain-language starting point, not legal advice; have them reviewed if you charge money or have many users.
+
+## Launch checklist
+
+- [ ] Run `supabase/photos.sql` and `supabase/delete-account.sql` (or all of `schema.sql` on a new project).
+- [ ] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
+- [ ] **Authentication → SMTP:** connect your own email sender (Resend, Postmark, SendGrid…). The built-in one only sends a few emails an hour. Then brand the email templates.
+- [ ] Bot protection: Supabase's CAPTCHA (**Authentication → Attack Protection**) also needs the widget added to the sign-up form. Don't switch it on until that's in, or sign-ups will fail.
+- [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
+- [ ] Put a real contact email in `privacy.html` and `terms.html`.
+- [ ] Check plan limits: the free Supabase plan has 500 MB of database (photos count) and pauses after a week without activity.
+- [ ] Deploy from `main` (and optionally a custom domain; then update `og:url`/`og:image` in `index.html` and the Supabase URLs).
 
 ## Brand
 

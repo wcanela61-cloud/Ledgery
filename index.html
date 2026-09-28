@@ -13,6 +13,7 @@
     clean: { bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
     terminal: { bg: '#0D0F0C', accent: '#7FDB6E', fg: '#D8E8D0' },
     paper: { bg: '#F6F1E7', accent: '#8A6D3B', fg: '#2B2620' },
+    ledger: { bg: '#F3EEE3', accent: '#1F4B7A', fg: '#1F1C17' },
   };
   function hexToRgb(hex) {
     var h = hex.replace('#', '');
@@ -37,6 +38,7 @@
     return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) < 0.5;
   }
   var FONT_FAMILIES = {
+    'inter': "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     'ibm-plex-sans': "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     'space-grotesk': "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     'manrope': "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -55,10 +57,10 @@
       var ov = BASE_COLORS[oldVibe];
       override = { bg: override.bg || ov.bg, accent: override.accent || ov.accent, fg: override.fg || ov.fg };
     }
-    var vibe = override.bg && !isDark(override.bg) ? 'clean' : 'notepad'; // light or dark base style
+    var vibe = override.bg && isDark(override.bg) ? 'notepad' : 'paper'; // light (ledger paper) or dark base style
     document.documentElement.setAttribute('data-vibe', vibe);
     if (override && (override.bg || override.accent || override.fg)) {
-      var base = BASE_COLORS.notepad;
+      var base = BASE_COLORS.ledger;
       var bg = override.bg || base.bg, accent = override.accent || base.accent, fg = override.fg || base.fg;
       var dark = isDark(bg);
       var root = document.documentElement.style;
@@ -67,7 +69,7 @@
       root.setProperty('--surface-2', dark ? mix(bg, fg, 0.09) : '#FFFFFF');
       root.setProperty('--ink', fg);
       root.setProperty('--ink-muted', mix(fg, bg, 0.35));
-      root.setProperty('--ink-faint', mix(fg, bg, 0.55));
+      root.setProperty('--ink-faint', mix(fg, bg, 0.48));
       root.setProperty('--border', mix(bg, fg, dark ? 0.14 : 0.12));
       root.setProperty('--accent', accent);
       root.setProperty('--accent-soft', mix(bg, accent, 0.15));
@@ -78,17 +80,16 @@
     var fontFamily = parsed && parsed.fontFamily;
     if (fontFamily && FONT_FAMILIES[fontFamily]) {
       document.documentElement.style.setProperty('--font-sans', FONT_FAMILIES[fontFamily]);
-      document.documentElement.style.setProperty('--font-display', FONT_FAMILIES[fontFamily]);
     }
   } catch (e) { /* storage unavailable — falls back to default notepad vibe */ }
 })();
 </script>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E %3Cdefs%3E%3ClinearGradient id="lgGrad" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="#5CC495"/%3E%3Cstop offset="1" stop-color="#1F6F54"/%3E%3C/linearGradient%3E%3C/defs%3E %3Crect width="64" height="64" rx="16" fill="url%28#lgGrad%29"/%3E %3Crect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/%3E %3Cg transform="translate%28-1.5 2.5%29" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"%3E %3Cpath d="M18 13v33h18l11-17" stroke-width="7"/%3E %3Cpath d="M40.5 29.7l7.6-2.4 1 7.9" stroke-width="5"/%3E %3C/g%3E %3C/svg%3E ">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E %3Cdefs%3E%3ClinearGradient id="lgGrad" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="#2A5E91"/%3E%3Cstop offset="1" stop-color="#1F4B7A"/%3E%3C/linearGradient%3E%3C/defs%3E %3Crect width="64" height="64" rx="16" fill="url%28#lgGrad%29"/%3E %3Crect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/%3E %3Cg transform="translate%28-1.5 2.5%29" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"%3E %3Cpath d="M18 13v33h18l11-17" stroke-width="7"/%3E %3Cpath d="M40.5 29.7l7.6-2.4 1 7.9" stroke-width="5"/%3E %3C/g%3E %3C/svg%3E ">
 <link rel="apple-touch-icon" href="brand/ledgery-icon-180.png">
-<meta name="theme-color" content="#14161A">
+<meta name="theme-color" content="#F3EEE3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
    LEDGERY THEME SYSTEM
@@ -220,29 +221,29 @@
   color-scheme: dark;
 }
 :root[data-vibe="paper"] {
-  /* PAPER — digital paper/notebook: warm off-white, soft contrast, notebook feel. */
-  --bg: #F6F1E7;
+  /* LEDGER — the default: ledger-book paper, black ink, blue ruling ink. */
+  --bg: #F3EEE3;
   --surface: #FBF8F1;
-  --surface-2: #FFFFFF;
-  --ink: #2B2620;
-  --ink-muted: #6B6155;
-  --ink-faint: #7D7365;
-  --border: #E4DAC5;
-  --accent: #8A6D3B;
-  --accent-soft: #EFE6D2;
-  --accent-text: #5C4826;
-  --success: #4F7D4A;
-  --success-soft: #E4EEDE;
-  --success-text: #365E32;
-  --warning: #B3812C;
-  --warning-soft: #F3E7CC;
-  --warning-text: #7A551A;
-  --danger: #B3452C;
-  --danger-soft: #F5E2D6;
-  --danger-text: #8A331F;
-  --info-soft: #E2ECF2;
-  --info-text: #33526A;
-  --radius: 10px;
+  --surface-2: #FFFDF8;
+  --ink: #1F1C17;
+  --ink-muted: #5C5447;
+  --ink-faint: #6B6254;
+  --border: #DCD2BE;
+  --accent: #1F4B7A;
+  --accent-soft: #E3E9EF;
+  --accent-text: #1A3F66;
+  --success: #2F6B45;
+  --success-soft: #E1ECDD;
+  --success-text: #245535;
+  --warning: #A8741F;
+  --warning-soft: #F2E5C8;
+  --warning-text: #6E4C12;
+  --danger: #A33A2A;
+  --danger-soft: #F4DFD6;
+  --danger-text: #862D20;
+  --info-soft: #E1E9F0;
+  --info-text: #2C4C69;
+  --radius: 6px;
   --density-scale: 1.05;
   color-scheme: light;
 }
@@ -262,7 +263,7 @@ html, body {
 }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
   /* Numbers use the UI font with tabular figures so columns line up;
      the Terminal vibe swaps in monospace. */
@@ -275,7 +276,7 @@ html { scroll-padding-top: env(safe-area-inset-top, 0px); }
   --glow: color-mix(in srgb, var(--accent) 16%, transparent);
   /* Premium finish: display face for titles and headline numbers,
      hairline borders, a 1px top highlight and a soft top-lit card fill. */
-  --font-display: 'Inter Tight', var(--font-sans);
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --hairline: color-mix(in srgb, var(--ink) 9%, transparent);
   --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --card-bg: linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, white) 0%, var(--surface) 45%);
@@ -1225,7 +1226,7 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 .top-row:nth-child(3) .top-rank { background: linear-gradient(145deg, #E6B48A, #A86B3C); color: #2E1A0A; }
 .top-info { flex: 1; min-width: 0; }
 .top-name { font-size: 0.8438rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top-sub { margin-top: 3px; font-size: 0.7188rem; color: var(--ink-faint); display: flex; align-items: center; gap: 6px; }
+.top-sub { margin-top: 3px; font-size: 0.7188rem; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; }
 
 /* Empty states */
 .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 34px 16px 30px; gap: 6px; }
@@ -1726,6 +1727,119 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
 /* Progress bars and the goal ring fill with a little overshoot. */
 .motion-on .bar-fill { transition: width 1100ms cubic-bezier(0.34, 1.2, 0.64, 1); }
 @media (prefers-reduced-motion: reduce) { :root:not(.motion-full) .page-bg::before { animation: none; } }
+/* =========================================================
+   LEDGER STYLE — the house look: ledger-book paper, black ink,
+   serif headings, typewriter figures, ruled lines, rubber-stamp
+   statuses and price-tag item codes. No glows, no gradients.
+   Structure applies to every palette; paper texture only to light ones.
+   ========================================================= */
+:root[data-vibe] {
+  --glow: transparent;
+  --highlight: 0 0 0 transparent;
+  --card-bg: var(--surface);
+  --hairline: var(--border);
+  --shadow-sm: 0 1px 0 rgba(31, 28, 23, 0.05);
+  --shadow: 0 1px 0 rgba(31, 28, 23, 0.06), 0 2px 6px -4px rgba(31, 28, 23, 0.18);
+  --shadow-lg: 0 14px 34px -18px rgba(31, 28, 23, 0.45);
+  --radius-lg: calc(var(--radius) + 2px);
+  --rule: color-mix(in srgb, #4A7BAA 16%, transparent);
+  --margin-red: color-mix(in srgb, #C0392B 50%, transparent);
+  --tag: color-mix(in srgb, #C9A86A 34%, var(--surface));
+}
+:root[data-vibe="notepad"] { --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.3); --shadow: 0 1px 0 rgba(0, 0, 0, 0.35); --rule: transparent; --tag: color-mix(in srgb, #C9A86A 22%, var(--surface)); }
+body { font-feature-settings: 'ss01' on, 'tnum' on; }
+
+/* Paper: faint blue ruling, grain, and the ledger's red double margin line. */
+.page-bg { background: var(--bg); }
+:root[data-vibe="paper"] .page-bg { background: repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px), var(--bg); }
+:root[data-vibe="paper"] .page-bg::after { opacity: 0.06; mix-blend-mode: multiply; }
+.sidebar { background: color-mix(in srgb, var(--bg) 88%, var(--ink) 4%); border-right: 3px double var(--margin-red); }
+.brand { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; letter-spacing: -0.01em; }
+
+/* Type: serif titles and big numbers; small-caps labels instead of spaced capitals. */
+.page-title, #view-dashboard .page-title { font-family: var(--font-display); font-weight: 600; font-size: clamp(2rem, 3vw, 2.6rem); letter-spacing: -0.02em; font-variation-settings: 'opsz' 96; }
+.page-title::after { content: ''; display: block; width: min(190px, 60%); height: 9px; margin-top: 2px; background: var(--accent); opacity: 0.75;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 10' preserveAspectRatio='none'%3E%3Cpath d='M2 6 C 20 1, 34 9, 52 5 S 86 2, 104 6 S 140 9, 158 4 S 186 3, 198 6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 10' preserveAspectRatio='none'%3E%3Cpath d='M2 6 C 20 1, 34 9, 52 5 S 86 2, 104 6 S 140 9, 158 4 S 186 3, 198 6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%; }
+.page-sub { font-family: var(--font-display); font-style: italic; font-size: 0.95rem; }
+.eyebrow, #view-dashboard .eyebrow, .hero-label, .stat-label, th, .studio-sub, .tp-eyebrow, .readability::before, .auth-divider, .codes-note + .code-list .code-meta b {
+  font-family: var(--font-display); text-transform: lowercase; font-variant: small-caps; letter-spacing: 0.05em; font-weight: 600;
+}
+.eyebrow, #view-dashboard .eyebrow { font-size: 0.95rem; color: var(--ink-muted); }
+.hero-label, .stat-label { font-size: 0.95rem; color: var(--ink-muted); }
+th { font-size: 0.85rem; color: var(--ink-muted); background: transparent; border-bottom: 3px double var(--border); }
+.studio-sub { font-size: 0.9rem; }
+.hero-value, .stat-value, .donut-center-value, .tp-title, .tp-stats strong, .goal-pct { font-family: var(--font-display); font-variation-settings: 'opsz' 72; }
+.hero-value { font-weight: 500; font-size: 3.4rem; letter-spacing: -0.03em; }
+.money-dec { font-family: var(--font-num); font-size: 0.42em; letter-spacing: 0; color: var(--ink-muted); }
+.stat-value { font-weight: 500; font-size: 1.9rem; letter-spacing: -0.02em; }
+.num, td.num, .row-amt, .bar-val, .donut-legend-count, .hex-input, .order-no { font-family: var(--font-num); }
+.panel-head :is(h2, h3), .modal-head h3, .auth-card h1, .welcome-title, .appear-label { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; }
+.panel-head :is(h2, h3) { font-size: 1.15rem; }
+
+/* Flat, ruled cards instead of glowing tiles. */
+:is(.panel, .stat-tile, .hero-card, .hero-card.profit, .inv-card, .table-wrap, .code-list, .type-preview, .readability, .color-tile, .palette-card, .font-card, .sidebar-foot) {
+  background: var(--surface); box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+}
+.hero-card, .hero-card.profit { border-radius: var(--radius-lg); padding-bottom: 10px; }
+.hero-card::before { display: none; }
+.hero-card .hero-sub { font-family: var(--font-display); font-style: italic; }
+.panel-head { border-bottom: 3px double var(--border); padding-bottom: 12px; margin: 0 20px 6px; padding-left: 0; padding-right: 0; }
+.stat-tile.warn { background: var(--surface); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+:is(.hero-icon, .stat-icon, .ph-icon) { display: none !important; }
+.row-line { border-bottom: 1px solid var(--rule, var(--border)); }
+:root[data-vibe="notepad"] .row-line { border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent); }
+td { border-bottom-color: color-mix(in srgb, var(--border) 80%, transparent); }
+
+/* Buttons: solid ink, no gradient or glow. */
+.btn { background: var(--surface-2); box-shadow: var(--shadow-sm); border-color: var(--border); }
+.btn-primary, .btn-primary:hover { background: var(--accent); background-image: none; border-color: color-mix(in srgb, var(--accent) 75%, black); color: #fff; text-shadow: none;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 55%, black); filter: none; }
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, black); }
+.btn-primary:active { box-shadow: none; }
+/* Dark palettes have bright inks, so their buttons take dark text. */
+:root[data-vibe="notepad"] .btn-primary { color: #101312; }
+.btn.pulse::after { animation: none; }
+
+/* Sidebar: an ink highlight, like a marker pass, instead of a glowing pill. */
+.nav-active-pill { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: none; }
+.nav-active-pill::before { box-shadow: none; }
+.nav-item.active { color: var(--accent-text); }
+
+/* Statuses are rubber stamps. */
+.badge, .badge-cancelled { background: transparent !important; box-shadow: none; border: 1.5px solid currentColor; border-radius: 3px;
+  font-family: var(--font-num); font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 1px 6px; }
+.badge::before { display: none; }
+.badge-sold, .badge-completed, .badge-returned { transform: rotate(-3deg); }
+.badge-aging { transform: rotate(2deg); }
+.hero-trend, .stat-trend, .hero-chip { font-family: var(--font-num); border-radius: 3px; }
+
+/* Item codes are little price tags, string hole and all. */
+.code-tag, .item-code-chip { position: relative; background: var(--tag); color: var(--ink); border: none; border-radius: 0 3px 3px 0;
+  clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 50%); font-family: var(--font-num); font-weight: 600; }
+.code-tag { padding: 0 6px 0 12px; }
+.item-code-chip { padding: 5px 12px 5px 18px; }
+:is(.code-tag, .item-code-chip)::before { content: ''; position: absolute; left: 6px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
+.item-code-chip::before { left: 8px; width: 5px; height: 5px; margin-top: -2.5px; }
+
+/* Motion keeps the movement, loses the glow. */
+.motion-on :is(.hero-card, .stat-tile, .inv-card, .font-card, .palette-card, .panel)::after { display: none; }
+.motion-on .btn-primary::before, .motion-on .page-bg::before { display: none; }
+.motion-on .nav-item.active .nav-icon { filter: none; }
+.line-glow { filter: none; }
+.inv-tabs.has-thumb .seg-thumb::after { box-shadow: none; }
+.accent-chip, .vibe-check, .font-check { box-shadow: none; }
+.vibe-card.selected, .font-card.selected, .palette-card.selected { box-shadow: 0 0 0 1px var(--accent); }
+
+/* Sign-in page: a ledger page too. */
+.auth-brand { background: repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px), var(--surface); border-right: 3px double var(--margin-red); }
+.auth-logo { font-family: var(--font-display); }
+.auth-tagline { font-family: var(--font-display); font-weight: 500; }
+.auth-tagline em { font-style: italic; color: var(--accent-text); }
+.auth-bubble { font-family: var(--font-display); font-style: italic; box-shadow: var(--shadow-sm); }
+/* The logo takes the ink color of the current palette. */
+#ledgeryMarkGrad stop:first-child { stop-color: color-mix(in srgb, var(--accent) 88%, white); }
+#ledgeryMarkGrad stop:last-child { stop-color: var(--accent); }
+.empty-text { color: var(--ink-muted); }
 </style>
 </head>
 <body>
@@ -2020,7 +2134,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
               <div class="custom-note">Scales all text and most spacing, like browser zoom, within limits that keep the layout intact.</div>
             </div>
             <div class="type-preview" aria-hidden="true">
-              <div class="tp-eyebrow">Preview · <span id="tp-font-name">Inter</span></div>
+              <div class="tp-eyebrow">Preview · <span id="tp-font-name">IBM Plex Sans</span></div>
               <div class="tp-title">This month</div>
               <div class="tp-stats">
                 <div><em>Net profit</em><strong class="tp-pos">$1,284.50</strong></div>
@@ -4799,6 +4913,7 @@ if (window.claude && typeof window.claude.use === 'function') {
    ========================================================= */
 // One-tap palettes for Settings → Appearance (background, accent, text).
 const SIGNATURE_PALETTES = [
+  { name: 'Charcoal', bg: '#14161A', accent: '#4FAE84', fg: '#E7E9E5' },
   { name: 'Midnight', bg: '#0A0C10', accent: '#5B8CFF', fg: '#F5F6F8' },
   { name: 'Terminal', bg: '#0D0F0C', accent: '#7FDB6E', fg: '#D8E8D0' },
   { name: 'Clean', bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
@@ -4815,6 +4930,7 @@ const SIGNATURE_PALETTES = [
 // override leaves a field unset. Mirrors the CSS blocks above; keep
 // in sync if a vibe's base colors ever change.
 const VIBE_BASE_COLORS = {
+  ledger: { bg: '#F3EEE3', accent: '#1F4B7A', fg: '#1F1C17' },
   notepad: { bg: '#14161A', accent: '#4FAE84', fg: '#E7E9E5' },
   midnight: { bg: '#0A0C10', accent: '#5B8CFF', fg: '#F5F6F8' },
   clean: { bg: '#F7F7F5', accent: '#1F6F54', fg: '#1C2321' },
@@ -4828,8 +4944,8 @@ const THEME_STORAGE_KEY = 'ledgerly-theme-settings';
 // the app's own aesthetic — not curated per-vibe; any of these works
 // with any vibe.
 const FONT_FAMILY_OPTIONS = [
-  { id: 'inter', label: 'Inter (default)', desc: 'Neutral, highly readable', css: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
-  { id: 'ibm-plex-sans', label: 'IBM Plex Sans', desc: 'Pairs with the app\u2019s mono font', css: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'ibm-plex-sans', label: 'IBM Plex Sans (default)', desc: 'Typewriter roots, made for ledgers', css: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
+  { id: 'inter', label: 'Inter', desc: 'Neutral, highly readable', css: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
   { id: 'space-grotesk', label: 'Space Grotesk', desc: 'Geometric, technical', css: "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
   { id: 'manrope', label: 'Manrope', desc: 'Modern, a little warmer', css: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
   { id: 'sora', label: 'Sora', desc: 'Clean, geometric SaaS feel', css: "'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
@@ -4919,10 +5035,10 @@ const TOKEN_KEYS = [
 function applyTheme(settings) {
   // The base style (shadows, status colors, form controls) follows the background: light or dark.
   const bgNow = settings.colorOverrides.bg;
-  document.documentElement.setAttribute('data-vibe', bgNow && !isDarkColor(bgNow) ? 'clean' : 'notepad');
+  document.documentElement.setAttribute('data-vibe', bgNow && isDarkColor(bgNow) ? 'notepad' : 'paper');
   TOKEN_KEYS.forEach(k => document.documentElement.style.removeProperty('--' + k));
   if (hasColorOverride(settings.colorOverrides)) {
-    const base = VIBE_BASE_COLORS.notepad;
+    const base = VIBE_BASE_COLORS.ledger;
     const bg = settings.colorOverrides.bg || base.bg;
     const accent = settings.colorOverrides.accent || base.accent;
     const fg = settings.colorOverrides.fg || base.fg;
@@ -4933,7 +5049,7 @@ function applyTheme(settings) {
     root.setProperty('--surface-2', dark ? mixColors(bg, fg, 0.09) : '#FFFFFF');
     root.setProperty('--ink', fg);
     root.setProperty('--ink-muted', mixColors(fg, bg, 0.35));
-    root.setProperty('--ink-faint', mixColors(fg, bg, 0.55));
+    root.setProperty('--ink-faint', mixColors(fg, bg, 0.48));
     root.setProperty('--border', mixColors(bg, fg, dark ? 0.14 : 0.12));
     root.setProperty('--accent', accent);
     root.setProperty('--accent-soft', mixColors(bg, accent, 0.15));
@@ -4941,14 +5057,10 @@ function applyTheme(settings) {
   }
   document.documentElement.style.setProperty('--font-scale', String(clampFontScale(settings.fontScale)));
   const familyCss = fontFamilyCss(settings.fontFamily);
-  // A chosen font family also replaces the display face used for titles.
-  if (familyCss) {
-    document.documentElement.style.setProperty('--font-sans', familyCss);
-    document.documentElement.style.setProperty('--font-display', familyCss);
-  } else {
-    document.documentElement.style.removeProperty('--font-sans');
-    document.documentElement.style.removeProperty('--font-display');
-  }
+  // A chosen font family changes body text; titles and big numbers keep the ledger serif.
+  if (familyCss) document.documentElement.style.setProperty('--font-sans', familyCss);
+  else document.documentElement.style.removeProperty('--font-sans');
+  document.documentElement.style.removeProperty('--font-display');
 }
 
 function setFontScale(scale) {
@@ -4985,21 +5097,21 @@ function renderFontFamilyControl() {
   const settings = getThemeSettings();
   const grid = document.getElementById('font-grid');
   if (!grid) return;
-  const current = settings.fontFamily || 'inter';
+  const current = settings.fontFamily || 'ibm-plex-sans';
   grid.innerHTML = FONT_FAMILY_OPTIONS.map(o => `
     <button type="button" class="font-card ${o.id === current ? 'selected' : ''}" data-font="${o.id}" aria-pressed="${o.id === current}" style="--ff:${o.css.replace(/"/g, '&quot;')}">
       <span class="font-sample" aria-hidden="true"><span class="font-aa">Aa</span><span class="font-digits">$1,284</span></span>
-      <span class="font-name">${o.label.replace(' (default)', '')}${o.id === 'inter' ? ' <span class="font-default">Default</span>' : ''}</span>
+      <span class="font-name">${o.label.replace(' (default)', '')}${o.id === 'ibm-plex-sans' ? ' <span class="font-default">Default</span>' : ''}</span>
       <span class="font-desc">${o.desc}</span>
       <span class="vibe-check font-check" aria-hidden="true">${CHECK_SVG}</span>
     </button>`).join('');
   const opt = FONT_FAMILY_OPTIONS.find(o => o.id === current);
-  document.getElementById('tp-font-name').textContent = opt ? opt.label.replace(' (default)', '') : 'Inter';
+  document.getElementById('tp-font-name').textContent = opt ? opt.label.replace(' (default)', '') : 'IBM Plex Sans';
 }
 document.getElementById('font-grid').addEventListener('click', e => {
   const card = e.target.closest('[data-font]');
   if (!card) return;
-  setFontFamily(card.dataset.font === 'inter' ? '' : card.dataset.font);
+  setFontFamily(card.dataset.font === 'ibm-plex-sans' ? '' : card.dataset.font);
   renderFontFamilyControl();
 });
 document.getElementById('size-presets').addEventListener('click', e => {
@@ -5046,7 +5158,7 @@ const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l
 
 function effectiveColors() {
   const settings = getThemeSettings();
-  const base = VIBE_BASE_COLORS.notepad;
+  const base = VIBE_BASE_COLORS.ledger;
   return {
     bg: settings.colorOverrides.bg || base.bg,
     accent: settings.colorOverrides.accent || base.accent,
@@ -5084,8 +5196,8 @@ function renderColorControls() {
       <div class="studio-sub" id="palette-label">Palettes</div>
       <div class="palette-grid" role="group" aria-labelledby="palette-label">
         <button type="button" class="palette-card ${overridden ? '' : 'selected'}" data-palette="default" aria-pressed="${!overridden}">
-          ${(() => { const vb = VIBE_BASE_COLORS.notepad; return `<span class="palette-swatch" style="--p-bg:${vb.bg};--p-accent:${vb.accent};--p-fg:${vb.fg}" aria-hidden="true"><i></i><i></i><i></i></span>`; })()}
-          <span class="palette-name">Classic<span class="palette-sub">Default</span></span>
+          ${(() => { const vb = VIBE_BASE_COLORS.ledger; return `<span class="palette-swatch" style="--p-bg:${vb.bg};--p-accent:${vb.accent};--p-fg:${vb.fg}" aria-hidden="true"><i></i><i></i><i></i></span>`; })()}
+          <span class="palette-name">Ledger<span class="palette-sub">Default</span></span>
         </button>
         ${SIGNATURE_PALETTES.map((pl, i) => `<button type="button" class="palette-card ${activePalette === pl ? 'selected' : ''}" data-palette="${i}" aria-pressed="${activePalette === pl}">
           <span class="palette-swatch" style="--p-bg:${pl.bg};--p-accent:${pl.accent};--p-fg:${pl.fg}" aria-hidden="true"><i></i><i></i><i></i></span>

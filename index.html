@@ -7076,7 +7076,16 @@ const Billing = (() => {
       location.assign(data.url);
     } catch (e) {
       if (btn) { btn.disabled = false; btn.classList.remove('is-busy'); }
-      const msg = 'Couldn’t open the secure payment page. Check your connection and try again.';
+      // A short code (status and reason) so problems can be traced in Supabase → Edge Functions → billing.
+      let code = (e && e.name === 'FunctionsFetchError') ? 'network' : '';
+      const res = e && e.context;
+      if (res && typeof res.status === 'number') {
+        code = String(res.status);
+        try { const body = await res.clone().json(); if (body && body.error) code += ' ' + body.error; } catch (err) {}
+      }
+      if (e && e.name === 'FunctionsRelayError') code = code || 'relay';
+      const msg = (code === '409 already_subscribed' ? 'You already have a plan. Refresh the page.'
+        : 'Couldn’t open the secure payment page. Check your connection and try again.') + (code ? ` (code: ${code})` : '');
       if (gateOpen()) { Account.notice = '!' + msg; renderGate(true); } else showUndo(msg, null);
       load();
     }

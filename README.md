@@ -70,6 +70,22 @@ How it behaves:
 - Photos sync too (after the photos table exists): each device uploads photos the others don't have and downloads the ones it's missing. Settings → Account shows how many are synced. Theme, font and Ledger chat history stay per device.
 - **Settings → Account → Delete account** (type DELETE to confirm) permanently removes the login, ledger and photos. Without `delete-account.sql` it still deletes the ledger and photos, and tells the person to contact you to remove the login.
 
+## Bot protection (CAPTCHA)
+
+Ledgery supports [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/). It's free and usually invisible: people only see a checkbox if Cloudflare isn't sure they're human. The check runs on sign-up, sign-in and password reset. While a laptop waits on "Check your email", each background sign-in try gets its own check too, every 12 seconds instead of 4.
+
+Do the steps **in this order**. If Supabase starts requiring a CAPTCHA before the site sends one, nobody can sign in.
+
+1. In the [Cloudflare dashboard](https://dash.cloudflare.com/) (a free account is fine), go to **Turnstile → Add widget**. Name it `Ledgery`, add your hostname (e.g. `wcanela61-cloud.github.io`, plus your own domain if you have one), and choose **Managed** mode.
+2. Copy the **Site key** into `index.html`:
+   ```js
+   captcha: { siteKey: '0x4AAAA...' },
+   ```
+   Then deploy and check that you can still sign in.
+3. In Supabase, go to **Authentication → Attack Protection → Enable CAPTCHA protection**, choose **Turnstile**, paste the **Secret key** and save.
+
+To turn it off, switch it off in Supabase first, then empty `siteKey`.
+
 ## Install as an app
 
 Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens offline (`sw.js`): pages are always fetched fresh when online, so new deploys show up right away, and the last copy is used offline. Account and sync requests are never cached. **Settings → App** shows an **Install app** button where the browser supports it (Chrome, Edge, Android), and "Share → Add to Home Screen" instructions on iPhone. Shared links show a preview card (`brand/og-image.png`).
@@ -83,7 +99,7 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 - [ ] Run `supabase/photos.sql` and `supabase/delete-account.sql` (or all of `schema.sql` on a new project).
 - [ ] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
 - [ ] **Authentication → SMTP:** connect your own email sender (Resend, Postmark, SendGrid…). The built-in one only sends a few emails an hour. Then brand the email templates.
-- [ ] Bot protection: Supabase's CAPTCHA (**Authentication → Attack Protection**) also needs the widget added to the sign-up form. Don't switch it on until that's in, or sign-ups will fail.
+- [ ] Bot protection: set up Cloudflare Turnstile (see **Bot protection** below).
 - [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
 - [ ] Put a real contact email in `privacy.html` and `terms.html`.
 - [ ] Check plan limits: the free Supabase plan has 500 MB of database (photos count) and pauses after a week without activity.

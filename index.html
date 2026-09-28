@@ -2039,6 +2039,9 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
 #delete-account-form .field { margin: 14px 0 4px; }
 #delete-account-form input { font-family: var(--font-num); letter-spacing: 0.08em; }
 #delete-account-error { margin-top: 10px; }
+/* Bot protection: Turnstile only shows when it needs a tick */
+.captcha-slot { display: flex; justify-content: center; }
+.captcha-slot:has(iframe) { margin: 2px 0 8px; }
 </style>
 </head>
 <body>
@@ -6755,6 +6758,9 @@ const LEDGERY_SUPABASE = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibWNseHd6YW52cnZzYWRkZ2liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDI3MzksImV4cCI6MjEwNjExODczOX0.Yk9RtzRnw74Bwt42PbhW_CkQYa9xmHGDoU0rGgJtE3Q',
   requireSignIn: true,                       // show the sign-in page until someone signs in
   providers: { google: false, apple: false }, // set true after switching it on in Supabase (README → Accounts)
+  // Bot protection with Cloudflare Turnstile (README → Bot protection). Paste the site key here
+  // and deploy BEFORE switching CAPTCHA on in Supabase. Empty = off.
+  captcha: { siteKey: '' },
 };
 // Read before Supabase tidies the address bar: did we arrive from an email link?
 const AUTH_LANDING = (() => {
@@ -7265,13 +7271,14 @@ function renderAuthForm(body, titleEl, inGate) {
         ${emailField}
         ${passwordField('Password', m === 'signin' ? 'current-password' : 'new-password', m === 'signup' ? 'At least 8 characters' : '')}
         ${m === 'signin' ? '<div class="auth-forgot"><button type="button" class="link-btn" data-account="reset">Forgot password?</button></div>' : ''}
+        ${Captcha.markup()}
         <button type="submit" class="btn btn-primary auth-submit">${m === 'signin' ? 'Sign in' : 'Create account'}</button>
         ${m === 'signup' ? '<p class="auth-legal">By creating an account you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>' : ''}
       </form>
       <p class="account-switch">${m === 'signin' ? 'New to Ledgery? <button type="button" class="link-btn" data-account="signup">Create an account</button>' : 'Already have an account? <button type="button" class="link-btn" data-account="signin">Sign in</button>'}</p>`;
   } else if (m === 'reset') {
     body.innerHTML = `<p class="auth-sub">Enter your email and we'll send you a link to choose a new password.</p>${notice}
-      <form id="account-form" class="account-form" novalidate>${emailField}
+      <form id="account-form" class="account-form" novalidate>${emailField}${Captcha.markup()}
         <button type="submit" class="btn btn-primary auth-submit">Send reset link</button></form>
       <p class="account-switch"><button type="button" class="link-btn" data-account="signin">Back to sign in</button></p>`;
   } else if (m === 'newpass') {
@@ -7282,7 +7289,7 @@ function renderAuthForm(body, titleEl, inGate) {
     body.innerHTML = `${notice}<div class="auth-mail" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
       ${Account.sentKind === 'signup'
         ? `<p class="auth-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it on any device, even your phone. As soon as you confirm, this page signs you in by itself.</p>
-      <div class="auth-waiting" role="status"><span class="auth-spinner" aria-hidden="true"></span>Waiting for you to confirm…</div>`
+      <div class="auth-waiting" role="status"><span class="auth-spinner" aria-hidden="true"></span>Waiting for you to confirm…</div>${Captcha.markup()}`
         : `<p class="auth-sub">We sent a link to <strong class="acct-sent-to"></strong>. Open it to choose a new password.</p>`}
       <p class="custom-note">Nothing there after a minute? Check your spam folder.</p>
       <p class="account-switch"><button type="button" class="link-btn" data-account="signin">Back to sign in</button></p>`;
@@ -7335,7 +7342,68 @@ function renderAccountModal() {
   if (first && document.getElementById('overlay-account').classList.contains('open')) first.focus({ preventScroll: true });
 }
 
+/* ---------- bot protection: Cloudflare Turnstile ----------
+   Runs only when a site key is set. The check happens when a form is sent (and for each
+   background try while waiting on "Check your email"); it's invisible unless Cloudflare
+   needs you to tick a box, which then appears right above the button. Tokens are single-use. */
+const Captcha = (() => {
+  const cfg = LEDGERY_SUPABASE.captcha || {};
+  const enabled = () => !!cfg.siteKey;
+  let scriptP = null, widget = null; // { id, el, pending }
+  function load() {
+    if (window.turnstile) return Promise.resolve(window.turnstile);
+    return scriptP || (scriptP = new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      el.async = true;
+      el.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error('captcha unavailable')));
+      el.onerror = () => { scriptP = null; reject(new Error('captcha unavailable')); };
+      document.head.appendChild(el);
+    }));
+  }
+  const settle = (ok, val) => {
+    const p = widget && widget.pending;
+    if (!p) return;
+    widget.pending = null; clearTimeout(p.timer);
+    ok ? p.resolve(val) : p.reject(new Error(val));
+  };
+  // The slot on whichever sign-in surface is showing.
+  const slot = () => document.querySelector(gateOpen() ? '#auth-body .captcha-slot' : '#account-body .captcha-slot');
+  async function token(el = slot()) {
+    if (!enabled()) return undefined;
+    if (!el) throw new Error('captcha unavailable');
+    const ts = await load();
+    if (widget && widget.pending) settle(false, 'captcha failed'); // a newer request wins
+    if (!widget || widget.el !== el || !el.isConnected) {
+      if (widget) { try { ts.remove(widget.id); } catch (e) { /* already gone */ } }
+      widget = { el, pending: null };
+      widget.id = ts.render(el, {
+        sitekey: cfg.siteKey,
+        execution: 'execute',
+        appearance: 'interaction-only',
+        theme: document.documentElement.dataset.vibe === 'notepad' ? 'dark' : 'light',
+        size: 'flexible',
+        callback: t => settle(true, t),
+        'error-callback': () => { settle(false, 'captcha failed'); },
+        'expired-callback': () => settle(false, 'captcha failed'),
+        'timeout-callback': () => settle(false, 'captcha failed'),
+      });
+    } else {
+      ts.reset(widget.id);
+    }
+    const result = new Promise((resolve, reject) => {
+      widget.pending = { resolve, reject, timer: setTimeout(() => settle(false, 'captcha failed'), 120000) };
+    });
+    ts.execute(el);
+    return result;
+  }
+  const markup = () => (enabled() ? '<div class="captcha-slot"></div>' : '');
+  return { enabled, token, markup };
+})();
+
 const AUTH_ERRORS = [
+  [/captcha unavailable/i, 'The security check couldn’t load. Check your connection, or pause ad or content blockers for this site.'],
+  [/captcha/i, 'We couldn’t confirm you’re a person. Please try again.'],
   [/invalid login/i, 'That email and password don’t match an account.'],
   [/email not confirmed/i, 'Please confirm your email first. Check your inbox for the link.'],
   [/already registered|already exists/i, 'There’s already an account with that email. Try signing in.'],
@@ -7354,7 +7422,15 @@ document.addEventListener('submit', async e => {
   const val = n => (form.elements[n] ? form.elements[n].value.trim() : '');
   const email = val('email');
   const password = form.elements.password ? form.elements.password.value : '';
-  const fail = msg => { Account.notice = '!' + msg; renderAuthSurface(); };
+  const fail = msg => {
+    // Keep what was typed (except the password) when the form is redrawn with the error.
+    const keep = ['full_name', 'shop_name', 'email'].filter(n => form.elements[n]).map(n => [n, form.elements[n].value]);
+    Account.notice = '!' + msg; renderAuthSurface();
+    const again = document.getElementById('account-form');
+    if (!again) return;
+    keep.forEach(([n, v]) => { if (again.elements[n]) again.elements[n].value = v; });
+    if (again.elements.password && keep.some(([n, v]) => n === 'email' && v)) again.elements.password.focus({ preventScroll: true });
+  };
   if (m === 'signup' && !val('full_name')) return fail('Enter your name.');
   if (form.elements.email && !/^\S+@\S+\.\S+$/.test(email)) return fail('Enter a valid email address.');
   if (form.elements.password && !password) return fail('Enter your password.');
@@ -7362,19 +7438,20 @@ document.addEventListener('submit', async e => {
   const submit = form.querySelector('[type=submit]');
   submit.disabled = true; submit.textContent = 'Please wait…';
   try {
+    const captchaToken = (m === 'signin' || m === 'signup' || m === 'reset') ? await Captcha.token(form.querySelector('.captcha-slot')) : undefined;
     if (m === 'signin') {
-      const { error } = await Account.client.auth.signInWithPassword({ email, password });
+      const { error } = await Account.client.auth.signInWithPassword({ email, password, options: { captchaToken } });
       if (error) throw error;
       Account.notice = '';
       closeOverlay('overlay-account');
     } else if (m === 'signup') {
-      const { data, error } = await Account.client.auth.signUp({ email, password, options: { emailRedirectTo: authRedirect(), data: { full_name: val('full_name'), shop_name: val('shop_name') } } });
+      const { data, error } = await Account.client.auth.signUp({ email, password, options: { emailRedirectTo: authRedirect(), captchaToken, data: { full_name: val('full_name'), shop_name: val('shop_name') } } });
       if (error) throw error;
       Account.notice = '';
       if (data && data.session) closeOverlay('overlay-account');
       else { Account.sentTo = email; Account.sentKind = 'signup'; Account.modalMode = 'check-email'; renderAuthSurface(); watchForConfirm(email, password); }
     } else if (m === 'reset') {
-      const { error } = await Account.client.auth.resetPasswordForEmail(email, { redirectTo: authRedirect() });
+      const { error } = await Account.client.auth.resetPasswordForEmail(email, { redirectTo: authRedirect(), captchaToken });
       if (error) throw error;
       Account.sentTo = email; Account.sentKind = 'reset'; Account.modalMode = 'check-email'; Account.notice = ''; renderAuthSurface();
     } else if (m === 'newpass') {
@@ -7415,13 +7492,15 @@ function watchForConfirm(email, password) {
     if (Account.user || Account.modalMode !== 'check-email' || Date.now() > w.until) return stopConfirmWatch();
     w.busy = true;
     try {
-      const { error } = await Account.client.auth.signInWithPassword({ email: w.email, password: w.password });
+      const captchaToken = await Captcha.token(); // each try needs its own check when bot protection is on
+      if (confirmWatch !== w) return;
+      const { error } = await Account.client.auth.signInWithPassword({ email: w.email, password: w.password, options: { captchaToken } });
       if (!error) { stopConfirmWatch(); closeOverlay('overlay-account'); return; } // onAuthStateChange takes it from here
       if (!/not confirmed|fetch|network|rate limit|too many/i.test(error.message || '')) stopConfirmWatch();
     } catch (e) { /* offline: try again next tick */ } finally { w.busy = false; }
   };
   w.tryNow = tryNow;
-  w.timer = setInterval(tryNow, 4000);
+  w.timer = setInterval(tryNow, Captcha.enabled() ? 12000 : 4000); // fewer checks when each one needs a captcha
 }
 function stopConfirmWatch() {
   if (!confirmWatch) return;

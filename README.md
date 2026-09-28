@@ -92,7 +92,7 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 
 ## Privacy & terms
 
-[`privacy.html`](privacy.html) and [`terms.html`](terms.html) are linked from sign-up, the sign-in page and **Settings → App**. Before launch, replace **"Contact email coming soon"** in both files with a real contact address. They are a plain-language starting point, not legal advice; have them reviewed if you charge money or have many users.
+[`privacy.html`](privacy.html) and [`terms.html`](terms.html) are linked from sign-up, the sign-in page and **Settings → App**. They are a plain-language starting point, not legal advice; have them reviewed if you charge money or have many users.
 
 ## Launch checklist
 
@@ -101,7 +101,7 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 - [ ] **Authentication → SMTP:** connect your own email sender (Resend, Postmark, SendGrid…). The built-in one only sends a few emails an hour. Then brand the email templates.
 - [ ] Bot protection: set up Cloudflare Turnstile (see **Bot protection** below).
 - [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
-- [ ] Put a real contact email in `privacy.html` and `terms.html`.
+- [x] Put a real contact email in `privacy.html` and `terms.html`.
 - [ ] Check plan limits: the free Supabase plan has 500 MB of database (photos count) and pauses after a week without activity.
 - [ ] Deploy from `main` (and optionally a custom domain; then update `og:url`/`og:image` in `index.html` and the Supabase URLs).
 

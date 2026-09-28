@@ -6786,7 +6786,7 @@ const LEDGERY_SUPABASE = {
   captcha: { siteKey: '' },
   // Paid plan via Stripe (README → Billing). Leave off until the Stripe and Supabase
   // setup is done; when on, signed-in people need a trial or subscription to use the app.
-  billing: { enabled: false, trialDays: 7, month: '$9', year: '$90', yearPerMonth: '$7.50' },
+  billing: { enabled: true, trialDays: 7, month: '$9', year: '$90', yearPerMonth: '$7.50' },
 };
 // Read before Supabase tidies the address bar: did we arrive from an email link?
 const AUTH_LANDING = (() => {

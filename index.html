@@ -1755,7 +1755,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
       <div class="page-header">
         <div>
           <h1 class="page-title">Inventory</h1>
-          <div class="page-sub"><span id="inv-count"></span> items</div>
+          <div class="page-sub"><span id="inv-count"></span><span id="inv-sold-note"></span></div>
         </div>
         <div class="header-actions">
           <button class="btn" data-open="add-bundle">Add bundle</button>
@@ -1773,7 +1773,7 @@ button.stat-tile:focus-visible { outline: 2px solid var(--danger); outline-offse
           <option value="">All statuses</option>
           <option value="unsold">Not listed</option>
           <option value="listed">Listed</option>
-          <option value="sold">Sold</option>
+          <option value="sold">Sold (in Sales)</option>
           <option value="returned">Returned</option>
         </select>
         <select id="inv-platform-filter" aria-label="Filter by platform">
@@ -3193,6 +3193,10 @@ function renderInventory() {
   const search = document.getElementById('inv-search').value.trim().toLowerCase();
   const statusFilter = document.getElementById('inv-status-filter').value;
   const platformFilter = document.getElementById('inv-platform-filter').value;
+  // Sold items live in Sales, so Inventory shows only what you still have.
+  // Picking the Sold status (or a platform, which only sold items have) shows them.
+  const showSold = statusFilter === 'sold' || !!platformFilter;
+  const inStock = u => showSold || u.status !== 'sold';
 
   let rows = items.map(item => {
     // Only a completed sale counts: returned/cancelled sales earned nothing,
@@ -3208,6 +3212,7 @@ function renderInventory() {
       if (!haystack.includes(search) && !(code && item.item_code === code)) return false;
     }
     if (statusFilter && item.status !== statusFilter) return false;
+    if (!inStock(item)) return false;
     if (platformFilter && (!sale || sale.platform !== platformFilter)) return false;
     return true;
   });
@@ -3229,7 +3234,10 @@ function renderInventory() {
     seen.get(bid).rows.push(row);
   });
 
-  document.getElementById('inv-count').textContent = rows.length;
+  document.getElementById('inv-count').textContent = `${rows.length} ${statusFilter === 'sold' ? 'sold' : showSold ? (rows.length === 1 ? 'item' : 'items') : 'in stock'}`;
+  const soldCount = items.filter(i => i.status === 'sold').length;
+  document.getElementById('inv-sold-note').innerHTML = !showSold && soldCount
+    ? ` &middot; ${soldCount} sold <button type="button" class="link-btn" data-goto="sales">in Sales</button>` : '';
   const empty = items.length
     ? emptyState('search', 'No matches', 'Nothing fits these filters. Try a different search or status.')
     : emptyState('box', 'Your inventory is empty', 'Add what you bought and Ledgery works out the profit when it sells.',
@@ -3248,14 +3256,15 @@ function renderInventory() {
       if (entry.batchId) {
         const b = batchSummary(entry.batchId);
         const item = b.units[0];
+        const pool = b.units.filter(inStock);
         return `<button type="button" class="inv-card is-batch${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-edit-batch="${esc(entry.batchId)}" style="${delay}">
-          <div class="inv-card-media">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span>${b.available ? `<span class="badge badge-${b.listed ? 'listed' : 'unsold'}">${b.available} left</span>` : statusBadge('sold')}</div>
+          <div class="inv-card-media">${itemThumb(item)}<span class="qty-badge">&times;${pool.length}</span>${b.available ? `<span class="badge badge-${b.listed ? 'listed' : 'unsold'}">${b.available} left</span>` : statusBadge('sold')}</div>
           <div class="inv-card-body">
             <div class="inv-card-name">${esc(item.item_name)}</div>
             <div class="inv-card-sub"><span class="code-tag">${esc(item.item_code)}</span>${subOf(item)}</div>
             <div class="inv-card-foot">
               <span class="inv-card-price">${item.listing_price_cents !== null ? fmtCents(item.listing_price_cents) + '<span class="inv-card-cost"> each</span>' : '<span class="inv-card-cost">No price yet</span>'}</span>
-              ${b.profitCount ? `<span class="inv-card-profit ${moneyClass(b.profit)}">${b.profit >= 0 ? '+' : ''}${fmtCents(b.profit)}</span>` : b.sold ? '' : `<span class="inv-card-cost">${b.units.length} units</span>`}
+              ${b.profitCount ? `<span class="inv-card-profit ${moneyClass(b.profit)}">${b.profit >= 0 ? '+' : ''}${fmtCents(b.profit)}</span>` : b.sold ? '' : `<span class="inv-card-cost">${pool.length} units</span>`}
             </div>
           </div>
         </button>`;
@@ -3296,18 +3305,19 @@ function renderInventory() {
   const batchRows = entry => {
     const b = batchSummary(entry.batchId);
     const item = b.units[0];
+    const pool = b.units.filter(inStock); // units still in inventory
     const open = expandedBatches.has(entry.batchId);
     const costs = [...new Set(b.units.map(u => u.purchase_cost_cents))];
     const costText = costs.includes(null) ? '<span class="badge badge-incomplete">Unknown</span>'
       : costs.length === 1 ? `${fmtCents(costs[0])} <span class="price-note">each</span>`
       : `${fmtCents(Math.min(...costs))}–${fmtCents(Math.max(...costs))}`;
-    const counts = [['unsold', b.unsold], ['listed', b.listed], ['sold', b.sold], ['returned', b.returned]].filter(([, n]) => n);
+    const counts = [['unsold', b.unsold], ['listed', b.listed], ['sold', showSold ? b.sold : 0], ['returned', b.returned]].filter(([, n]) => n);
     const platforms = [...new Set(b.units.map(u => (sales.find(s => s.item_id === u.id && s.status === 'completed') || {}).platform).filter(Boolean))];
-    const filtered = entry.rows.length < b.units.length ? ` &middot; ${entry.rows.length} shown` : '';
+    const filtered = entry.rows.length < pool.length ? ` &middot; ${entry.rows.length} shown` : '';
     const head = `<tr class="batch-row${open ? ' open' : ''}${b.units.some(u => highlightItemIds.has(u.id)) ? ' row-new' : ''}" data-batch-toggle="${esc(entry.batchId)}">
-      <td class="cell-title"><div class="item-cell"><span class="batch-thumb">${itemThumb(item)}<span class="qty-badge">&times;${b.units.length}</span></span><div>
+      <td class="cell-title"><div class="item-cell"><span class="batch-thumb">${itemThumb(item)}<span class="qty-badge">&times;${pool.length}</span></span><div>
         <button type="button" class="item-name batch-toggle" aria-expanded="${open}"><svg class="batch-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${esc(item.item_name)}</button>
-        <div class="item-sub"><span class="code-tag">${esc(item.item_code)}</span>${[subOf(item), `${b.units.length} units${filtered}`].filter(Boolean).join(' &middot; ')}</div></div></div></td>
+        <div class="item-sub"><span class="code-tag">${esc(item.item_code)}</span>${[subOf(item), `${pool.length} unit${pool.length === 1 ? '' : 's'}${filtered}`, !showSold && b.sold ? `${b.sold} sold` : ''].filter(Boolean).join(' &middot; ')}</div></div></div></td>
       <td data-label="Platform">${platforms.length ? platforms.map(p => platformChip(p, platforms.length > 1 ? 'mark' : false)).join(' ') : '&mdash;'}</td>
       <td data-label="Purchase cost" class="num">${costText}</td>
       <td data-label="Status"><div class="batch-counts">${counts.map(([st, n]) => `<span class="badge badge-${st}">${n} ${esc(statusLabel(st).toLowerCase())}</span>`).join('')}</div></td>
@@ -3317,7 +3327,7 @@ function renderInventory() {
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-batch="${esc(entry.batchId)}">Edit batch</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-batch="${esc(entry.batchId)}" title="Delete the whole batch" aria-label="Delete the whole batch">&times;</button></td>
     </tr>`;
-    return head + (open ? entry.rows.map(row => unitRow(row, { no: b.units.indexOf(row.item) + 1, of: b.units.length, name: item.item_name })).join('') : '');
+    return head + (open ? entry.rows.map(row => unitRow(row, { no: pool.indexOf(row.item) + 1, of: pool.length, name: item.item_name })).join('') : '');
   };
 
   document.getElementById('inv-tbody').innerHTML = entries.length
@@ -5247,7 +5257,10 @@ function editBatch(batchId, originEl) {
   updateItemCostEach();
   renderBatchUnits(b);
 
-  document.getElementById('add-item-modal-title').textContent = `Edit batch · ${b.units.length} units`;
+  const inStockCount = b.units.length - b.sold;
+  document.getElementById('add-item-modal-title').textContent = b.sold
+    ? `Edit batch · ${inStockCount} in stock, ${b.sold} sold`
+    : `Edit batch · ${b.units.length} units`;
   document.getElementById('add-item-modal-sub').textContent = 'Changes apply to every unit. Units that already sold keep their sale and profit.';
   document.getElementById('add-item-submit-btn').textContent = 'Save batch';
   openOverlay('overlay-add-item', originEl);

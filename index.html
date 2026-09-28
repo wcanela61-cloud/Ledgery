@@ -1895,6 +1895,121 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
 .returned-mark { transform: rotate(-3deg); }
 .card-badges { position: absolute; top: 8px; left: 8px; z-index: 3; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
 .card-badges .badge { position: static; }
+
+/* =========================================================
+   PHONES — the desktop layout, made compact, instead of tall cards.
+   ========================================================= */
+@media (max-width: 720px) {
+  html { font-size: calc(14.5px * var(--font-scale)); }
+  .main { padding: 14px 12px calc(92px + env(safe-area-inset-bottom, 0px)); }
+  .mobile-brand { margin-bottom: 10px; }
+  .page-header { margin-bottom: 12px; gap: 10px; }
+  .page-title, #view-dashboard .page-title { font-size: 1.65rem; }
+  .page-title::after { height: 7px; width: min(140px, 55%); }
+  .page-sub { font-size: 0.85rem; }
+  .eyebrow, #view-dashboard .eyebrow { font-size: 0.8rem; margin-bottom: 2px; }
+  .header-actions { width: 100%; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+  .header-actions .seg { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .header-actions .seg button { padding: 5px 8px; font-size: 0.75rem; white-space: nowrap; }
+  .header-actions .btn { min-height: 32px; padding: 5px 11px; font-size: 0.78rem; white-space: nowrap; }
+
+  /* Panels and cards: tighter. */
+  .panel { margin-bottom: 10px; }
+  .panel-head { padding: 12px 0 8px; margin: 0 14px 4px; }
+  .panel-head :is(h2, h3) { font-size: 1rem; }
+  .panel-body { padding: 6px 14px 12px; }
+  .panel-grid { gap: 0; }
+  .row-line { padding: 8px 0; font-size: 0.8rem; }
+  .item-thumb { width: 32px; height: 32px; }
+
+  /* Dashboard: headline numbers side by side, compact tiles. */
+  .hero-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .hero-card, .hero-card.profit { padding: 12px 12px 4px; }
+  .hero-label { font-size: 0.78rem; }
+  .hero-value { font-size: 1.75rem; margin: 6px 0 2px; }
+  .hero-sub { font-size: 0.7rem; margin-bottom: 6px; }
+  .hero-chip { font-size: 0.65rem; padding: 1px 5px; }
+  .hero-trend { font-size: 0.65rem; padding: 2px 6px; }
+  .hero-spark { height: 32px; width: calc(100% + 24px); margin: 0 -12px -4px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-tile { padding: 10px 12px 11px; }
+  .stat-label { font-size: 0.75rem; margin-bottom: 4px; }
+  .stat-value { font-size: 1.3rem; }
+  .tile-spark { height: 22px; }
+  .stat-fix { font-size: 0.68rem; }
+  .goal-ring { width: 76px; height: 76px; }
+  .donut-wrap svg { width: 96px; height: 96px; }
+
+  /* Tables: one compact two-line row per item or sale. */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  #inv-table, #sales-table, #inv-table tbody, #sales-table tbody { display: block; width: 100%; min-width: 0; }
+  #inv-table tbody tr, #sales-table tbody tr {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+    background: transparent; border: none; border-radius: 0; box-shadow: none; margin: 0;
+    padding: 9px 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent); cursor: pointer;
+  }
+  #inv-table tbody tr:last-child, #sales-table tbody tr:last-child { border-bottom: none; }
+  #inv-table td, #sales-table td { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; padding: 0; font-size: 0.78rem; }
+  #inv-table td::before, #sales-table td::before { display: none; }
+  #inv-table td.is-empty, #sales-table td.is-empty { display: none; }
+  /* line 1: item on the left, the key amount on the right */
+  #inv-table td.cell-title, #sales-table td.cell-title { order: 1; flex: 1 1 calc(100% - 96px); min-width: 0; }
+  .cell-title .item-cell { gap: 8px; min-width: 0; width: 100%; }
+  .cell-title .item-cell > div { min-width: 0; }
+  .cell-title .item-name { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .cell-title .item-sub { font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #inv-table td[data-label="Purchase cost"], #sales-table td[data-label="Sale price"] { order: 2; margin-left: auto; font-weight: 600; font-family: var(--font-num); flex-direction: column; align-items: flex-end; }
+  #inv-table td[data-label="Purchase cost"]::before { display: inline; content: 'cost'; font-size: 0.62rem; color: var(--ink-muted); font-weight: 400; }
+  /* line 2: status, price, date, platform — actions pushed right */
+  #inv-table tbody tr > td:nth-child(4), #sales-table tbody tr > td:nth-child(8) { order: 3; margin-left: 40px; }
+  #inv-table tbody tr > td:nth-child(5) { order: 4; color: var(--ink-muted); }
+  #inv-table tbody tr > td:nth-child(7), #sales-table tbody tr > td:nth-child(7) { order: 5; color: var(--ink-muted); font-size: 0.72rem; }
+  #inv-table tbody tr > td:nth-child(2), #sales-table tbody tr > td:nth-child(2) { order: 6; }
+  #inv-table tbody tr > td:nth-child(6), #sales-table tbody tr > td:nth-child(5) { order: 7; margin-left: auto; font-weight: 600; font-family: var(--font-num); }
+  #inv-table tbody tr > td:nth-child(8), #inv-table tbody tr > td:nth-child(9), #sales-table tbody tr > td:nth-child(10) { order: 8; }
+  #sales-table tbody tr > td:nth-child(4), #sales-table tbody tr > td:nth-child(6), #sales-table tbody tr > td:nth-child(9) { display: none; }
+  #inv-table tbody tr > td:nth-child(8) .btn-ghost { display: none; } /* Edit: tap the row instead */
+  #inv-table .date-note, #inv-table .price-note { display: none; }
+  #inv-table .pchip, #sales-table .pchip { font-size: 0; gap: 0; }
+  #inv-table .pchip-mark, #sales-table .pchip-mark { width: 16px; height: 16px; }
+  #inv-table .badge, #sales-table .badge { font-size: 0.56rem; padding: 0 4px; }
+  #inv-table .row-actions .btn, #inv-table .delete-x, #sales-table .delete-x { min-height: 26px; padding: 2px 8px; font-size: 0.72rem; }
+  #inv-table .batch-thumb .qty-badge { font-size: 0.6rem; }
+  #inv-table tr.unit-row { padding-left: 24px; background: color-mix(in srgb, var(--ink) 2.5%, transparent); }
+  #inv-table tr.unit-row td.cell-title { padding-left: 0; }
+  .batch-counts { gap: 3px; flex-wrap: wrap; }
+  .toolbar { gap: 6px; margin-bottom: 10px; }
+  .toolbar input[type="search"], .toolbar select { min-height: 34px; font-size: 0.8rem; }
+  .inv-tabs { margin: -4px 0 10px; }
+  .inv-tabs button { padding: 8px 9px; font-size: 0.8rem; }
+  .codes-note { font-size: 0.75rem; margin-bottom: 8px; }
+  .code-row, .history-row { padding: 9px 12px; gap: 6px; }
+  .code-main .item-code-chip { font-size: 0.8rem; min-width: 0; }
+  .inv-grid { gap: 8px; }
+
+  /* Settings: smaller pickers and cards. */
+  .palette-card { padding: 6px 8px 6px 6px; gap: 8px; }
+  .palette-swatch { width: 30px; height: 30px; border-radius: 7px; }
+  .palette-name { font-size: 0.72rem; }
+  .palette-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .palette-sub { display: none; }
+  .font-digits { display: none; }
+  .font-grid { gap: 8px; }
+  .font-card { padding: 4px 4px 8px; }
+  .font-sample { height: 46px; margin-bottom: 4px; padding: 6px 8px; }
+  .font-aa { font-size: 1.5rem; }
+  .font-desc { display: none; }
+  .color-tile-swatch { height: 36px; }
+  .color-tile-info { padding: 6px 8px 8px; }
+  .readability { padding: 10px 12px; gap: 8px; }
+  .size-presets button { min-height: 44px; }
+  .type-preview { padding: 12px 14px; }
+  .opt-card { padding: 7px 10px; }
+  .md-preview { margin-bottom: 10px; padding: 9px 12px; font-size: 0.8rem; }
+  .studio-sub { margin: 12px 0 8px; }
+  .custom-note { font-size: 0.68rem; }
+  .field-grid { gap: 10px 12px; }
+}
 </style>
 </head>
 <body>
@@ -3092,7 +3207,7 @@ function renderTrendChart(completedSales) {
   if (chrono.length < 2) { container.innerHTML = '<div class="empty-note">Not enough sales yet for a trend line.</div>'; return; }
 
   // Draw at the real on-screen width (falls back while the page is hidden).
-  const w = Math.max(300, Math.round(container.clientWidth) || 640), h = 210, padL = 40, padR = 6, padT = 14, padB = 28;
+  const w = Math.max(300, Math.round(container.clientWidth) || 640), h = container.clientWidth && container.clientWidth < 500 ? 160 : 210, padL = 40, padR = 6, padT = 14, padB = 28;
   const revenues = chrono.map(s => s.sale_price_cents);
   // Incomplete sales have no profit — leave a gap rather than plot $0.
   const profits = chrono.map(s => { const r = calcProfit(s, itemById(s.item_id)); return r.isComplete ? r.netProfitCents : null; });
@@ -3477,6 +3592,21 @@ function statusBadge(status) {
 // Item status plus a small stamp when it came back from a returned sale.
 const itemStatusBadges = item => statusBadge(item.status) + (item.was_returned && item.status !== 'sold' ? ' <span class="badge badge-returned returned-mark" title="Came back from a returned sale">&#8617; returned</span>' : '');
 
+/* ---------- Phones: compact list rows ---------- */
+const isPhone = () => window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+// Cells that only hold a dash are hidden in the compact phone rows.
+function markEmptyCells(tbody) {
+  tbody.querySelectorAll('td').forEach(td => td.classList.toggle('is-empty', td.textContent.trim() === '\u2014'));
+}
+// On phones a row is tapped to open it (the Edit buttons are hidden there).
+['inv-tbody', 'sales-tbody'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+  if (!isPhone() || e.target.closest('button, a, input, select')) return;
+  const row = e.target.closest('tr');
+  if (!row || row.classList.contains('batch-row')) return;
+  const edit = row.querySelector('[data-edit-sale], [data-edit-item]');
+  if (edit) edit.click();
+}));
+
 /* ---------- LGY codes tab: every code, and a way to fix mistakes ---------- */
 let invTab = 'items';
 let editingCode = null;
@@ -3802,6 +3932,7 @@ function renderInventory() {
   document.getElementById('inv-tbody').innerHTML = entries.length
     ? entries.map(entry => entry.batchId ? batchRows(entry) : unitRow(entry.row)).join('')
     : `<tr><td colspan="9" class="empty-note">${empty}</td></tr>`;
+  markEmptyCells(document.getElementById('inv-tbody'));
 }
 
 // Totals for one batch: how many units are in each status, and profit so far.
@@ -3978,6 +4109,7 @@ function renderSales() {
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
     </tr>`).join('') : `<tr><td colspan="10" class="empty-note">${emptyMsg}</td></tr>`;
+  markEmptyCells(document.getElementById('sales-tbody'));
 }
 
 /* =========================================================

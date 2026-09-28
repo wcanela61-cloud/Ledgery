@@ -6786,7 +6786,8 @@ const LEDGERY_SUPABASE = {
   captcha: { siteKey: '' },
   // Paid plan via Stripe (README → Billing). Leave off until the Stripe and Supabase
   // setup is done; when on, signed-in people need a trial or subscription to use the app.
-  billing: { enabled: true, trialDays: 7, month: '$9', year: '$90', yearPerMonth: '$7.50' },
+  billing: { enabled: true, trialDays: 7, month: '$9', year: '$90', yearPerMonth: '$7.50',
+    functionName: 'Billing' },         // the billing function's address in Supabase (it's case-sensitive)
 };
 // Read before Supabase tidies the address bar: did we arrive from an email link?
 const AUTH_LANDING = (() => {
@@ -7071,7 +7072,7 @@ const Billing = (() => {
   async function open(action, plan, btn) {
     if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
     try {
-      const { data, error } = await Account.client.functions.invoke('billing', { body: { action, plan } });
+      const { data, error } = await Account.client.functions.invoke(cfg.functionName || 'billing', { body: { action, plan } });
       if (error || !data || !data.url) throw error || new Error('no url');
       location.assign(data.url);
     } catch (e) {
@@ -7207,7 +7208,7 @@ document.getElementById('delete-account-form').addEventListener('submit', async 
   // Stop billing first: if that fails, delete nothing, so nobody is charged for a deleted account.
   if (Billing.on()) {
     let cancelled = false;
-    try { const r = await Account.client.functions.invoke('billing', { body: { action: 'cancel' } }); cancelled = !r.error; } catch (e2) {}
+    try { const r = await Account.client.functions.invoke(Billing.cfg.functionName || 'billing', { body: { action: 'cancel' } }); cancelled = !r.error; } catch (e2) {}
     if (!cancelled) {
       errBox.textContent = "Couldn't cancel your subscription, so nothing was deleted. Check your connection and try again.";
       errBox.hidden = false;

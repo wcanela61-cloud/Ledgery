@@ -104,7 +104,9 @@ Do everything in a Stripe **sandbox** first (a test copy of your account where n
 5. **Emails:** **Settings → Billing → Subscriptions and emails**: turn on the **trial ending reminder** (card networks require it for trials) and **failed payment** emails. **Settings → Customer emails**: turn on receipts.
 6. **Supabase:**
    1. **SQL Editor:** run [`supabase/billing.sql`](supabase/billing.sql) (already in `schema.sql` for new projects).
-   2. **Edge Functions → Deploy a new function → Via editor.** Name it `billing` and paste [`supabase/functions/billing/index.ts`](supabase/functions/billing/index.ts). Deploy. Do the same for `stripe-webhook` with [`supabase/functions/stripe-webhook/index.ts`](supabase/functions/stripe-webhook/index.ts), then open its **Details** and switch **Enforce JWT verification off** (Stripe can't sign in; the function checks Stripe's signature instead).
+   2. **Edge Functions → Deploy a new function → Via editor.** Name it `billing` (all lowercase) and paste [`supabase/functions/billing/index.ts`](supabase/functions/billing/index.ts). Deploy. Do the same for `stripe-webhook` with [`supabase/functions/stripe-webhook/index.ts`](supabase/functions/stripe-webhook/index.ts), then open its **Details** and switch **Enforce JWT verification off** (Stripe can't sign in; the function checks Stripe's signature instead).
+      Turn **Verify JWT off for both functions**: each one checks who is calling by itself (the signed-in person, or Stripe's signature).
+      Check each function's URL: it's case-sensitive. If Supabase made it `/functions/v1/Billing`, set `functionName: 'Billing'` in `index.html` (it's already set that way for this project).
       *With the Supabase CLI instead:* `supabase functions deploy billing` and `supabase functions deploy stripe-webhook --no-verify-jwt`.
    3. **Edge Functions → Secrets**, add:
       | Name | Value |

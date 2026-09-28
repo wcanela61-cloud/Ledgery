@@ -99,6 +99,7 @@ Do everything in a Stripe **sandbox** first (a test copy of your account where n
 
 1. **Create a sandbox:** in the [Stripe Dashboard](https://dashboard.stripe.com), open the account menu (top left) → **Sandboxes → Create sandbox**, and switch into it.
 2. **Create the plan:** **Product catalog → Add product**. Name it `Ledgery`, add a **recurring** price of **$9 / month**, save, then **Add another price** of **$90 / year**. Copy both price IDs (`price_…`).
+   **Tax code:** if your account has **Managed Payments** on (Stripe's default for new accounts: Stripe acts as the seller and handles sales tax and VAT), edit the product and set its **Tax code** to the SaaS code that fits your customers (see Stripe's [tax code guide](https://docs.stripe.com/tax/tax-codes)). Without one, checkout fails with "the product tax code is missing". Or turn Managed Payments off in **Settings → Managed Payments** and handle tax yourself.
 3. **Create a restricted key** (safer than the secret key): **Developers → API keys → Create restricted key**, name it `Ledgery Supabase`, and set only these to the level shown: **Customers: Write, Checkout Sessions: Write, Customer portal: Write, Subscriptions: Read, Prices: Read, Products: Read**. Copy the key (`rk_test_…`). Don't paste it anywhere except step 6.
 4. **Set up the Customer Portal:** **Settings → Billing → Customer portal**. Turn on: update payment methods, view invoices, **cancel subscriptions (at the end of the billing period)**, and **switch plans** (add the Ledgery product so people can move between monthly and yearly). Save.
 5. **Emails:** **Settings → Billing → Subscriptions and emails**: turn on the **trial ending reminder** (card networks require it for trials) and **failed payment** emails. **Settings → Customer emails**: turn on receipts.
@@ -125,7 +126,7 @@ Do everything in a Stripe **sandbox** first (a test copy of your account where n
    - Delete a test account: its Stripe customer and subscription disappear too.
 10. **Go live:** activate your Stripe account (business and bank details), then repeat steps 2–5 and 7 in **live mode** and replace the four Stripe secrets with the live values (`rk_live_…`, live `price_…`, new `whsec_…`). Run through Stripe's [go-live checklist](https://docs.stripe.com/get-started/checklist/go-live).
 
-**Sales tax:** if you'll be charging US or EU customers, you may need to collect sales tax or VAT. Look at [Stripe Tax](https://docs.stripe.com/billing/taxes/collect-taxes) before launch. It's left off on purpose, because switching it on without a tax registration collects nothing and gives no error.
+**Sales tax:** with Managed Payments on, Stripe handles sales tax and VAT as the seller (it charges an extra fee for this). Without it, if you'll be charging US or EU customers, you may need to collect sales tax or VAT. Look at [Stripe Tax](https://docs.stripe.com/billing/taxes/collect-taxes) before launch. It's left off on purpose, because switching it on without a tax registration collects nothing and gives no error.
 
 **Keeping keys safe:** Stripe keys live only in Supabase's secrets. Never commit one. `.githooks/pre-commit` blocks commits that contain one; turn it on once with `git config core.hooksPath .githooks`. If a key ever leaks, roll it straight away in **Developers → API keys**.
 

@@ -2339,7 +2339,7 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
         </div>
       </div>
       <div class="toolbar">
-        <input type="search" id="sales-search" aria-label="Search sales" placeholder="Search item, platform, order or tracking number…">
+        <input type="search" id="sales-search" aria-label="Search sales" placeholder="Search item, platform or tracking number…">
         <select id="sales-status-filter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="completed">Completed</option>
@@ -2382,7 +2382,7 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
       </div>
       <div id="sheet-pane" role="tabpanel" aria-labelledby="sheet-tab-sales">
         <div class="toolbar">
-          <input type="search" id="sheet-search" aria-label="Search the spreadsheet" placeholder="Search item, code, platform, order…">
+          <input type="search" id="sheet-search" aria-label="Search the spreadsheet" placeholder="Search item, code, platform, tracking…">
           <select id="sheet-period" aria-label="Period">
             <option value="all">All time</option>
             <option value="month">This month</option>
@@ -2694,7 +2694,6 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
         <div class="field"><label>Platform fees</label><input name="platform_fees" type="number" step="0.01" min="0" placeholder="Leave blank if unknown"><span class="field-hint" id="rs-fee-hint"></span></div>
         <div class="field"><label>Shipping cost</label><input name="shipping_cost" type="number" step="0.01" min="0" placeholder="0.00 (blank if buyer paid)"></div>
         <div class="field"><label>Other costs</label><input name="other_costs" type="number" step="0.01" min="0" placeholder="0.00"></div>
-        <div class="field"><label>Order number</label><input name="order_number"></div>
         <div class="field"><label>Sale date *</label><input required name="sale_date" type="date"></div>
         <div class="field"><label>Status</label>
           <select name="status"><option value="completed">Completed</option><option value="returned">Returned</option><option value="cancelled">Cancelled</option></select>
@@ -4462,7 +4461,6 @@ const SHEET_COLUMNS = {
     { key: 'code', label: 'Code', kind: 'text', v: o => (o.item ? o.item.item_code : '') },
     { key: 'qty', label: 'Qty', kind: 'num', v: o => o.n },
     { key: 'platform', label: 'Platform', kind: 'text', v: o => o.first.platform || '' },
-    { key: 'order', label: 'Order #', kind: 'text', v: o => o.first.order_number || '' },
     { key: 'price', label: 'Sale price', kind: 'money', v: o => o.s.sale_price_cents },
     { key: 'fees', label: 'Fees', kind: 'money', v: o => o.fees },
     { key: 'shipping', label: 'Shipping', kind: 'money', v: o => o.shipping },
@@ -4591,7 +4589,7 @@ function renderSheet() {
 function setSheetTab(tab) {
   sheetTab = tab;
   document.querySelectorAll('[data-sheet-tab]').forEach(b => { const on = b.dataset.sheetTab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
-  document.getElementById('sheet-search').placeholder = tab === 'sales' ? 'Search item, code, platform, order…' : 'Search item, code, brand, category, size…';
+  document.getElementById('sheet-search').placeholder = tab === 'sales' ? 'Search item, code, platform, tracking…' : 'Search item, code, brand, category, size…';
   renderSheet();
   requestAnimationFrame(() => Motion.slideAll());
 }
@@ -5316,7 +5314,6 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
     platform_fees_cents: fees === '' ? null : money(parseFloat(fees)),
     shipping_cost_cents: shipping === '' ? 0 : money(parseFloat(shipping)), // blank = no shipping cost
     other_costs_cents: other === '' ? 0 : money(parseFloat(other)),
-    order_number: fd.get('order_number') || '',
     sale_date: fd.get('sale_date'),
     status: fd.get('status') || 'completed',
     notes: fd.get('notes') || '',
@@ -5434,7 +5431,6 @@ function editSale(sale, originEl) {
   form.elements.other_costs.value = m2(sum('other_costs_cents'));
   form.elements.item_id.disabled = group.length > 1;
   updateQtyField();
-  form.elements.order_number.value = sale.order_number || '';
   form.elements.sale_date.value = sale.sale_date || '';
   form.elements.status.value = sale.status || 'completed';
   form.elements.notes.value = sale.notes || '';
@@ -7223,14 +7219,14 @@ function exportCsv(kind) {
         csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {
-    csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Shipping status', 'Carrier', 'Tracking number', 'Notes'],
+    csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Status', 'Shipping status', 'Carrier', 'Tracking number', 'Notes'],
       sales.map(s => {
         const item = itemById(s.item_id);
         const r = calcProfit(s, item);
         return [s.id, csvText(s.sale_date), csvText(item ? item.item_name : ''), csvText(s.platform), csvMoney(s.sale_price_cents), csvMoney(s.platform_fees_cents),
           csvMoney(s.shipping_cost_cents), csvMoney(s.other_costs_cents), csvMoney(item ? item.purchase_cost_cents : null),
           r.isComplete ? csvMoney(r.netProfitCents) : '', r.isComplete && r.marginBps !== null ? (r.marginBps / 100).toFixed(2) : '',
-          csvText(s.order_number), csvText(s.status), csvText(SHIP_LABELS[s.ship_status] || ''), csvText(carrierOf(s) ? CARRIERS[carrierOf(s)].name : ''), csvText(s.tracking_number ? cleanTracking(s.tracking_number) : ''), csvText(s.notes)];
+          csvText(s.status), csvText(SHIP_LABELS[s.ship_status] || ''), csvText(carrierOf(s) ? CARRIERS[carrierOf(s)].name : ''), csvText(s.tracking_number ? cleanTracking(s.tracking_number) : ''), csvText(s.notes)];
       }));
   }
   return downloadFile(`ledgery-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');

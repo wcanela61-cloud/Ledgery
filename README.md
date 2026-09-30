@@ -140,12 +140,13 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 
 ## Launch checklist
 
-- [ ] Run `supabase/photos.sql` and `supabase/delete-account.sql` (or all of `schema.sql` on a new project).
-- [ ] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
+- [x] Run `supabase/photos.sql` and `supabase/delete-account.sql` (or all of `schema.sql` on a new project).
+- [x] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
 - [x] **Authentication → SMTP:** sending through Gmail for now (smtp.gmail.com, port 587, a Google App Password), with the email rate limit raised to about 30 an hour.
 - [ ] Once you have a domain: switch SMTP to a transactional sender (Resend, Postmark, SendGrid…) for better inbox delivery, then brand the email templates.
 - [x] Bot protection: Cloudflare Turnstile on sign-up, sign-in and password reset; CAPTCHA protection on in Supabase.
-- [ ] Billing: finish the **Billing (Stripe)** steps in a sandbox, test with `4242 4242 4242 4242`, then switch to live keys.
+- [x] Billing: **Billing (Stripe)** set up and tested in a sandbox with `4242 4242 4242 4242`.
+- [ ] Billing live: activate Stripe, repeat the setup in live mode (product + tax code, restricted key, portal, emails, webhook) and swap the four Stripe secrets in Supabase.
 - [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
 - [x] Put a real contact email in `privacy.html` and `terms.html`.
 - [ ] Check plan limits: the free Supabase plan has 500 MB of database (photos count) and pauses after a week without activity.

@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
   // Account and sync traffic always goes straight to the network.
   if (url.hostname.endsWith('supabase.co') || url.pathname.includes('/auth/')) return;
   const sameOrigin = url.origin === self.location.origin;
-  const cacheable = sameOrigin || /(^|\.)(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net)$/.test(url.hostname);
+  const cacheable = sameOrigin || /(^|\.)(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com)$/.test(url.hostname);
   if (!cacheable) return;
 
   if (req.mode === 'navigate' || (sameOrigin && /\.(html|webmanifest)$|\/$/.test(url.pathname))) {
@@ -31,7 +31,7 @@ self.addEventListener('fetch', e => {
     }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
     return;
   }
-  // Fonts, icons and the sync library: cached copy first, refreshed in the background.
+  // Fonts, icons, the sync library and the Excel builder: cached copy first, refreshed in the background.
   e.respondWith(caches.match(req).then(hit => {
     const fresh = fetch(req).then(res => {
       if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }

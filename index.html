@@ -2065,6 +2065,23 @@ input:disabled { opacity: 0.6; cursor: not-allowed; }
 .plan-perks li { padding-left: 22px; position: relative; }
 .plan-perks li::before { content: ''; position: absolute; left: 2px; top: 0.35em; width: 10px; height: 5px; border-left: 2px solid var(--success-text); border-bottom: 2px solid var(--success-text); transform: rotate(-45deg); }
 @media (max-width: 380px) { .plan-grid { grid-template-columns: 1fr; } }
+/* Shipping & tracking */
+.field .field-label { font-size: 0.7812rem; color: var(--ink-muted); font-weight: 500; }
+.ship-seg label span { padding: 7px 6px; white-space: nowrap; }
+.badge.ship-badge { transform: none; }
+.ship-to_ship { color: var(--warning-text); }
+.ship-shipped { color: var(--info-text); }
+.ship-delivered { color: var(--success-text); }
+.track-link { display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600; color: var(--accent-text); text-decoration: none; white-space: nowrap; }
+.track-link:hover { text-decoration: underline; }
+#rs-track-hint .track-link { font-size: inherit; }
+.ship-group + .ship-group { margin-top: 10px; }
+.ship-group-title { display: flex; align-items: center; gap: 8px; margin: 2px 0 2px; font-family: var(--font-display); font-variant: small-caps; text-transform: lowercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-muted); }
+.ship-group-title .view-all { margin-left: auto; }
+.ship-row .item-cell { min-width: 0; }
+.ship-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.ship-late { color: var(--danger-text); font-weight: 600; }
+@media (max-width: 720px) { .ship-seg label span { padding: 6px 3px; font-size: 0.75rem; } }
 /* Sidebar: Sales opens to show Spreadsheet */
 .btn-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nav-group { position: relative; }
@@ -2216,6 +2233,10 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
           </div>
         </div>
         <div>
+          <div class="panel" id="ship-panel">
+            <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Shipping</h2><span class="page-sub" style="margin:0" id="ship-summary"></span></div>
+            <div class="panel-body" id="ship-body"></div>
+          </div>
           <div class="panel" id="goal-panel">
             <div class="panel-head"><h2><span class="ph-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></span>Monthly goal</h2><span class="page-sub" style="margin:0" id="goal-month"></span></div>
             <div class="panel-body" id="goal-body"></div>
@@ -2318,7 +2339,7 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
         </div>
       </div>
       <div class="toolbar">
-        <input type="search" id="sales-search" aria-label="Search sales" placeholder="Search item, platform, order number…">
+        <input type="search" id="sales-search" aria-label="Search sales" placeholder="Search item, platform, order or tracking number…">
         <select id="sales-status-filter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="completed">Completed</option>
@@ -2326,6 +2347,12 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
           <option value="cancelled">Cancelled</option>
         </select>
         <select id="sales-platform-filter" aria-label="Filter by platform"><option value="">All platforms</option></select>
+        <select id="sales-ship-filter" aria-label="Filter by shipping">
+          <option value="">All shipping</option>
+          <option value="to_ship">To ship</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+        </select>
       </div>
       <div class="table-wrap">
         <table id="sales-table">
@@ -2671,6 +2698,18 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
         <div class="field"><label>Sale date *</label><input required name="sale_date" type="date"></div>
         <div class="field"><label>Status</label>
           <select name="status"><option value="completed">Completed</option><option value="returned">Returned</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div class="field full"><span class="field-label" id="rs-ship-label">Shipping</span>
+          <div class="seg seg-radio ship-seg" id="rs-ship-choice" role="radiogroup" aria-labelledby="rs-ship-label">
+            <label><input type="radio" name="ship_status" value="to_ship"><span>To ship</span></label>
+            <label><input type="radio" name="ship_status" value="shipped"><span>Shipped</span></label>
+            <label><input type="radio" name="ship_status" value="delivered"><span>Delivered</span></label>
+            <label><input type="radio" name="ship_status" value="none"><span>No shipping</span></label>
+          </div>
+        </div>
+        <div class="field" data-ship-field><label for="rs-tracking">Tracking number</label><input id="rs-tracking" name="tracking_number" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Paste it from the label"><span class="field-hint" id="rs-track-hint"></span></div>
+        <div class="field" data-ship-field><label for="rs-carrier">Carrier</label>
+          <select id="rs-carrier" name="carrier"><option value="">Detect automatically</option><option value="usps">USPS</option><option value="ups">UPS</option><option value="fedex">FedEx</option><option value="dhl">DHL</option><option value="other">Other</option></select>
         </div>
         <div class="field full"><label>Notes</label><textarea name="notes"></textarea></div>
       </div>
@@ -3606,6 +3645,54 @@ function renderTopSellers(periodSales) {
     : emptyState('trophy', 'No top sellers yet', 'Your most profitable sales will show up here.', '', true);
 }
 
+// Orders still on their way to the buyer: "To ship" first (oldest waiting first), then shipped.
+function renderShipping() {
+  const open = saleOrders().filter(o => ['to_ship', 'shipped'].includes(shipStatusOf(o.first)));
+  const toShip = open.filter(o => shipStatusOf(o.first) === 'to_ship').sort((a, b) => a.first.sale_date.localeCompare(b.first.sale_date));
+  const moving = open.filter(o => shipStatusOf(o.first) === 'shipped').sort((a, b) => (a.first.shipped_on || a.first.sale_date).localeCompare(b.first.shipped_on || b.first.sale_date));
+  document.getElementById('ship-summary').textContent = open.length ? `${toShip.length} to ship · ${moving.length} on the way` : '';
+  const body = document.getElementById('ship-body');
+  if (!open.length) {
+    body.innerHTML = emptyState('box', 'All caught up', 'Sales marked “To ship” wait here until they’re delivered.', '', true);
+    return;
+  }
+  const row = o => {
+    const f = o.first, st = shipStatusOf(f);
+    const waited = daysSince(st === 'shipped' ? (f.shipped_on || f.sale_date) : f.sale_date);
+    const late = st === 'to_ship' && waited >= 2;
+    const when = st === 'to_ship'
+      ? `<span class="${late ? 'ship-late' : ''}">sold ${waited <= 0 ? 'today' : waited === 1 ? 'yesterday' : waited + ' days ago'}</span>`
+      : `shipped ${waited <= 0 ? 'today' : waited === 1 ? 'yesterday' : waited + ' days ago'}`;
+    return `<div class="row-line ship-row">
+      <div class="item-cell">${itemThumb(o.item)}<div>
+        <div class="row-title">${o.item ? esc(o.item.item_name) : 'Unknown item'}${o.n > 1 ? ` <span class="qty-pill">&times;${o.n}</span>` : ''}</div>
+        <div class="row-sub top-sub">${platformChip(f.platform, true)} &middot; ${when}</div>
+      </div></div>
+      <div class="ship-actions">${st === 'to_ship'
+        ? `<button type="button" class="btn btn-sm" data-ship-add="${f.id}">Add tracking</button>`
+        : `${trackLink(f)}<button type="button" class="btn btn-sm" data-ship-delivered="${f.id}" title="Mark delivered">Delivered</button>`}</div>
+    </div>`;
+  };
+  const group = (title, list, filter) => list.length ? `<div class="ship-group"><div class="ship-group-title">${title} <span class="tab-count">${list.length}</span>${list.length > 5 ? `<button type="button" class="view-all" data-ship-view="${filter}">View all<span aria-hidden="true"> &rarr;</span></button>` : ''}</div>${list.slice(0, 5).map(row).join('')}</div>` : '';
+  body.innerHTML = group('To ship', toShip, 'to_ship') + group('On the way', moving, 'shipped');
+}
+document.getElementById('ship-body').addEventListener('click', e => {
+  const add = e.target.closest('[data-ship-add]');
+  if (add) {
+    const sale = saleById(parseInt(add.dataset.shipAdd, 10));
+    if (sale) { editSale(sale, add); setTimeout(() => document.getElementById('rs-tracking').focus({ preventScroll: false }), 80); }
+    return;
+  }
+  const done = e.target.closest('[data-ship-delivered]');
+  if (done) { setOrderShipStatus(parseInt(done.dataset.shipDelivered, 10), 'delivered'); return; }
+  const view = e.target.closest('[data-ship-view]');
+  if (view) {
+    document.getElementById('sales-ship-filter').value = view.dataset.shipView;
+    document.querySelector('.nav-item[data-view="sales"]').click();
+    renderSales();
+  }
+});
+
 function renderDashboard() {
   const range = periodRange(dashPeriod, 0);
   const prevRange = dashPeriod === 'all' ? null : periodRange(dashPeriod, 1);
@@ -3665,6 +3752,7 @@ function renderDashboard() {
     </div>`).join('') + (incompleteCount ? `<button type="button" class="stat-tile warn" data-goto="sales" style="--tile:var(--danger)"><div class="stat-label">${dashIcon('alert', 'stat-icon')}Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div><div class="stat-fix">Missing costs · Review<span aria-hidden="true"> &rarr;</span></div></button>` : '');
 
   renderGoal();
+  renderShipping();
   renderTopSellers(periodSales);
 
   // Recent sales (always the latest five, whatever the period)
@@ -4255,18 +4343,78 @@ function saleOrders() {
   });
 }
 
+/* ---------- Shipping & tracking ----------
+   Each sale can carry ship_status (to_ship | shipped | delivered | none),
+   tracking_number, carrier (usps | ups | fedex | dhl | other; blank = detect)
+   and the dates it was marked shipped / delivered. An order of several units
+   shares these (they're saved on every sale in the order). */
+const SHIP_LABELS = { to_ship: 'To ship', shipped: 'Shipped', delivered: 'Delivered', none: 'No shipping' };
+const CARRIERS = {
+  usps: { name: 'USPS', url: n => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}` },
+  ups: { name: 'UPS', url: n => `https://www.ups.com/track?loc=en_US&tracknum=${n}` },
+  fedex: { name: 'FedEx', url: n => `https://www.fedex.com/fedextrack/?trknbr=${n}` },
+  dhl: { name: 'DHL', url: n => `https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id=${n}` },
+  other: { name: 'Carrier', url: n => `https://t.17track.net/en#nums=${n}` }, // 17TRACK looks the number up across carriers
+};
+// Spaces and dashes out, capitals; a scanned USPS barcode's "420 + ZIP" prefix is dropped.
+function cleanTracking(text) {
+  const n = String(text || '').toUpperCase().replace(/[\s-]/g, '');
+  const scanned = n.match(/^420\d{5}(?:\d{4})?(9[1-5]\d{18,24})$/);
+  return scanned ? scanned[1] : n;
+}
+// A best guess from the number's shape; the Carrier menu overrides it.
+function detectCarrier(text) {
+  const n = cleanTracking(text);
+  if (!n) return '';
+  if (/^1Z[0-9A-Z]{16}$/.test(n)) return 'ups';
+  if (/^9[1-5]\d{18,24}$/.test(n) || /^[A-Z]{2}\d{9}US$/.test(n)) return 'usps';
+  if (/^(\d{12}|\d{15}|96\d{20}|\d{20})$/.test(n)) return 'fedex';
+  if (/^\d{10}$/.test(n) || /^JD\d{18}$/.test(n)) return 'dhl';
+  return 'other';
+}
+const carrierOf = s => (s && s.tracking_number ? (s.carrier || detectCarrier(s.tracking_number)) : '');
+const trackUrl = s => { const c = carrierOf(s); return c ? CARRIERS[c].url(encodeURIComponent(cleanTracking(s.tracking_number))) : ''; };
+function trackLink(s, label) {
+  const url = trackUrl(s);
+  return url ? `<a class="track-link" href="${esc(url)}" target="_blank" rel="noopener" title="Track with ${esc(CARRIERS[carrierOf(s)].name)}: ${esc(cleanTracking(s.tracking_number))}">${label || 'Track'}<span aria-hidden="true"> &#8599;</span></a>` : '';
+}
+// Only completed sales need shipping; returned or cancelled ones show nothing.
+const shipStatusOf = s => (s && s.status === 'completed' ? s.ship_status || '' : '');
+function shipBadge(s) {
+  const st = shipStatusOf(s);
+  if (!st || st === 'none') return '';
+  return `<span class="badge ship-badge ship-${st}">${SHIP_LABELS[st]}</span>`;
+}
+// Marks an order delivered (or shipped) from the Dashboard, with Undo.
+function setOrderShipStatus(saleId, status) {
+  const sale = saleById(saleId);
+  if (!sale) return;
+  const before = snapshotData();
+  const today = isoDate(new Date());
+  saleGroupOf(sale).forEach(x => {
+    x.ship_status = status;
+    if (status === 'shipped' && !x.shipped_on) x.shipped_on = today;
+    if (status === 'delivered') { if (!x.shipped_on) x.shipped_on = today; x.delivered_on = today; }
+  });
+  const item = itemById(sale.item_id);
+  renderAll();
+  showUndo(`${item ? item.item_name : 'Order'} marked ${SHIP_LABELS[status].toLowerCase()}`, before);
+}
+
 function renderSales() {
   const search = document.getElementById('sales-search').value.trim().toLowerCase();
   const statusFilter = document.getElementById('sales-status-filter').value;
   const platformFilter = document.getElementById('sales-platform-filter').value;
+  const shipFilter = document.getElementById('sales-ship-filter').value;
 
   let rows = saleOrders().filter(({ s, item }) => {
     if (search) {
-      const haystack = [item ? item.item_name : '', item ? item.item_code : '', s.platform, s.order_number, s.notes].join(' ').toLowerCase();
-      if (!haystack.includes(search)) return false;
+      const haystack = [item ? item.item_name : '', item ? item.item_code : '', s.platform, s.order_number, s.notes, s.tracking_number ? cleanTracking(s.tracking_number) : ''].join(' ').toLowerCase();
+      if (!haystack.includes(search) && !haystack.includes(search.replace(/[\s-]/g, ''))) return false;
     }
     if (statusFilter && s.status !== statusFilter) return false;
     if (platformFilter && s.platform !== platformFilter) return false;
+    if (shipFilter && shipStatusOf(s) !== shipFilter) return false;
     return true;
   });
 
@@ -4291,7 +4439,7 @@ function renderSales() {
       <td data-label="Net profit" class="num">${s.status !== 'completed' ? `<span class="price-note" title="${esc(statusLabel(s.status))} sales aren't counted in your totals">not counted</span>` : r.isComplete ? moneyCell(r.netProfitCents) : '&mdash;'}</td>
       <td data-label="Margin" class="num">${s.status === 'completed' && r.isComplete ? marginCell(r.marginBps) : '&mdash;'}</td>
       <td data-label="Date">${fmtDate(s.sale_date)}</td>
-      <td data-label="Status"><span class="badge badge-${esc(s.status)}">${esc(s.status.charAt(0).toUpperCase() + s.status.slice(1))}</span></td>
+      <td data-label="Status"><div class="batch-counts"><span class="badge badge-${esc(s.status)}">${esc(s.status.charAt(0).toUpperCase() + s.status.slice(1))}</span>${shipBadge(s)}${s.status === 'completed' ? trackLink(s) : ''}</div></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost" data-edit-sale="${s.id}">Edit</button></td>
       <td class="cell-action"><button class="btn btn-sm btn-ghost delete-x" data-delete-sale="${s.id}" title="Delete sale" aria-label="Delete sale">&times;</button></td>
     </tr>`).join('') : `<tr><td colspan="10" class="empty-note">${emptyMsg}</td></tr>`;
@@ -4324,6 +4472,9 @@ const SHEET_COLUMNS = {
     { key: 'profit', label: 'Net profit', kind: 'money', signed: true, v: o => (o.first.status === 'completed' && o.r.isComplete ? o.r.netProfitCents : null) },
     { key: 'margin', label: 'Margin', kind: 'pct', v: o => (o.first.status === 'completed' && o.r.isComplete ? o.r.marginBps : null) },
     { key: 'status', label: 'Status', kind: 'text', v: o => statusLabel(o.first.status) },
+    { key: 'ship', label: 'Shipping', kind: 'text', v: o => SHIP_LABELS[shipStatusOf(o.first)] || '' },
+    { key: 'carrier', label: 'Carrier', kind: 'text', v: o => { const c = carrierOf(o.first); return c ? CARRIERS[c].name : ''; } },
+    { key: 'tracking', label: 'Tracking #', kind: 'text', v: o => (o.first.tracking_number ? cleanTracking(o.first.tracking_number) : '') },
   ],
   inventory: [
     { key: 'code', label: 'Code', kind: 'text', v: u => u.item.item_code },
@@ -4389,7 +4540,7 @@ function renderSheet() {
     if (!q) return true;
     const item = r.item;
     const text = (tab === 'sales'
-      ? [item && item.item_name, item && item.item_code, r.first.platform, r.first.order_number, r.first.notes, r.first.status]
+      ? [item && item.item_name, item && item.item_code, r.first.platform, r.first.order_number, r.first.notes, r.first.status, r.first.tracking_number && cleanTracking(r.first.tracking_number)]
       : [item.item_name, item.item_code, item.brand, item.category, item.size, item.color, item.purchase_order, item.notes, statusLabel(item.status)]
     ).join(' ').toLowerCase();
     return text.includes(q) || (!!code && !!item && item.item_code === code);
@@ -5173,6 +5324,16 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
   let previousItemId = null;
   const existing = editingId ? sales.find(s => s.id === parseInt(editingId, 10)) : null;
   const group = existing ? saleGroupOf(existing) : null;
+  // Shipping: one status and tracking number for the whole order; dates are kept from before.
+  const shipStatus = fd.get('ship_status') || null;
+  const today = isoDate(new Date());
+  Object.assign(fields, {
+    ship_status: shipStatus,
+    tracking_number: cleanTracking(fd.get('tracking_number')),
+    carrier: fd.get('carrier') || '',
+    shipped_on: shipStatus === 'shipped' || shipStatus === 'delivered' ? ((existing && existing.shipped_on) || today) : null,
+    delivered_on: shipStatus === 'delivered' ? ((existing && existing.delivered_on) || today) : null,
+  });
   // Several units: one sale record per unit (so each keeps its own FIFO cost),
   // with the order's amounts split evenly across them.
   const splitOrder = (units, apply) => {
@@ -5211,6 +5372,33 @@ document.getElementById('record-sale-form').addEventListener('submit', e => {
    EDIT SALE — reuses the Record Sale modal/form, same pattern
    as editing an item reuses the Add Item modal.
    ========================================================= */
+// Shipping section of the sale form.
+function setShipFields(status, tracking, carrier) {
+  const form = document.getElementById('record-sale-form');
+  form.querySelectorAll('input[name=ship_status]').forEach(r => { r.checked = r.value === status; });
+  form.elements.tracking_number.value = tracking;
+  form.elements.carrier.value = carrier;
+  updateTrackHint();
+}
+function updateTrackHint() {
+  const form = document.getElementById('record-sale-form');
+  const status = (form.querySelector('input[name=ship_status]:checked') || {}).value || '';
+  form.querySelectorAll('[data-ship-field]').forEach(el => { el.hidden = status === 'none'; });
+  const draft = { tracking_number: form.elements.tracking_number.value, carrier: form.elements.carrier.value };
+  const c = carrierOf(draft);
+  document.getElementById('rs-track-hint').innerHTML = c
+    ? `${esc(CARRIERS[c].name)}${form.elements.carrier.value ? '' : ' (detected)'} &middot; ${trackLink(draft, 'Track package')}`
+    : (status === 'to_ship' ? 'Adding a tracking number marks it Shipped.' : '');
+}
+document.getElementById('record-sale-form').addEventListener('input', e => {
+  if (e.target.name === 'tracking_number' && e.target.value.trim()) {
+    const form = e.currentTarget;
+    const current = form.querySelector('input[name=ship_status]:checked');
+    if (!current || current.value === 'to_ship') form.querySelector('input[name=ship_status][value=shipped]').checked = true;
+  }
+  if (['tracking_number', 'carrier', 'ship_status'].includes(e.target.name)) updateTrackHint();
+});
+
 function resetRecordSaleFormForCreate() {
   const form = document.getElementById('record-sale-form');
   form.reset();
@@ -5219,6 +5407,7 @@ function resetRecordSaleFormForCreate() {
   form.elements.other_costs.value = '0.00'; // most sales have none; still editable
   form.elements.platform_fees.dataset.manual = '0';
   document.getElementById('rs-fee-hint').textContent = '';
+  setShipFields('to_ship', '', '');
   form.elements.item_id.disabled = false;
   delete form.elements.sale_price.dataset.auto;
   populateItemSelect();
@@ -5249,6 +5438,7 @@ function editSale(sale, originEl) {
   form.elements.sale_date.value = sale.sale_date || '';
   form.elements.status.value = sale.status || 'completed';
   form.elements.notes.value = sale.notes || '';
+  setShipFields(sale.ship_status || '', sale.tracking_number || '', sale.carrier || '');
   // Keep the fee that was saved; only show the usual rate as a hint.
   form.elements.platform_fees.dataset.manual = '1';
   autoFillFee();
@@ -5665,6 +5855,9 @@ function buildLedgerSnapshot() {
   });
   if (stock.length > 120) out.push(`…and ${stock.length - 120} more.`);
 
+  const shipOpen = saleOrders().filter(o => ['to_ship', 'shipped'].includes(shipStatusOf(o.first)));
+  out.push('', `SHIPPING: ${shipOpen.filter(o => shipStatusOf(o.first) === 'to_ship').length} orders still to ship, ${shipOpen.filter(o => shipStatusOf(o.first) === 'shipped').length} shipped and on the way.`);
+  shipOpen.slice(0, 20).forEach(o => out.push(`- ${o.item ? o.item.item_name : 'Unknown item'}${o.n > 1 ? ` ×${o.n}` : ''} | ${SHIP_LABELS[shipStatusOf(o.first)]} | sold ${o.first.sale_date}${o.first.shipped_on ? ` | shipped ${o.first.shipped_on}` : ''}`));
   const recent = [...sales].sort((a, b) => b.sale_date.localeCompare(a.sale_date)).slice(0, 60);
   out.push('', `SALES (latest ${recent.length} of ${sales.length})`);
   recent.forEach(s => {
@@ -7030,14 +7223,14 @@ function exportCsv(kind) {
         csvText(i.purchase_order), csvText(i.purchase_date), csvText(i.purchase_time), csvMoney(i.purchase_cost_cents), csvText(statusLabel(i.status)),
         csvMoney(i.listing_price_cents), csvText(i.listed_date), (i.photo_ids || []).length, csvText(i.notes)]));
   } else {
-    csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Notes'],
+    csv = toCsv(['ID', 'Sale date', 'Item', 'Platform', 'Sale price', 'Platform fees', 'Shipping', 'Other costs', 'Purchase cost', 'Net profit', 'Margin %', 'Order number', 'Status', 'Shipping status', 'Carrier', 'Tracking number', 'Notes'],
       sales.map(s => {
         const item = itemById(s.item_id);
         const r = calcProfit(s, item);
         return [s.id, csvText(s.sale_date), csvText(item ? item.item_name : ''), csvText(s.platform), csvMoney(s.sale_price_cents), csvMoney(s.platform_fees_cents),
           csvMoney(s.shipping_cost_cents), csvMoney(s.other_costs_cents), csvMoney(item ? item.purchase_cost_cents : null),
           r.isComplete ? csvMoney(r.netProfitCents) : '', r.isComplete && r.marginBps !== null ? (r.marginBps / 100).toFixed(2) : '',
-          csvText(s.order_number), csvText(s.status), csvText(s.notes)];
+          csvText(s.order_number), csvText(s.status), csvText(SHIP_LABELS[s.ship_status] || ''), csvText(carrierOf(s) ? CARRIERS[carrierOf(s)].name : ''), csvText(s.tracking_number ? cleanTracking(s.tracking_number) : ''), csvText(s.notes)];
       }));
   }
   return downloadFile(`ledgery-${kind}-${isoDate(new Date())}.csv`, csv, 'text/csv;charset=utf-8');
@@ -8434,6 +8627,7 @@ wireSortHeaders('sales-table', sortState.sales, renderSales);
 document.getElementById('sales-search').addEventListener('input', renderSales);
 document.getElementById('sales-status-filter').addEventListener('change', renderSales);
 document.getElementById('sales-platform-filter').addEventListener('change', renderSales);
+document.getElementById('sales-ship-filter').addEventListener('change', renderSales);
 renderFeeRates();
 { const g = loadGoalCents(); document.getElementById('goal-input').value = g ? (g / 100).toFixed(0) : ''; }
 renderBackupNote();

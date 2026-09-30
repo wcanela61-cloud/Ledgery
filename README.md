@@ -144,7 +144,7 @@ Ledgery is installable (`manifest.webmanifest`, icons in `brand/`) and opens off
 - [ ] **Authentication → URL Configuration:** Site URL and Redirect URLs set to the live address.
 - [x] **Authentication → SMTP:** sending through Gmail for now (smtp.gmail.com, port 587, a Google App Password), with the email rate limit raised to about 30 an hour.
 - [ ] Once you have a domain: switch SMTP to a transactional sender (Resend, Postmark, SendGrid…) for better inbox delivery, then brand the email templates.
-- [ ] Bot protection: set up Cloudflare Turnstile (see **Bot protection** below).
+- [ ] Bot protection: site key is in `index.html`; finish by turning on CAPTCHA in Supabase with the Turnstile secret key (see **Bot protection**).
 - [ ] Billing: finish the **Billing (Stripe)** steps in a sandbox, test with `4242 4242 4242 4242`, then switch to live keys.
 - [ ] Sign up, confirm on a phone, sync a photo, and delete a test account on the live site.
 - [x] Put a real contact email in `privacy.html` and `terms.html`.

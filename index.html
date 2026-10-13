@@ -1096,6 +1096,34 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 .mini-table th, .mini-table td { padding: 7px 8px; font-size: 0.75rem; }
 .mini-table td.num, .mini-table th.num { text-align: right; font-family: var(--font-num); }
 .table-scroll { overflow-x: auto; }
+/* Sell-through */
+.nav-short { display: none; }
+@media (max-width: 720px) { .nav-item .nav-long { display: none; } .nav-item .nav-short { display: inline; } }
+#view-speed .an-chart svg { height: 200px; }
+.stat-unit { font-size: 0.8125rem; font-weight: 500; color: var(--ink-muted); letter-spacing: 0; }
+.speed-note { font-size: 0.7188rem; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.45; }
+.speed-tabs { margin: 0 0 4px; }
+.speed-tabs button { padding: 8px 12px; font-size: 0.8125rem; }
+.speed-few { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 0.625rem; font-weight: 600; color: var(--ink-muted); background: color-mix(in srgb, var(--ink) 7%, transparent); vertical-align: 1px; }
+.speed-age { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.speed-age-cell { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; background: var(--surface); }
+.speed-age-cell.hot { border-color: color-mix(in srgb, var(--warning) 45%, var(--border)); }
+.speed-age-label { font-size: 0.6875rem; color: var(--ink-muted); font-weight: 600; }
+.speed-age-n { font-family: var(--font-num); font-size: 1.125rem; font-weight: 600; margin-top: 2px; }
+.speed-age-cost { font-family: var(--font-num); font-size: 0.6875rem; color: var(--ink-faint); }
+.speed-old td { vertical-align: middle; }
+.speed-old .speed-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.speed-old .speed-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.speed-tip-cell { color: var(--ink-muted); }
+.speed-item-text { display: flex; flex-direction: column; min-width: 0; }
+.speed-step-sub { display: none; color: var(--ink-muted); font-size: 0.6875rem; white-space: normal; }
+a.speed-more, button.speed-more { color: var(--accent-text); font-size: 0.6875rem; font-weight: 600; margin-top: 4px; display: inline-block; }
+@media (max-width: 720px) {
+  .speed-age { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .speed-old .speed-item span { max-width: 130px; }
+  .speed-old .speed-step { display: none; }
+  .speed-step-sub { display: block; }
+}
 
 @media (max-width: 720px) {
   /* Sidebar becomes a bottom tab bar so every page stays reachable. */
@@ -2163,6 +2191,7 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
     </div>
     <button class="nav-item" data-view="ledger"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/><path d="M13.5 6.5l4 4"/></svg>Ledger</button>
     <button class="nav-item" data-view="analytics"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>Analytics</button>
+    <button class="nav-item" data-view="speed"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M19 5l-1.5 1.5"/></svg><span class="nav-long">Sell-through</span><span class="nav-short">Speed</span></button>
     <button class="nav-item" data-view="settings"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
     <div class="sidebar-account" data-account-signin hidden>
       <button type="button" class="btn btn-primary sidebar-signin" data-account="signin">Sign in</button>
@@ -2444,6 +2473,22 @@ table.sheet { width: max-content; min-width: 100%; border-collapse: separate; bo
           <div class="panel-body table-scroll" id="an-categories" tabindex="0" aria-label="Results by category"></div>
         </div>
       </div>
+    </section>
+
+    <!-- SELL-THROUGH -->
+    <section class="view" id="view-speed">
+      <div class="page-header">
+        <div><h1 class="page-title">Sell-through</h1><div class="page-sub">How much of what you buy sells, and how long it takes</div></div>
+        <div class="header-actions">
+          <div class="seg" id="speed-period" role="group" aria-label="Sell-through period">
+            <button type="button" data-speed-period="month">This month</button>
+            <button type="button" data-speed-period="90">Last 90 days</button>
+            <button type="button" data-speed-period="year">This year</button>
+            <button type="button" data-speed-period="all">All time</button>
+          </div>
+        </div>
+      </div>
+      <div id="speed-body"></div>
     </section>
 
     <!-- SETTINGS -->
@@ -5851,6 +5896,8 @@ function buildLedgerSnapshot() {
   });
   if (stock.length > 120) out.push(`…and ${stock.length - 120} more.`);
 
+  out.push(...speedSnapshotLines());
+
   const shipOpen = saleOrders().filter(o => ['to_ship', 'shipped'].includes(shipStatusOf(o.first)));
   out.push('', `SHIPPING: ${shipOpen.filter(o => shipStatusOf(o.first) === 'to_ship').length} orders still to ship, ${shipOpen.filter(o => shipStatusOf(o.first) === 'shipped').length} shipped and on the way.`);
   shipOpen.slice(0, 20).forEach(o => out.push(`- ${o.item ? o.item.item_name : 'Unknown item'}${o.n > 1 ? ` ×${o.n}` : ''} | ${SHIP_LABELS[shipStatusOf(o.first)]} | sold ${o.first.sale_date}${o.first.shipped_on ? ` | shipped ${o.first.shipped_on}` : ''}`));
@@ -6937,8 +6984,11 @@ function renderAnalytics() {
     ['Avg margin', fmtBps(avgMargin)],
     ['Platform fees paid', fmtCents(feesPaid)],
   ];
-  document.getElementById('an-stats').innerHTML = stats.map(([label, value, hint]) => `
-    <div class="stat-tile"><div class="stat-label">${label}</div><div class="stat-value mono">${value}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}</div>`).join('');
+  // The two speed tiles open the Sell-through page, which has the detail.
+  document.getElementById('an-stats').innerHTML = stats.map(([label, value, hint]) => {
+    const more = label === 'Sell-through' || label === 'Avg days to sell';
+    return `<${more ? 'button type="button" data-goto="speed"' : 'div'} class="stat-tile"><div class="stat-label">${label}</div><div class="stat-value mono">${value}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}${more ? '<span class="speed-more">More in Sell-through →</span>' : ''}</${more ? 'button' : 'div'}>`;
+  }).join('');
 
   renderMonthlyChart(completed);
 
@@ -7079,6 +7129,376 @@ function renderMonthlyChart(completed) {
     hit.addEventListener('click', show);
     hit.addEventListener('mouseleave', () => { tip.hidden = true; });
   });
+}
+
+/* =========================================================
+   SELL-THROUGH — how much of what you buy sells, and how fast.
+   A unit is one inventory item (a batch of 3 is 3 units) and it
+   counts as sold when it has a completed sale; a returned unit is
+   back in stock. For a period, sell-through = units sold in it ÷
+   (units sold in it + units still unsold at its end that were bought
+   by then), so All time is simply sold ÷ all units. Days to sell =
+   sale date − purchase date; the median ("typical") leads, because
+   one very slow item drags an average.
+   ========================================================= */
+const SPEED_PERIODS = { month: 'This month', 90: 'Last 90 days', year: 'This year', all: 'All time' };
+const SPEED_PERIOD_KEY = 'ledgery-speed-period';
+let speedPeriod = 'all';
+try { const saved = localStorage.getItem(SPEED_PERIOD_KEY); if (SPEED_PERIODS[saved]) speedPeriod = saved; } catch (e) {}
+let speedGroupBy = 'platform';
+const speedSort = { key: 'median', dir: 'asc' };
+const SPEED_BUCKETS = [[0, 7, '0–7'], [8, 14, '8–14'], [15, 30, '15–30'], [31, 60, '31–60'], [61, 90, '61–90'], [91, Infinity, '90+']];
+const AGE_BUCKETS = [[0, 30, '0–30 days'], [31, 60, '31–60 days'], [61, 90, '61–90 days'], [91, Infinity, 'Over 90 days']];
+const SPEED_GROUPS = { platform: 'Platform', category: 'Category', brand: 'Brand', price: 'Price range' };
+
+function median(nums) {
+  if (!nums.length) return null;
+  const a = [...nums].sort((x, y) => x - y), mid = a.length >> 1;
+  return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+}
+const mean = nums => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null);
+const fmtPct = bps => (bps === null || bps === undefined ? '&mdash;' : fmtNumber(bps / 100) + '%');
+const fmtDays = d => (d === null || d === undefined ? '&mdash;' : `${fmtNumber(Math.round(d))}<span class="stat-unit">&nbsp;${Math.round(d) === 1 ? "day" : "days"}</span>`);
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function speedRange(period) {
+  if (period === '90') {
+    const now = new Date();
+    return { start: isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89)), end: isoDate(now) };
+  }
+  return periodRange(period, 0);
+}
+// The completed sale behind each sold unit.
+function soldSaleByItem() {
+  const m = new Map();
+  sales.forEach(s => {
+    if (s.status !== 'completed' || !s.sale_date) return;
+    const prev = m.get(s.item_id);
+    if (!prev || s.sale_date > prev.sale_date) m.set(s.item_id, s);
+  });
+  return m;
+}
+function priceBand(cents) {
+  if (cents === null || cents === undefined) return 'No price';
+  if (cents < 2000) return `Under ${fmtMoneyAxis(2000)}`;
+  if (cents < 5000) return `${fmtMoneyAxis(2000)}–${fmtMoneyAxis(5000)}`;
+  if (cents < 10000) return `${fmtMoneyAxis(5000)}–${fmtMoneyAxis(10000)}`;
+  return `${fmtMoneyAxis(10000)}+`;
+}
+const PRICE_BAND_ORDER = c => (c === null || c === undefined ? 4 : c < 2000 ? 0 : c < 5000 ? 1 : c < 10000 ? 2 : 3);
+
+function speedStats(range, soldMap = soldSaleByItem()) {
+  const sold = [], open = [];
+  items.forEach(u => {
+    const s = soldMap.get(u.id);
+    const boughtBy = !range || !u.purchase_date || u.purchase_date <= range.end;
+    if (s) {
+      if (inRange(s.sale_date, range)) sold.push({ u, s });
+      else if (range && s.sale_date > range.end && boughtBy) open.push(u); // sold later, still unsold back then
+      return;
+    }
+    if (u.status === 'sold') { if (!range) sold.push({ u, s: null }); return; } // marked sold without a sale record: All time only
+    if (boughtBy) open.push(u);
+  });
+  const days = [], listed = [];
+  let undated = 0;
+  sold.forEach(x => {
+    x.days = x.s && x.u.purchase_date ? daysBetween(x.u.purchase_date, x.s.sale_date) : null;
+    if (x.days !== null && x.days < 0) x.days = null;
+    if (x.days === null) undated++; else days.push(x.days);
+    if (x.s && x.u.listed_date) { const d = daysBetween(x.u.listed_date, x.s.sale_date); if (d >= 0) listed.push(d); }
+    x.r = x.s ? calcProfit(x.s, x.u) : { isComplete: false };
+  });
+  const total = sold.length + open.length;
+  return {
+    sold, open, days, listed, undated, total,
+    rateBps: total ? Math.round((sold.length * 10000) / total) : null,
+    median: median(days), avg: mean(days),
+    within30: days.filter(d => d <= 30).length,
+    listedMedian: median(listed),
+  };
+}
+
+function speedGroupRows(st, by) {
+  const keyOf = (u, s) => by === 'platform' ? (s ? s.platform : null)
+    : by === 'category' ? (u.category || 'Uncategorized')
+    : by === 'brand' ? (u.brand || 'No brand')
+    : priceBand(s ? s.sale_price_cents : u.listing_price_cents);
+  const groups = new Map();
+  const group = name => groups.get(name) || groups.set(name, { name, sold: [], open: 0, order: 0 }).get(name);
+  st.sold.forEach(x => {
+    const name = keyOf(x.u, x.s);
+    if (name === null) return;
+    const g = group(name);
+    g.sold.push(x);
+    if (by === 'price') g.order = PRICE_BAND_ORDER(x.s ? x.s.sale_price_cents : x.u.listing_price_cents);
+  });
+  if (by !== 'platform') st.open.forEach(u => {
+    const g = group(keyOf(u, null));
+    g.open++;
+    if (by === 'price') g.order = PRICE_BAND_ORDER(u.listing_price_cents);
+  });
+  return [...groups.values()].map(g => {
+    const days = g.sold.map(x => x.days).filter(d => d !== null);
+    const profits = g.sold.filter(x => x.r.isComplete).map(x => x.r.netProfitCents);
+    return {
+      name: g.name, order: g.order, n: g.sold.length, open: g.open,
+      rate: by === 'platform' ? null : Math.round((g.sold.length * 10000) / (g.sold.length + g.open)),
+      median: median(days), avg: mean(days),
+      profit: profits.length ? Math.round(mean(profits)) : null,
+    };
+  });
+}
+
+// Axis top rounded up to a whole "nice" step, four ticks.
+function niceAxis(rawMax) {
+  const mag = Math.max(1, Math.pow(10, Math.floor(Math.log10(Math.max(1, rawMax) / 4))));
+  const step = [1, 2, 5, 10].map(f => f * mag).find(v => v * 4 >= rawMax);
+  return { max: step * 4, ticks: [1, 2, 3, 4].map(k => step * k) };
+}
+// Bar with a 4px rounded top and a square foot on the baseline.
+function roundTopBar(x, top, w, base) {
+  const r = Math.min(4, w / 2, base - top);
+  return `M${x.toFixed(1)} ${base.toFixed(1)}V${(top + r).toFixed(1)}Q${x.toFixed(1)} ${top.toFixed(1)} ${(x + r).toFixed(1)} ${top.toFixed(1)}`
+    + `H${(x + w - r).toFixed(1)}Q${(x + w).toFixed(1)} ${top.toFixed(1)} ${(x + w).toFixed(1)} ${(top + r).toFixed(1)}V${base.toFixed(1)}Z`;
+}
+// One-series chart (bars or a line) on a single axis, sized to its container, with a hover tooltip.
+function speedChart(container, { kind, points, axis, yFmt, aria, tip }) {
+  const w = Math.max(260, Math.round(container.clientWidth) || 520), h = 200, padL = 40, padR = 8, padT = 12, padB = 26;
+  const y = v => padT + (1 - v / axis.max) * (h - padT - padB);
+  const slot = (w - padL - padR) / points.length, cx = i => padL + slot * i + slot / 2;
+  const grid = axis.ticks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>
+      <text class="an-axis" x="${padL - 6}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${yFmt(t)}</text>`).join('')
+    + `<line x1="${padL}" y1="${y(0)}" x2="${w - padR}" y2="${y(0)}" stroke="var(--ink-faint)" stroke-width="1"></line>
+      <text class="an-axis" x="${padL - 6}" y="${y(0) + 4}" text-anchor="end">${yFmt(0)}</text>`;
+  let marks = '';
+  if (kind === 'bar') {
+    const bw = Math.max(4, Math.min(24, slot * 0.56));
+    marks = points.map((p, i) => (p.value ? `<path d="${roundTopBar(cx(i) - bw / 2, y(p.value), bw, y(0))}" fill="var(--accent)"></path>` : '')).join('');
+  } else {
+    let d = '', pen = false; // the line breaks over months with no sales
+    points.forEach((p, i) => {
+      if (p.value === null) { pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${cx(i).toFixed(1)} ${y(p.value).toFixed(1)}`; pen = true;
+    });
+    marks = `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>`
+      + points.map((p, i) => (p.value === null ? '' : `<circle cx="${cx(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"></circle>`)).join('');
+  }
+  const labels = points.map((p, i) => (slot >= 30 || i % 2 === (points.length - 1) % 2
+    ? `<text class="an-axis" x="${cx(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${p.label}</text>` : '')).join('');
+  const hits = points.map((p, i) => `<rect class="an-hit" data-i="${i}" x="${(padL + slot * i).toFixed(1)}" y="${padT}" width="${slot.toFixed(1)}" height="${h - padT - padB}" fill="transparent"></rect>`).join('');
+  container.innerHTML = `<div class="an-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${aria}">${grid}${marks}${labels}${hits}</svg><div class="an-tip" hidden></div></div>`;
+  const chart = container.querySelector('.an-chart'), tipEl = chart.querySelector('.an-tip');
+  chart.querySelectorAll('.an-hit').forEach(hit => {
+    const show = () => {
+      tipEl.innerHTML = tip(points[+hit.dataset.i]);
+      tipEl.hidden = false;
+      const hr = hit.getBoundingClientRect(), cr = chart.getBoundingClientRect();
+      tipEl.style.left = Math.min(Math.max(0, hr.left - cr.left + hr.width / 2 - tipEl.offsetWidth / 2), cr.width - tipEl.offsetWidth) + 'px';
+      tipEl.style.top = '4px';
+    };
+    hit.addEventListener('mouseenter', show);
+    hit.addEventListener('click', show);
+    hit.addEventListener('mouseleave', () => { tipEl.hidden = true; });
+  });
+}
+
+let speedCache = null; // the last render's numbers, so tabs and sorting don't recount
+function renderSpeed() {
+  document.querySelectorAll('#speed-period [data-speed-period]').forEach(b => {
+    const on = b.dataset.speedPeriod === speedPeriod;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on);
+  });
+  const body = document.getElementById('speed-body');
+  if (!items.length) {
+    speedCache = null;
+    body.innerHTML = `<div class="panel"><div class="panel-body">${emptyState('box', 'Nothing to measure yet', 'Add what you buy, then record sales. This page shows how much of it sells and how long it takes.',
+      '<button type="button" class="btn btn-sm btn-primary" data-open="add-item">Add an item</button>')}</div></div>`;
+    return;
+  }
+  const soldMap = soldSaleByItem(), range = speedRange(speedPeriod), st = speedStats(range, soldMap);
+  const label = SPEED_PERIODS[speedPeriod].toLowerCase();
+  const fastest = st.days.length ? Math.min(...st.days) : null, slowest = st.days.length ? Math.max(...st.days) : null;
+  const tiles = [
+    ['Sell-through', fmtPct(st.rateBps), st.total ? `${st.sold.length} of ${plural(st.total, 'unit')} sold` : 'no units in this period'],
+    ['Typical days to sell', fmtDays(st.median), st.days.length ? `median of ${plural(st.days.length, 'sale')}` : st.sold.length ? 'needs purchase dates' : `no sales ${label}`],
+    ['Average days to sell', fmtDays(st.avg), st.days.length ? `fastest ${fastest}, slowest ${slowest}` : ''],
+    ['Sold within 30 days', st.days.length ? fmtPct(Math.round((st.within30 * 10000) / st.days.length)) : '&mdash;', st.days.length ? `${st.within30} of ${plural(st.days.length, 'sale')}` : ''],
+    ['Days listed before sale', fmtDays(st.listedMedian), st.listed.length ? `median, ${plural(st.listed.length, 'sale')} with a listed date` : 'add a listed date to items'],
+  ];
+  const hist = SPEED_BUCKETS.map(([lo, hi, l]) => ({ label: l, value: st.days.filter(d => d >= lo && d <= hi).length }));
+
+  const now = new Date(), months = [];
+  for (let k = 11; k >= 0; k--) {
+    const a = new Date(now.getFullYear(), now.getMonth() - k, 1), b = new Date(a.getFullYear(), a.getMonth() + 1, 0);
+    const ms = speedStats({ start: isoDate(a), end: isoDate(b) }, soldMap);
+    months.push({
+      label: a.toLocaleDateString('en-US', { month: 'short' }), long: a.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      rate: ms.rateBps, sold: ms.sold.length, total: ms.total, median: ms.median, dated: ms.days.length,
+    });
+  }
+
+  // Stock on hand right now, whatever the period.
+  const stock = items.filter(inStock);
+  const ageOf = u => (u.purchase_date ? Math.max(0, daysSince(u.purchase_date)) : null);
+  const ages = AGE_BUCKETS.map(([lo, hi, l]) => {
+    const units = stock.filter(u => { const a = ageOf(u); return a !== null && a >= lo && a <= hi; });
+    return { label: l, n: units.length, cost: units.reduce((t, u) => t + (u.purchase_cost_cents || 0), 0), hot: lo > 60 && units.length > 0 };
+  });
+  const noDateStock = stock.filter(u => ageOf(u) === null).length;
+  const lots = new Map();
+  stock.filter(u => ageOf(u) !== null).forEach(u => {
+    const k = u.batch_id || 'u' + u.id;
+    const e = lots.get(k) || lots.set(k, { item: u, units: [], age: 0 }).get(k);
+    e.units.push(u);
+    e.age = Math.max(e.age, ageOf(u));
+  });
+  const oldest = [...lots.values()].sort((a, b) => b.age - a.age).slice(0, 10);
+  const nextStep = e => {
+    if (!e.units.some(u => u.status === 'listed')) return 'List it — it can’t sell until it’s up';
+    if (e.age > 90) return 'Relist it fresh or try another platform';
+    if (e.age > 60) return 'Try a 10–15% price drop';
+    if (e.age > 30) return 'Refresh the photos or title and share it';
+    return 'Give it time';
+  };
+
+  speedCache = { st };
+  body.innerHTML = `
+    <div class="stat-grid" id="speed-stats">${tiles.map(([l, v, hint]) => `
+      <div class="stat-tile"><div class="stat-label">${l}</div><div class="stat-value mono">${v}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}</div>`).join('')}
+    </div>
+    <details class="an-details speed-how" style="margin:-12px 0 20px"><summary>How these are worked out</summary>
+      <p class="speed-note">Each unit counts once (a batch of 3 is 3 units). <strong>Sell-through</strong> is the units sold ${label} out of those sold plus those still unsold at the end of the period that you'd bought by then. <strong>Days to sell</strong> runs from the purchase date to the sale date, and <strong>days listed</strong> from the listed date. <em>Typical</em> is the median: half sell faster, half slower. Returned sales count as unsold.${st.undated ? ` ${plural(st.undated, 'sold unit')} without a purchase date ${st.undated === 1 ? 'is' : 'are'} left out of the days figures.` : ''}</p>
+    </details>
+    <div class="panel">
+      <div class="panel-head"><h2>How long things take to sell</h2><span class="page-sub" style="margin:0">units sold ${label}, by days from purchase</span></div>
+      <div class="panel-body">${st.days.length ? `<div id="speed-hist"></div>
+        <details class="an-details"><summary>Show as a table</summary><div class="table-scroll" tabindex="0" aria-label="Units sold by days to sell"><table class="mini-table">
+          <thead><tr><th>Days to sell</th><th class="num">Units</th><th class="num">Share</th></tr></thead>
+          <tbody>${hist.map(b => `<tr><td>${b.label} days</td><td class="num">${b.value}</td><td class="num">${fmtPct(Math.round((b.value * 10000) / st.days.length))}</td></tr>`).join('')}</tbody>
+        </table></div></details>`
+        : `<div class="empty-note">${st.sold.length ? 'Add purchase dates to your items to see how long they take to sell.' : `No sales ${label}.`}</div>`}</div>
+    </div>
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-head"><h2>Sell-through by month</h2><span class="page-sub" style="margin:0">last 12 months</span></div>
+        <div class="panel-body"><div id="speed-trend-rate"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Typical days to sell by month</h2><span class="page-sub" style="margin:0">median, last 12 months</span></div>
+        <div class="panel-body"><div id="speed-trend-days"></div></div>
+      </div>
+    </div>
+    <details class="an-details" style="margin:-8px 0 20px"><summary>Show the monthly numbers as a table</summary><div class="table-scroll" tabindex="0" aria-label="Sell-through and days to sell by month"><table class="mini-table">
+      <thead><tr><th>Month</th><th class="num">Sold</th><th class="num">Sell-through</th><th class="num">Typical days</th></tr></thead>
+      <tbody>${[...months].reverse().map(m => `<tr><td>${m.long}</td><td class="num">${m.sold} of ${m.total}</td><td class="num">${fmtPct(m.rate)}</td><td class="num">${m.median === null ? '&mdash;' : Math.round(m.median)}</td></tr>`).join('')}</tbody>
+    </table></div></details>
+    <div class="panel">
+      <div class="panel-head"><h2>What sells fastest</h2><span class="page-sub" style="margin:0">${label}</span></div>
+      <div class="panel-body">
+        <div class="inv-tabs speed-tabs" id="speed-tabs" role="tablist" aria-label="Group by">${Object.entries(SPEED_GROUPS).map(([k, l]) => `<button type="button" role="tab" data-speed-group="${k}" aria-selected="${k === speedGroupBy}" class="${k === speedGroupBy ? 'active' : ''}">${l}</button>`).join('')}</div>
+        <div id="speed-groups" role="tabpanel"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Sitting too long</h2><span class="page-sub" style="margin:0">in stock now, by days since purchase</span></div>
+      <div class="panel-body">${stock.length ? `
+        <div class="speed-age">${ages.map(a => `<div class="speed-age-cell${a.hot ? ' hot' : ''}"><div class="speed-age-label">${a.label}</div><div class="speed-age-n">${plural(a.n, 'unit')}</div><div class="speed-age-cost">${fmtCents(a.cost)} at cost</div></div>`).join('')}</div>
+        ${noDateStock ? `<p class="speed-note" style="margin:-6px 0 12px">${plural(noDateStock, 'unit')} without a purchase date ${noDateStock === 1 ? 'isn’t' : 'aren’t'} counted here.</p>` : ''}
+        ${oldest.length ? `<div class="table-scroll" tabindex="0" aria-label="Oldest stock"><table class="mini-table speed-old">
+          <thead><tr><th>Oldest stock</th><th class="num">Age</th><th class="num">Cost</th><th class="num">List price</th><th class="speed-step">Next step</th><th><span class="sr-only">Edit</span></th></tr></thead>
+          <tbody>${oldest.map(e => `<tr>
+            <td><div class="speed-item">${itemThumb(e.item)}<div class="speed-item-text"><span title="${esc(e.item.item_name)}">${esc(e.item.item_name)}${e.units.length > 1 ? ` ×${e.units.length}` : ''}</span><small class="speed-step-sub">${nextStep(e)}</small></div></div></td>
+            <td class="num">${plural(e.age, 'day')}</td>
+            <td class="num">${e.units.every(u => u.purchase_cost_cents !== null && u.purchase_cost_cents !== undefined) ? fmtCents(e.units.reduce((t, u) => t + u.purchase_cost_cents, 0)) : '&mdash;'}</td>
+            <td class="num">${fmtCents(e.item.listing_price_cents)}</td>
+            <td class="speed-tip-cell speed-step">${nextStep(e)}</td>
+            <td><button type="button" class="btn btn-sm" data-speed-edit="${e.item.id}">Edit</button></td></tr>`).join('')}</tbody>
+        </table></div>` : ''}`
+        : emptyState('box', 'Nothing in stock', 'Everything you’ve bought has sold. Nice work.', '', true)}</div>
+    </div>`;
+
+  if (st.days.length) {
+    speedChart(document.getElementById('speed-hist'), {
+      kind: 'bar', points: hist, axis: niceAxis(Math.max(...hist.map(b => b.value))), yFmt: v => fmtNumber(v),
+      aria: `Units sold ${label} by days to sell`,
+      tip: b => `<strong>${b.label} days</strong><div class="tip-row">${plural(b.value, 'unit')} · ${fmtPct(Math.round((b.value * 10000) / st.days.length))}</div>`,
+    });
+  }
+  const rateEl = document.getElementById('speed-trend-rate'), daysEl = document.getElementById('speed-trend-days');
+  if (months.some(m => m.sold)) {
+    speedChart(rateEl, {
+      kind: 'bar', points: months.map(m => ({ ...m, value: m.rate === null ? 0 : m.rate / 100 })), axis: { max: 100, ticks: [25, 50, 75, 100] }, yFmt: v => v + '%',
+      aria: 'Sell-through by month, last 12 months',
+      tip: m => `<strong>${m.long}</strong><div class="tip-row">${fmtPct(m.rate)} sell-through</div><div class="tip-row" style="color:var(--ink-muted)">${m.sold} of ${plural(m.total, 'unit')} sold</div>`,
+    });
+    const dayPoints = months.map(m => ({ ...m, value: m.median }));
+    speedChart(daysEl, {
+      kind: 'line', points: dayPoints, axis: niceAxis(Math.max(4, ...dayPoints.map(p => p.value || 0))), yFmt: v => fmtNumber(v),
+      aria: 'Typical days to sell by month, last 12 months',
+      tip: m => `<strong>${m.long}</strong><div class="tip-row">${m.median === null ? 'No dated sales' : `Typical ${plural(Math.round(m.median), 'day')}`}</div>${m.dated ? `<div class="tip-row" style="color:var(--ink-muted)">from ${plural(m.dated, 'sale')}</div>` : ''}`,
+    });
+  } else {
+    rateEl.innerHTML = daysEl.innerHTML = '<div class="empty-note">No sales in the last 12 months yet.</div>';
+  }
+  renderSpeedGroups();
+}
+
+function renderSpeedGroups() {
+  const el = document.getElementById('speed-groups');
+  if (!el || !speedCache) return;
+  document.querySelectorAll('#speed-tabs [data-speed-group]').forEach(b => {
+    const on = b.dataset.speedGroup === speedGroupBy;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on);
+  });
+  const rows = speedGroupRows(speedCache.st, speedGroupBy);
+  if (!rows.some(r => r.n)) {
+    el.innerHTML = `<div class="empty-note">No sales ${SPEED_PERIODS[speedPeriod].toLowerCase()} to compare yet.</div>`;
+    return;
+  }
+  sortRows(rows, (r, key) => (key === 'name' && speedGroupBy === 'price' ? r.order : r[key]), speedSort);
+  const isPlatform = speedGroupBy === 'platform';
+  el.innerHTML = `<div class="table-scroll" tabindex="0" aria-label="Sell-through by ${SPEED_GROUPS[speedGroupBy].toLowerCase()}"><table class="mini-table" id="speed-table">
+    <thead><tr><th data-sort="name">${SPEED_GROUPS[speedGroupBy]}</th><th class="num" data-sort="n">Units sold</th>${isPlatform ? '' : '<th class="num" data-sort="rate">Sell-through</th>'}<th class="num" data-sort="median">Typical days</th><th class="num" data-sort="avg">Avg days</th><th class="num" data-sort="profit">Avg profit</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td>${isPlatform ? platformChip(r.name, true) : esc(r.name)}${r.n < 3 ? `<span class="speed-few" title="Under 3 sales: read with care">few sales</span>` : ''}</td>
+      <td class="num">${r.n}${isPlatform ? '' : `<span style="color:var(--ink-faint)"> of ${r.n + r.open}</span>`}</td>
+      ${isPlatform ? '' : `<td class="num">${fmtPct(r.rate)}</td>`}
+      <td class="num">${r.median === null ? '&mdash;' : Math.round(r.median)}</td>
+      <td class="num">${r.avg === null ? '&mdash;' : Math.round(r.avg)}</td>
+      <td class="num">${r.profit === null ? '&mdash;' : moneyCell(r.profit)}</td></tr>`).join('')}</tbody>
+  </table></div>
+  ${isPlatform ? '<p class="speed-note">Unsold items aren’t tied to a platform, so sell-through isn’t split by platform.</p>' : ''}`;
+  markSortHeaders('speed-table', speedSort);
+  wireSortHeaders('speed-table', speedSort, renderSpeedGroups);
+}
+
+document.querySelectorAll('#speed-period [data-speed-period]').forEach(btn => btn.addEventListener('click', () => {
+  speedPeriod = btn.dataset.speedPeriod;
+  try { localStorage.setItem(SPEED_PERIOD_KEY, speedPeriod); } catch (e) {}
+  renderSpeed();
+}));
+document.getElementById('view-speed').addEventListener('click', e => {
+  const tab = e.target.closest('[data-speed-group]');
+  if (tab) { speedGroupBy = tab.dataset.speedGroup; renderSpeedGroups(); return; }
+  const edit = e.target.closest('[data-speed-edit]');
+  if (edit) { const item = itemById(+edit.dataset.speedEdit); if (item) editItem(item, edit); }
+});
+
+// One line for Ledger: the all-time rate, typical days and the slowest categories.
+function speedSnapshotLines() {
+  if (!items.length) return [];
+  const st = speedStats(null);
+  const slow = speedGroupRows(st, 'category').filter(r => r.n >= 2 && r.median !== null).sort((a, b) => b.median - a.median).slice(0, 3);
+  const r90 = speedStats(speedRange('90'));
+  return [
+    '', 'SELL-THROUGH (unit = one item; sold = completed sale; days to sell = sale date − purchase date)',
+    `All time: ${st.sold.length} of ${st.total} units sold (${st.rateBps === null ? 'n/a' : (st.rateBps / 100).toFixed(0) + '%'}); typical ${st.median === null ? 'n/a' : Math.round(st.median)} days, average ${st.avg === null ? 'n/a' : Math.round(st.avg)} days; ${st.days.length ? Math.round((st.within30 * 100) / st.days.length) + '% sold within 30 days' : 'no dated sales'}.`,
+    `Last 90 days: ${r90.sold.length} of ${r90.total} units sold (${r90.rateBps === null ? 'n/a' : (r90.rateBps / 100).toFixed(0) + '%'}); typical ${r90.median === null ? 'n/a' : Math.round(r90.median)} days.`,
+    slow.length ? `Slowest categories (typical days): ${slow.map(r => `${r.name} ${Math.round(r.median)}`).join(', ')}.` : 'Not enough sales per category to compare speed yet.',
+  ];
 }
 
 /* =========================================================
@@ -8323,6 +8743,7 @@ document.querySelectorAll('#period-switch [data-period]').forEach(btn => btn.add
 // The monthly chart sizes itself to its container, which has no width
 // while the Analytics page is hidden, so redraw it when shown or resized.
 document.querySelector('.nav-item[data-view="analytics"]').addEventListener('click', renderAnalytics);
+document.querySelector('.nav-item[data-view="speed"]').addEventListener('click', renderSpeed);
 document.querySelector('.nav-item[data-view="dashboard"]').addEventListener('click', () => { heroShown = {}; renderDashboard(); });
 // Only on width changes: phones fire resize when the address bar hides
 // while scrolling, and redrawing then would replay the fade-in.
@@ -8333,6 +8754,7 @@ window.addEventListener('resize', () => {
   clearTimeout(analyticsResizeTimer);
   analyticsResizeTimer = setTimeout(() => {
     if (document.getElementById('view-analytics').classList.contains('active')) renderMonthlyChartOnly();
+    if (document.getElementById('view-speed').classList.contains('active')) renderSpeed();
     if (document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
   }, 150);
 });
@@ -8366,6 +8788,7 @@ function renderAll() {
   renderSales();
   renderAnalytics();
   if (document.getElementById('view-sheet').classList.contains('active')) renderSheet();
+  if (document.getElementById('view-speed').classList.contains('active')) renderSpeed();
 }
 
 populatePlatformFilter();
@@ -8529,9 +8952,9 @@ const Motion = (() => {
     thumb.style.height = active.offsetHeight + 'px';
     thumb.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
   }
-  const thumbGroups = () => [document.getElementById('period-switch'), document.querySelector('.inv-tabs'), document.getElementById('inv-view-toggle'), document.getElementById('sheet-tabs')];
+  const thumbGroups = () => [document.getElementById('period-switch'), document.querySelector('.inv-tabs'), document.getElementById('inv-view-toggle'), document.getElementById('sheet-tabs'), document.getElementById('speed-period')];
   const slideAll = () => thumbGroups().forEach(slideThumb);
-  document.addEventListener('click', e => { if (e.target.closest('#period-switch, .inv-tabs, #inv-view-toggle, .nav-item, [data-goto]')) requestAnimationFrame(slideAll); });
+  document.addEventListener('click', e => { if (e.target.closest('#period-switch, #speed-period, .inv-tabs, #inv-view-toggle, .nav-item, [data-goto]')) requestAnimationFrame(slideAll); });
   window.addEventListener('resize', slideAll);
   document.getElementById('period-switch').addEventListener('click', e => {
     if (!e.target.closest('[data-period]')) return;

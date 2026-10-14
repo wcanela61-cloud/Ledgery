@@ -1122,10 +1122,18 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 .speed-heat { background: color-mix(in srgb, var(--accent) var(--heat, 0%), transparent); }
 .speed-heat.partial { font-style: italic; color: var(--ink-muted); }
 .speed-batch-table td:first-child { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.speed-sold-bar { margin-bottom: 8px; flex-wrap: nowrap; }
+.speed-sold-bar input[type="search"] { max-width: 340px; min-width: 0; }
+.speed-sold-bar .field-hint { white-space: nowrap; }
+.speed-sale-row { cursor: pointer; }
+.speed-sale-row:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.speed-sale-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.speed-sub { color: var(--ink-faint); font-size: 0.6875rem; font-weight: 400; }
+.speed-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font: 600 0.625rem/1.5 var(--font-sans); vertical-align: 1px; color: var(--ink-muted); }
+.speed-tag.fast { background: var(--success-soft); color: var(--success-text); }
+.speed-tag.slow { background: var(--warning-soft); color: var(--ink); }
+.speed-show-all { margin-top: 10px; }
 .speed-note { font-size: 0.7188rem; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.45; }
-.speed-tabs { margin: 0 0 4px; }
-.speed-tabs button { padding: 8px 12px; font-size: 0.8125rem; }
-.speed-few { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 0.625rem; font-weight: 600; color: var(--ink-muted); background: color-mix(in srgb, var(--ink) 7%, transparent); vertical-align: 1px; }
 .speed-age { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
 .speed-age-cell { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; background: var(--surface); }
 .speed-age-cell.hot { border-color: color-mix(in srgb, var(--warning) 45%, var(--border)); }
@@ -1133,20 +1141,20 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 .speed-age-n { font-family: var(--font-num); font-size: 1.125rem; font-weight: 600; margin-top: 2px; }
 .speed-age-cost { font-family: var(--font-num); font-size: 0.6875rem; color: var(--ink-faint); }
 .speed-old td { vertical-align: middle; }
-.speed-old .speed-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.speed-old .speed-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.speed-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.speed-item-text > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.speed-step-sub .platform-chip, .speed-step-sub span { vertical-align: middle; }
 .speed-tip-cell { color: var(--ink-muted); }
 .speed-item-text { display: flex; flex-direction: column; min-width: 0; }
 .speed-step-sub { display: none; color: var(--ink-muted); font-size: 0.6875rem; white-space: normal; }
 a.speed-more, button.speed-more { color: var(--accent-text); font-size: 0.6875rem; font-weight: 600; margin-top: 4px; display: inline-block; }
 @media (max-width: 720px) {
   .speed-age { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .speed-old .speed-item span { max-width: 130px; }
+  .speed-item-text > span { max-width: 130px; }
   .speed-old .speed-step, .speed-opt { display: none; }
   .speed-batch-table td:first-child { max-width: 120px; }
   .speed-long { display: none; }
   #speed-body .mini-table th, #speed-body .mini-table td { padding: 7px 5px; }
-  #speed-table .speed-few { display: block; width: max-content; margin: 2px 0 0; }
   .speed-hero-top { flex-direction: column; gap: 10px; }
   .speed-hero-value { font-size: 2rem; }
   .speed-step-sub { display: block; }
@@ -7179,7 +7187,6 @@ const SPEED_PERIODS = { month: 'This month', 90: 'Last 90 days', year: 'This yea
 const SPEED_PERIOD_KEY = 'ledgery-speed-period';
 let speedPeriod = 'all';
 try { const saved = localStorage.getItem(SPEED_PERIOD_KEY); if (SPEED_PERIODS[saved]) speedPeriod = saved; } catch (e) {}
-let speedGroupBy = 'platform';
 // Count sell-through by units or by what they cost; remembered per browser.
 const SPEED_COUNT_KEY = 'ledgery-speed-count';
 let speedCountBy = 'units';
@@ -7191,10 +7198,10 @@ function loadSellTarget() { try { const v = parseInt(localStorage.getItem(SELL_T
 function saveSellTarget(v) {
   try { if (v >= 1 && v <= 100) localStorage.setItem(SELL_TARGET_KEY, String(Math.round(v))); else localStorage.removeItem(SELL_TARGET_KEY); } catch (e) {}
 }
-const speedSort = { key: 'median', dir: 'asc' };
+const speedSort = { key: 'days', dir: 'asc' }; // the sales list: fastest first
+let speedQuery = '', speedShowAll = false;
 const SPEED_BUCKETS = [[0, 7, '0–7'], [8, 14, '8–14'], [15, 30, '15–30'], [31, 60, '31–60'], [61, 90, '61–90'], [91, Infinity, '90+']];
 const AGE_BUCKETS = [[0, 30, '0–30 days'], [31, 60, '31–60 days'], [61, 90, '61–90 days'], [91, Infinity, 'Over 90 days']];
-const SPEED_GROUPS = { platform: 'Platform', category: 'Category', brand: 'Brand', price: 'Price range' };
 
 function median(nums) {
   if (!nums.length) return null;
@@ -7237,15 +7244,6 @@ function soldSaleByItem() {
   });
   return m;
 }
-function priceBand(cents) {
-  if (cents === null || cents === undefined) return 'No price';
-  if (cents < 2000) return `Under ${fmtMoneyAxis(2000)}`;
-  if (cents < 5000) return `${fmtMoneyAxis(2000)}–${fmtMoneyAxis(5000)}`;
-  if (cents < 10000) return `${fmtMoneyAxis(5000)}–${fmtMoneyAxis(10000)}`;
-  return `${fmtMoneyAxis(10000)}+`;
-}
-const PRICE_BAND_ORDER = c => (c === null || c === undefined ? 4 : c < 2000 ? 0 : c < 5000 ? 1 : c < 10000 ? 2 : 3);
-
 function speedStats(range, soldMap = soldSaleByItem()) {
   const sold = [], open = [];
   items.forEach(u => {
@@ -7280,41 +7278,6 @@ function speedStats(range, soldMap = soldSaleByItem()) {
     within30: days.filter(d => d <= 30).length,
     listedMedian: median(listed),
   };
-}
-
-function speedGroupRows(st, by) {
-  const keyOf = (u, s) => by === 'platform' ? (s ? s.platform : null)
-    : by === 'category' ? (u.category || 'Uncategorized')
-    : by === 'brand' ? (u.brand || 'No brand')
-    : priceBand(s ? s.sale_price_cents : u.listing_price_cents);
-  const groups = new Map();
-  const group = name => groups.get(name) || groups.set(name, { name, sold: [], open: 0, soldCost: 0, openCost: 0, order: 0 }).get(name);
-  st.sold.forEach(x => {
-    const name = keyOf(x.u, x.s);
-    if (name === null) return;
-    const g = group(name);
-    g.sold.push(x);
-    g.soldCost += x.u.purchase_cost_cents || 0;
-    if (by === 'price') g.order = PRICE_BAND_ORDER(x.s ? x.s.sale_price_cents : x.u.listing_price_cents);
-  });
-  if (by !== 'platform') st.open.forEach(u => {
-    const g = group(keyOf(u, null));
-    g.open++;
-    g.openCost += u.purchase_cost_cents || 0;
-    if (by === 'price') g.order = PRICE_BAND_ORDER(u.listing_price_cents);
-  });
-  return [...groups.values()].map(g => {
-    const days = g.sold.map(x => x.days).filter(d => d !== null);
-    const profits = g.sold.filter(x => x.r.isComplete).map(x => x.r.netProfitCents);
-    return {
-      name: g.name, order: g.order, n: g.sold.length, open: g.open,
-      rate: by === 'platform' ? null : speedCountBy === 'cost'
-        ? (g.soldCost + g.openCost ? Math.round((g.soldCost * 10000) / (g.soldCost + g.openCost)) : null)
-        : Math.round((g.sold.length * 10000) / (g.sold.length + g.open)),
-      median: median(days), avg: mean(days),
-      profit: profits.length ? Math.round(mean(profits)) : null,
-    };
-  });
 }
 
 // Axis top rounded up to a whole "nice" step, four ticks.
@@ -7530,10 +7493,13 @@ function renderSpeed() {
       </div>
     </div>
     <div class="panel">
-      <div class="panel-head"><h2>What sells fastest</h2><span class="page-sub" style="margin:0">${label}</span></div>
+      <div class="panel-head"><h2>What you sold</h2><span class="page-sub" style="margin:0">fastest first &middot; ${label}</span></div>
       <div class="panel-body">
-        <div class="inv-tabs speed-tabs" id="speed-tabs" role="tablist" aria-label="Group by">${Object.entries(SPEED_GROUPS).map(([k, l]) => `<button type="button" role="tab" data-speed-group="${k}" aria-selected="${k === speedGroupBy}" class="${k === speedGroupBy ? 'active' : ''}">${l}</button>`).join('')}</div>
-        <div id="speed-groups" role="tabpanel"></div>
+        <div class="toolbar speed-sold-bar">
+          <input type="search" id="speed-search" aria-label="Search what you sold" placeholder="Search item, brand, platform…" value="${esc(speedQuery)}">
+          <span class="field-hint" id="speed-sold-count"></span>
+        </div>
+        <div id="speed-sold"></div>
       </div>
     </div>
     <div class="panel">
@@ -7577,40 +7543,50 @@ function renderSpeed() {
   } else {
     rateEl.innerHTML = daysEl.innerHTML = '<div class="empty-note">No sales in the last 12 months yet.</div>';
   }
-  renderSpeedGroups();
+  renderSpeedSold();
   renderSpeedBatches();
   const input = document.getElementById('speed-target-input');
   if (input) input.focus();
 }
 
-function renderSpeedGroups() {
-  const el = document.getElementById('speed-groups');
+// Every sale in the period, one row each, with how long that exact item took to sell.
+const speedLabel = d => (d === null ? '' : d <= 7 ? '<span class="speed-tag fast">Fast</span>' : d > 90 ? '<span class="speed-tag slow">Very slow</span>' : d > 30 ? '<span class="speed-tag slow">Slow</span>' : '');
+function renderSpeedSold() {
+  const el = document.getElementById('speed-sold');
   if (!el || !speedCache) return;
-  document.querySelectorAll('#speed-tabs [data-speed-group]').forEach(b => {
-    const on = b.dataset.speedGroup === speedGroupBy;
-    b.classList.toggle('active', on);
-    b.setAttribute('aria-selected', on);
-  });
-  const rows = speedGroupRows(speedCache.st, speedGroupBy);
-  if (!rows.some(r => r.n)) {
-    el.innerHTML = `<div class="empty-note">No sales ${SPEED_PERIODS[speedPeriod].toLowerCase()} to compare yet.</div>`;
+  const all = speedCache.st.sold;
+  const q = speedQuery.trim().toLowerCase();
+  const rows = all.filter(x => !q || [x.u.item_name, x.u.brand, x.u.item_code, x.u.size, x.s && x.s.platform].some(v => v && String(v).toLowerCase().includes(q)));
+  document.getElementById('speed-sold-count').textContent = q ? `${rows.length} of ${plural(all.length, 'sale')}` : plural(all.length, 'sale');
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty-note">${all.length ? 'No sales match your search.' : `No sales ${SPEED_PERIODS[speedPeriod].toLowerCase()}.`}</div>`;
     return;
   }
-  sortRows(rows, (r, key) => (key === 'name' && speedGroupBy === 'price' ? r.order : r[key]), speedSort);
-  const isPlatform = speedGroupBy === 'platform';
-  el.innerHTML = `<div class="table-scroll" tabindex="0" aria-label="Sell-through by ${SPEED_GROUPS[speedGroupBy].toLowerCase()}"><table class="mini-table" id="speed-table">
-    <thead><tr><th data-sort="name">${SPEED_GROUPS[speedGroupBy]}</th><th class="num" data-sort="n">Units sold</th>${isPlatform ? '' : '<th class="num" data-sort="rate">Sell-through</th>'}<th class="num" data-sort="median">Typical days</th><th class="num speed-opt" data-sort="avg">Avg days</th><th class="num" data-sort="profit">Avg profit</th></tr></thead>
-    <tbody>${rows.map(r => `<tr>
-      <td>${isPlatform ? platformChip(r.name, true) : esc(r.name)}${r.n < 3 ? `<span class="speed-few" title="Under 3 sales: read with care">few sales</span>` : ''}</td>
-      <td class="num">${r.n}${isPlatform ? '' : `<span style="color:var(--ink-faint)"> of ${r.n + r.open}</span>`}</td>
-      ${isPlatform ? '' : `<td class="num">${fmtPct(r.rate)}</td>`}
-      <td class="num">${r.median === null ? '&mdash;' : Math.round(r.median)}</td>
-      <td class="num speed-opt">${r.avg === null ? '&mdash;' : Math.round(r.avg)}</td>
-      <td class="num">${r.profit === null ? '&mdash;' : moneyCell(r.profit)}</td></tr>`).join('')}</tbody>
+  const valueOf = (x, key) => key === 'days' ? x.days
+    : key === 'name' ? x.u.item_name
+    : key === 'platform' ? (x.s ? x.s.platform : null)
+    : key === 'bought' ? x.u.purchase_date
+    : key === 'sold' ? (x.s ? x.s.sale_date : null)
+    : key === 'price' ? (x.s ? x.s.sale_price_cents : null)
+    : x.r.isComplete ? x.r.netProfitCents : null;
+  sortRows(rows, valueOf, speedSort);
+  const shown = speedShowAll ? rows : rows.slice(0, 25);
+  el.innerHTML = `<div class="table-scroll" tabindex="0" aria-label="What you sold and how long each took"><table class="mini-table speed-sold-table" id="speed-table">
+    <thead><tr><th data-sort="name">Item</th><th data-sort="platform" class="speed-opt">Platform</th><th data-sort="bought" class="speed-opt">Bought</th><th data-sort="sold" class="speed-opt">Sold</th><th class="num" data-sort="days">Days to sell</th><th class="num speed-opt" data-sort="price">Sold for</th><th class="num" data-sort="profit">Profit</th></tr></thead>
+    <tbody>${shown.map(x => `<tr${x.s ? ` class="speed-sale-row" data-speed-sale="${x.s.id}" tabindex="0" title="Edit this sale"` : ''}>
+      <td><div class="speed-item">${itemThumb(x.u)}<div class="speed-item-text"><span title="${esc(x.u.item_name)}">${esc(x.u.item_name)}</span>
+        <small class="speed-sub">${esc([x.u.brand, x.u.size].filter(Boolean).join(' · '))}</small>
+        <small class="speed-step-sub">${x.s ? `${platformChip(x.s.platform, true)} sold ${fmtDateShort(x.s.sale_date)}` : 'marked sold'}</small></div></div></td>
+      <td class="speed-opt">${x.s ? platformChip(x.s.platform, true) : '&mdash;'}</td>
+      <td class="speed-opt">${fmtDate(x.u.purchase_date)}</td>
+      <td class="speed-opt">${x.s ? fmtDate(x.s.sale_date) : '&mdash;'}</td>
+      <td class="num">${x.days === null ? '<span class="speed-sub">no purchase date</span>' : `<strong>${plural(x.days, 'day')}</strong>${speedLabel(x.days)}`}</td>
+      <td class="num speed-opt">${x.s ? fmtCents(x.s.sale_price_cents) : '&mdash;'}</td>
+      <td class="num">${x.r.isComplete ? moneyCell(x.r.netProfitCents) : '&mdash;'}</td></tr>`).join('')}</tbody>
   </table></div>
-  ${isPlatform ? '<p class="speed-note">Unsold items aren’t tied to a platform, so sell-through isn’t split by platform.</p>' : ''}`;
+  ${rows.length > shown.length ? `<button type="button" class="btn btn-sm speed-show-all" data-speed-show-all>Show all ${rows.length}</button>` : ''}`;
   markSortHeaders('speed-table', speedSort);
-  wireSortHeaders('speed-table', speedSort, renderSpeedGroups);
+  wireSortHeaders('speed-table', speedSort, renderSpeedSold);
 }
 
 // Purchases by month (or by purchase): the share that sold within 30, 60 and 90 days of buying.
@@ -7680,7 +7656,11 @@ document.getElementById('view-speed').addEventListener('click', e => {
   if (e.target.closest('[data-speed-target-edit]')) { speedEditingTarget = true; renderSpeed(); return; }
   if (e.target.closest('[data-speed-target-save]')) saveSpeedTarget();
 });
+document.getElementById('view-speed').addEventListener('input', e => {
+  if (e.target.id === 'speed-search') { speedQuery = e.target.value; speedShowAll = false; renderSpeedSold(); }
+});
 document.getElementById('view-speed').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('[data-speed-sale]')) { e.preventDefault(); e.target.click(); return; }
   if (e.target.id !== 'speed-target-input') return;
   if (e.key === 'Enter') { e.preventDefault(); saveSpeedTarget(); }
   if (e.key === 'Escape') { e.stopPropagation(); speedEditingTarget = false; renderSpeed(); }
@@ -7691,25 +7671,28 @@ document.querySelectorAll('#speed-period [data-speed-period]').forEach(btn => bt
   renderSpeed();
 }));
 document.getElementById('view-speed').addEventListener('click', e => {
-  const tab = e.target.closest('[data-speed-group]');
-  if (tab) { speedGroupBy = tab.dataset.speedGroup; renderSpeedGroups(); return; }
+  if (e.target.closest('[data-speed-show-all]')) { speedShowAll = true; renderSpeedSold(); return; }
+  const row = e.target.closest('[data-speed-sale]');
+  if (row) { const sale = sales.find(x => x.id === +row.dataset.speedSale); if (sale) editSale(sale, row); return; }
   const edit = e.target.closest('[data-speed-edit]');
   if (edit) { const item = itemById(+edit.dataset.speedEdit); if (item) editItem(item, edit); }
 });
 
-// One line for Ledger: the all-time rate, typical days and the slowest categories.
+// For Ledger: the all-time rate, typical days and the fastest and slowest sales.
 function speedSnapshotLines() {
   if (!items.length) return [];
   const st = speedStats(null);
-  const slow = speedGroupRows(st, 'category').filter(r => r.n >= 2 && r.median !== null).sort((a, b) => b.median - a.median).slice(0, 3);
+  const dated = st.sold.filter(x => x.days !== null && x.s).sort((a, b) => a.days - b.days);
+  const saleLine = x => `${x.u.item_name} ${x.days} days (${x.s.platform})`;
   const r90 = speedStats(speedRange('90'));
   return [
     '', 'SELL-THROUGH (unit = one item; sold = completed sale; days to sell = sale date − purchase date)',
     `All time: ${st.sold.length} of ${st.total} units sold (${st.rateBps === null ? 'n/a' : (st.rateBps / 100).toFixed(0) + '%'}); typical ${st.median === null ? 'n/a' : Math.round(st.median)} days, average ${st.avg === null ? 'n/a' : Math.round(st.avg)} days; ${st.days.length ? Math.round((st.within30 * 100) / st.days.length) + '% sold within 30 days' : 'no dated sales'}.`,
     `Last 90 days: ${r90.sold.length} of ${r90.total} units sold (${r90.rateBps === null ? 'n/a' : (r90.rateBps / 100).toFixed(0) + '%'}); typical ${r90.median === null ? 'n/a' : Math.round(r90.median)} days.`,
     loadSellTarget() ? `Sell-through target: ${loadSellTarget()}%.` : 'Sell-through target: not set (can be set on the Sell-through page).',
-    slow.length ? `Slowest categories (typical days): ${slow.map(r => `${r.name} ${Math.round(r.median)}`).join(', ')}.` : 'Not enough sales per category to compare speed yet.',
-  ];
+    dated.length ? `Fastest sales: ${dated.slice(0, 3).map(saleLine).join('; ')}.` : 'No sales with a purchase date yet.',
+    dated.length > 3 ? `Slowest sales: ${dated.slice(-3).reverse().map(saleLine).join('; ')}.` : null,
+  ].filter(l => l !== null);
 }
 
 /* =========================================================

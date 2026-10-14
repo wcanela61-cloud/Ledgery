@@ -1101,6 +1101,27 @@ th[data-sort].sorted.desc::after { content: ' \25BC'; }
 @media (max-width: 720px) { .nav-item .nav-long { display: none; } .nav-item .nav-short { display: inline; } }
 #view-speed .an-chart svg { height: 200px; }
 .stat-unit { font-size: 0.8125rem; font-weight: 500; color: var(--ink-muted); letter-spacing: 0; }
+.speed-hero { padding: 18px 20px 16px; }
+.speed-hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.speed-hero-main { min-width: 0; }
+.speed-hero-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.speed-hero-value { font-family: var(--font-num); font-size: 2.5rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.speed-vs { font-size: 0.7188rem; color: var(--ink-faint); }
+.speed-plain { margin-top: 4px; font-size: 0.875rem; color: var(--ink); }
+.speed-plain-sub { color: var(--ink-muted); font-size: 0.8125rem; }
+.speed-count button, .speed-batch-by button { padding: 5px 10px; font-size: 0.75rem; white-space: nowrap; }
+.speed-meter { position: relative; height: 8px; margin: 16px 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 9%, transparent); }
+.speed-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--accent); }
+.speed-meter-target { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.speed-target-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; font-size: 0.8125rem; color: var(--ink-muted); }
+.speed-target-line strong { color: var(--ink); }
+.speed-hit { color: var(--success-text); font-weight: 600; }
+.speed-target-edit { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 0.8125rem; color: var(--ink); }
+.speed-target-edit input { width: 68px; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--ink); font-family: var(--font-num); }
+.speed-how-list { margin: 8px 0 0; padding-left: 18px; font-size: 0.75rem; color: var(--ink-muted); line-height: 1.55; }
+.speed-heat { background: color-mix(in srgb, var(--accent) var(--heat, 0%), transparent); }
+.speed-heat.partial { font-style: italic; color: var(--ink-muted); }
+.speed-batch-table td:first-child { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 .speed-note { font-size: 0.7188rem; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.45; }
 .speed-tabs { margin: 0 0 4px; }
 .speed-tabs button { padding: 8px 12px; font-size: 0.8125rem; }
@@ -1121,7 +1142,13 @@ a.speed-more, button.speed-more { color: var(--accent-text); font-size: 0.6875re
 @media (max-width: 720px) {
   .speed-age { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .speed-old .speed-item span { max-width: 130px; }
-  .speed-old .speed-step { display: none; }
+  .speed-old .speed-step, .speed-opt { display: none; }
+  .speed-batch-table td:first-child { max-width: 120px; }
+  .speed-long { display: none; }
+  #speed-body .mini-table th, #speed-body .mini-table td { padding: 7px 5px; }
+  #speed-table .speed-few { display: block; width: max-content; margin: 2px 0 0; }
+  .speed-hero-top { flex-direction: column; gap: 10px; }
+  .speed-hero-value { font-size: 2rem; }
   .speed-step-sub { display: block; }
 }
 
@@ -3785,15 +3812,22 @@ function renderDashboard() {
     { label: 'Active inventory', icon: 'box', value: activeInventory, plain: true, trend: prevRange ? pct(activeInventory, activeInventoryAt(lastPeriodDay)) : null, series: activeSeries, color: '--info-text', neutral: true },
     { label: 'Avg profit / sale', icon: 'avg', value: avgProfit === null ? '&mdash;' : fmtCents(avgProfit), trend: prevRange ? pct(avgProfit, prevAvg) : null, series: avgSeries, color: '--success' },
   ];
+  // Sell-through for the same period (in points vs. last period); opens the Sell-through page.
+  if (items.length) {
+    const sellNow = speedRate(speedStats(range)), sellPrev = prevRange ? speedRate(speedStats(prevRange)) : null;
+    tiles.push({ label: 'Sell-through', icon: 'hourglass', value: fmtPct(sellNow), plain: true, goto: 'speed', unit: ' pts',
+      trend: sellNow !== null && sellPrev !== null ? Math.round((sellNow - sellPrev) / 100) : null,
+      series: edges.map(([, b]) => (speedRate(speedStats({ start: spanStart, end: b })) || 0) / 100), color: '--accent' });
+  }
   const vsLabel = PERIOD_VS[dashPeriod] || '';
-  const trendPill = (t, neutral) => t === null ? ''
-    : `<span class="stat-trend ${t === 0 || neutral ? 'flat' : t > 0 ? 'up' : 'down'}" title="${vsLabel}">${t > 0 ? '&#9650;' : t < 0 ? '&#9660;' : ''} ${Math.abs(t)}%</span>`;
+  const trendPill = (t, neutral, unit = '%') => t === null ? ''
+    : `<span class="stat-trend ${t === 0 || neutral ? 'flat' : t > 0 ? 'up' : 'down'}" title="${vsLabel}">${t > 0 ? '&#9650;' : t < 0 ? '&#9660;' : ''} ${Math.abs(t)}${unit}</span>`;
   document.getElementById('stat-grid').innerHTML = tiles.map(t => `
-    <div class="stat-tile" style="--tile:var(${t.color})">
-      <div class="stat-top"><div class="stat-label">${dashIcon(t.icon, 'stat-icon')}${t.label}</div>${trendPill(t.trend, t.neutral)}</div>
+    <${t.goto ? `button type="button" data-goto="${t.goto}" title="Open Sell-through"` : 'div'} class="stat-tile" style="--tile:var(${t.color})">
+      <div class="stat-top"><div class="stat-label">${dashIcon(t.icon, 'stat-icon')}${t.label}</div>${trendPill(t.trend, t.neutral, t.unit)}</div>
       <div class="stat-value ${t.plain ? '' : 'mono'}">${t.value}</div>
       ${buildSparkline(t.series, t.color, 'tile-spark')}
-    </div>`).join('') + (incompleteCount ? `<button type="button" class="stat-tile warn" data-goto="sales" style="--tile:var(--danger)"><div class="stat-label">${dashIcon('alert', 'stat-icon')}Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div><div class="stat-fix">Missing costs · Review<span aria-hidden="true"> &rarr;</span></div></button>` : '');
+    </${t.goto ? 'button' : 'div'}>`).join('') + (incompleteCount ? `<button type="button" class="stat-tile warn" data-goto="sales" style="--tile:var(--danger)"><div class="stat-label">${dashIcon('alert', 'stat-icon')}Incomplete sales</div><div class="stat-value mono">${incompleteCount}</div><div class="stat-fix">Missing costs · Review<span aria-hidden="true"> &rarr;</span></div></button>` : '');
 
   renderGoal();
   renderShipping();
@@ -7146,6 +7180,17 @@ const SPEED_PERIOD_KEY = 'ledgery-speed-period';
 let speedPeriod = 'all';
 try { const saved = localStorage.getItem(SPEED_PERIOD_KEY); if (SPEED_PERIODS[saved]) speedPeriod = saved; } catch (e) {}
 let speedGroupBy = 'platform';
+// Count sell-through by units or by what they cost; remembered per browser.
+const SPEED_COUNT_KEY = 'ledgery-speed-count';
+let speedCountBy = 'units';
+try { if (localStorage.getItem(SPEED_COUNT_KEY) === 'cost') speedCountBy = 'cost'; } catch (e) {}
+let speedBatchBy = 'month', speedEditingTarget = false;
+// Sell-through target, a whole percent; syncs with the account like the profit goal.
+const SELL_TARGET_KEY = 'ledgery-sell-target';
+function loadSellTarget() { try { const v = parseInt(localStorage.getItem(SELL_TARGET_KEY), 10); return v >= 1 && v <= 100 ? v : null; } catch (e) { return null; } }
+function saveSellTarget(v) {
+  try { if (v >= 1 && v <= 100) localStorage.setItem(SELL_TARGET_KEY, String(Math.round(v))); else localStorage.removeItem(SELL_TARGET_KEY); } catch (e) {}
+}
 const speedSort = { key: 'median', dir: 'asc' };
 const SPEED_BUCKETS = [[0, 7, '0–7'], [8, 14, '8–14'], [15, 30, '15–30'], [31, 60, '31–60'], [61, 90, '61–90'], [91, Infinity, '90+']];
 const AGE_BUCKETS = [[0, 30, '0–30 days'], [31, 60, '31–60 days'], [61, 90, '61–90 days'], [91, Infinity, 'Over 90 days']];
@@ -7156,7 +7201,7 @@ function median(nums) {
   const a = [...nums].sort((x, y) => x - y), mid = a.length >> 1;
   return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
 }
-const mean = nums => (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null);
+function mean(nums) { return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null; }
 const fmtPct = bps => (bps === null || bps === undefined ? '&mdash;' : fmtNumber(bps / 100) + '%');
 const fmtDays = d => (d === null || d === undefined ? '&mdash;' : `${fmtNumber(Math.round(d))}<span class="stat-unit">&nbsp;${Math.round(d) === 1 ? "day" : "days"}</span>`);
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -7167,6 +7212,20 @@ function speedRange(period) {
     return { start: isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89)), end: isoDate(now) };
   }
   return periodRange(period, 0);
+}
+// The period before, only up to the same point, so the comparison is like for like.
+function speedPrevRange(period) {
+  if (period === '90') {
+    const now = new Date();
+    return { start: isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 179)), end: isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)) };
+  }
+  return period === 'all' ? null : periodRange(period, 1);
+}
+const SPEED_VS = { month: 'vs. same point last month', 90: 'vs. the 90 days before', year: 'vs. same point last year' };
+// Sell-through in basis points, counted by units or by cost.
+function speedRate(st, by = speedCountBy) {
+  if (by === 'cost') return st.soldCost + st.openCost ? Math.round((st.soldCost * 10000) / (st.soldCost + st.openCost)) : null;
+  return st.rateBps;
 }
 // The completed sale behind each sold unit.
 function soldSaleByItem() {
@@ -7210,8 +7269,12 @@ function speedStats(range, soldMap = soldSaleByItem()) {
     x.r = x.s ? calcProfit(x.s, x.u) : { isComplete: false };
   });
   const total = sold.length + open.length;
+  const hasCost = u => u.purchase_cost_cents !== null && u.purchase_cost_cents !== undefined;
+  const costOf = list => list.reduce((t, u) => t + (hasCost(u) ? u.purchase_cost_cents : 0), 0);
   return {
     sold, open, days, listed, undated, total,
+    soldCost: costOf(sold.map(x => x.u)), openCost: costOf(open),
+    costMissing: sold.filter(x => !hasCost(x.u)).length + open.filter(u => !hasCost(u)).length,
     rateBps: total ? Math.round((sold.length * 10000) / total) : null,
     median: median(days), avg: mean(days),
     within30: days.filter(d => d <= 30).length,
@@ -7225,17 +7288,19 @@ function speedGroupRows(st, by) {
     : by === 'brand' ? (u.brand || 'No brand')
     : priceBand(s ? s.sale_price_cents : u.listing_price_cents);
   const groups = new Map();
-  const group = name => groups.get(name) || groups.set(name, { name, sold: [], open: 0, order: 0 }).get(name);
+  const group = name => groups.get(name) || groups.set(name, { name, sold: [], open: 0, soldCost: 0, openCost: 0, order: 0 }).get(name);
   st.sold.forEach(x => {
     const name = keyOf(x.u, x.s);
     if (name === null) return;
     const g = group(name);
     g.sold.push(x);
+    g.soldCost += x.u.purchase_cost_cents || 0;
     if (by === 'price') g.order = PRICE_BAND_ORDER(x.s ? x.s.sale_price_cents : x.u.listing_price_cents);
   });
   if (by !== 'platform') st.open.forEach(u => {
     const g = group(keyOf(u, null));
     g.open++;
+    g.openCost += u.purchase_cost_cents || 0;
     if (by === 'price') g.order = PRICE_BAND_ORDER(u.listing_price_cents);
   });
   return [...groups.values()].map(g => {
@@ -7243,7 +7308,9 @@ function speedGroupRows(st, by) {
     const profits = g.sold.filter(x => x.r.isComplete).map(x => x.r.netProfitCents);
     return {
       name: g.name, order: g.order, n: g.sold.length, open: g.open,
-      rate: by === 'platform' ? null : Math.round((g.sold.length * 10000) / (g.sold.length + g.open)),
+      rate: by === 'platform' ? null : speedCountBy === 'cost'
+        ? (g.soldCost + g.openCost ? Math.round((g.soldCost * 10000) / (g.soldCost + g.openCost)) : null)
+        : Math.round((g.sold.length * 10000) / (g.sold.length + g.open)),
       median: median(days), avg: mean(days),
       profit: profits.length ? Math.round(mean(profits)) : null,
     };
@@ -7320,13 +7387,63 @@ function renderSpeed() {
   const soldMap = soldSaleByItem(), range = speedRange(speedPeriod), st = speedStats(range, soldMap);
   const label = SPEED_PERIODS[speedPeriod].toLowerCase();
   const fastest = st.days.length ? Math.min(...st.days) : null, slowest = st.days.length ? Math.max(...st.days) : null;
+  const prevRange = speedPrevRange(speedPeriod), prev = prevRange ? speedStats(prevRange, soldMap) : null;
+  const rate = speedRate(st), prevRate = prev ? speedRate(prev) : null;
+  // Change vs. the period before: points for the rate; for days, fewer is better.
+  const vs = SPEED_VS[speedPeriod] || '';
+  const ptsPill = (d, goodWhenUp, unit) => (d === null ? ''
+    : `<span class="stat-trend ${d === 0 ? 'flat' : (d > 0) === goodWhenUp ? 'up' : 'down'}" title="${vs}">${d > 0 ? '&#9650;' : d < 0 ? '&#9660;' : ''} ${plural(Math.abs(d), unit)}</span>`);
+  const rateDelta = rate !== null && prevRate !== null ? Math.round((rate - prevRate) / 100) : null;
+  const daysDelta = prev && st.median !== null && prev.median !== null ? Math.round(st.median - prev.median) : null;
   const tiles = [
-    ['Sell-through', fmtPct(st.rateBps), st.total ? `${st.sold.length} of ${plural(st.total, 'unit')} sold` : 'no units in this period'],
-    ['Typical days to sell', fmtDays(st.median), st.days.length ? `median of ${plural(st.days.length, 'sale')}` : st.sold.length ? 'needs purchase dates' : `no sales ${label}`],
+    ['Typical days to sell', fmtDays(st.median), st.days.length ? `median of ${plural(st.days.length, 'sale')}` : st.sold.length ? 'needs purchase dates' : `no sales ${label}`, ptsPill(daysDelta, false, 'day')],
     ['Average days to sell', fmtDays(st.avg), st.days.length ? `fastest ${fastest}, slowest ${slowest}` : ''],
     ['Sold within 30 days', st.days.length ? fmtPct(Math.round((st.within30 * 10000) / st.days.length)) : '&mdash;', st.days.length ? `${st.within30} of ${plural(st.days.length, 'sale')}` : ''],
     ['Days listed before sale', fmtDays(st.listedMedian), st.listed.length ? `median, ${plural(st.listed.length, 'sale')} with a listed date` : 'add a listed date to items'],
   ];
+
+  // The rate in plain words.
+  const allTime = speedPeriod === 'all';
+  let plain;
+  if (!st.total) plain = 'Nothing bought or sold in this period yet.';
+  else if (speedCountBy === 'cost') {
+    plain = `${fmtCents(st.soldCost)} of the ${fmtCents(st.soldCost + st.openCost)} you paid ${allTime ? 'for your stock' : `for what you had ${label}`} is in things that have sold.`
+      + (st.costMissing ? ` <span class="speed-plain-sub">${plural(st.costMissing, 'unit')} with no purchase cost ${st.costMissing === 1 ? 'is' : 'are'} left out.</span>` : '');
+  } else {
+    const n10 = Math.round(rate / 1000), what = allTime ? 'you’ve bought have sold' : `you had ${label} sold`;
+    plain = (rate === 10000 ? `Everything ${allTime ? 'you’ve bought has sold' : `you had ${label} sold`}.`
+      : n10 >= 10 ? `Nearly everything ${allTime ? 'you’ve bought has sold' : `you had ${label} sold`}.`
+      : n10 === 0 ? (rate ? `Fewer than 1 in every 10 things ${what}.` : `Nothing ${allTime ? 'has sold yet' : `sold ${label}`}.`)
+      : `About ${n10} in every 10 things ${what}.`)
+      + ` <span class="speed-plain-sub">${st.sold.length} sold, ${st.open.length} ${allTime ? 'still in stock' : 'still unsold at the end of the period'}.</span>`;
+  }
+  const target = loadSellTarget(), ratePct = rate === null ? 0 : rate / 100;
+  const targetLine = speedEditingTarget
+    ? `<label class="speed-target-edit">Target <input type="number" id="speed-target-input" min="1" max="100" step="1" inputmode="numeric" value="${target || ''}" aria-label="Sell-through target in percent">%</label>
+       <button type="button" class="btn btn-sm" data-speed-target-save>Save</button>
+       <span class="field-hint">Many resellers aim for 50–60% over 90 days. It’s a rule of thumb; leave it empty for no target.</span>`
+    : target
+      ? `<span><strong>Target ${target}%</strong> &middot; ${ratePct >= target ? '<span class="speed-hit">Target reached</span>' : `${plural(Math.max(1, Math.round(target - ratePct)), 'pt')} to go`}</span>
+         <button type="button" class="link-btn" data-speed-target-edit>Change</button>`
+      : `<button type="button" class="link-btn" data-speed-target-edit>Set a target</button><span class="field-hint">Many resellers aim for 50–60% over 90 days, as a rule of thumb.</span>`;
+  const hero = `<div class="panel speed-hero" id="speed-hero">
+    <div class="speed-hero-top">
+      <div class="speed-hero-main">
+        <div class="stat-label">Sell-through &middot; ${label}</div>
+        <div class="speed-hero-row"><span class="speed-hero-value">${fmtPct(rate)}</span>${ptsPill(rateDelta, true, 'pt')}${rateDelta !== null ? `<span class="speed-vs">${vs} (${fmtPct(prevRate)})</span>` : ''}</div>
+        <div class="speed-plain">${plain}</div>
+      </div>
+      <div class="seg speed-count" id="speed-count" role="group" aria-label="Count sell-through by">
+        <button type="button" data-speed-count="units" class="${speedCountBy === 'units' ? 'active' : ''}" aria-pressed="${speedCountBy === 'units'}">Units</button>
+        <button type="button" data-speed-count="cost" class="${speedCountBy === 'cost' ? 'active' : ''}" aria-pressed="${speedCountBy === 'cost'}">$ at cost</button>
+      </div>
+    </div>
+    <div class="speed-meter" role="meter" aria-label="Sell-through" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratePct)}">
+      <div class="speed-meter-fill" style="width:${Math.min(100, ratePct).toFixed(1)}%"></div>
+      ${target ? `<div class="speed-meter-target" style="left:${target}%" title="Target ${target}%"></div>` : ''}
+    </div>
+    <div class="speed-target-line">${targetLine}</div>
+  </div>`;
   const hist = SPEED_BUCKETS.map(([lo, hi, l]) => ({ label: l, value: st.days.filter(d => d >= lo && d <= hi).length }));
 
   const now = new Date(), months = [];
@@ -7335,7 +7452,7 @@ function renderSpeed() {
     const ms = speedStats({ start: isoDate(a), end: isoDate(b) }, soldMap);
     months.push({
       label: a.toLocaleDateString('en-US', { month: 'short' }), long: a.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      rate: ms.rateBps, sold: ms.sold.length, total: ms.total, median: ms.median, dated: ms.days.length,
+      rate: speedRate(ms), sold: ms.sold.length, total: ms.total, median: ms.median, dated: ms.days.length,
     });
   }
 
@@ -7363,13 +7480,21 @@ function renderSpeed() {
     return 'Give it time';
   };
 
-  speedCache = { st };
+  speedCache = { st, soldMap };
   body.innerHTML = `
-    <div class="stat-grid" id="speed-stats">${tiles.map(([l, v, hint]) => `
-      <div class="stat-tile"><div class="stat-label">${l}</div><div class="stat-value mono">${v}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}</div>`).join('')}
+    ${hero}
+    <div class="stat-grid" id="speed-stats">${tiles.map(([l, v, hint, pill]) => `
+      <div class="stat-tile"><div class="stat-top"><div class="stat-label">${l}</div>${pill || ''}</div><div class="stat-value mono">${v}</div>${hint ? `<div class="field-hint" style="margin-top:4px">${hint}</div>` : ''}</div>`).join('')}
     </div>
     <details class="an-details speed-how" style="margin:-12px 0 20px"><summary>How these are worked out</summary>
-      <p class="speed-note">Each unit counts once (a batch of 3 is 3 units). <strong>Sell-through</strong> is the units sold ${label} out of those sold plus those still unsold at the end of the period that you'd bought by then. <strong>Days to sell</strong> runs from the purchase date to the sale date, and <strong>days listed</strong> from the listed date. <em>Typical</em> is the median: half sell faster, half slower. Returned sales count as unsold.${st.undated ? ` ${plural(st.undated, 'sold unit')} without a purchase date ${st.undated === 1 ? 'is' : 'are'} left out of the days figures.` : ''}</p>
+      <ul class="speed-how-list">
+        <li><strong>Sell-through</strong> = sold &divide; (sold + still unsold). ${SPEED_PERIODS[speedPeriod]}: ${st.sold.length} &divide; (${st.sold.length} + ${st.open.length}) = ${fmtPct(st.rateBps)} by units.</li>
+        <li>Each unit counts once, so a batch of 3 is 3 units. A returned sale puts the unit back to unsold.</li>
+        ${allTime ? '' : '<li>For a period, “still unsold” means things you’d bought by the end of it that hadn’t sold by then.</li>'}
+        <li><strong>$ at cost</strong> weighs each unit by what you paid, so a $60 jacket counts as much as twelve $5 tees.</li>
+        <li><strong>Days to sell</strong> = sale date &minus; purchase date. <em>Typical</em> is the middle value (the median): half sell faster, half slower.</li>
+        <li><strong>Days listed</strong> = sale date &minus; listed date.${st.undated ? ` ${plural(st.undated, 'sold unit')} without a purchase date ${st.undated === 1 ? 'is' : 'are'} left out of the days figures.` : ''}</li>
+      </ul>
     </details>
     <div class="panel">
       <div class="panel-head"><h2>How long things take to sell</h2><span class="page-sub" style="margin:0">units sold ${label}, by days from purchase</span></div>
@@ -7395,6 +7520,16 @@ function renderSpeed() {
       <tbody>${[...months].reverse().map(m => `<tr><td>${m.long}</td><td class="num">${m.sold} of ${m.total}</td><td class="num">${fmtPct(m.rate)}</td><td class="num">${m.median === null ? '&mdash;' : Math.round(m.median)}</td></tr>`).join('')}</tbody>
     </table></div></details>
     <div class="panel">
+      <div class="panel-head"><h2>How your buying sells</h2>
+        <div class="seg speed-batch-by" id="speed-batch-by" role="group" aria-label="Group purchases by">
+          <button type="button" data-speed-batch="month">By month</button><button type="button" data-speed-batch="lot">By purchase</button>
+        </div></div>
+      <div class="panel-body">
+        <p class="speed-note" style="margin:0 0 10px">Of what you bought, the share that sold within 30, 60 and 90 days of buying it. Covers all your purchases, whatever the period above. <em>Italic</em> numbers are still counting: those things were bought too recently for the full window.</p>
+        <div id="speed-batches"></div>
+      </div>
+    </div>
+    <div class="panel">
       <div class="panel-head"><h2>What sells fastest</h2><span class="page-sub" style="margin:0">${label}</span></div>
       <div class="panel-body">
         <div class="inv-tabs speed-tabs" id="speed-tabs" role="tablist" aria-label="Group by">${Object.entries(SPEED_GROUPS).map(([k, l]) => `<button type="button" role="tab" data-speed-group="${k}" aria-selected="${k === speedGroupBy}" class="${k === speedGroupBy ? 'active' : ''}">${l}</button>`).join('')}</div>
@@ -7407,11 +7542,11 @@ function renderSpeed() {
         <div class="speed-age">${ages.map(a => `<div class="speed-age-cell${a.hot ? ' hot' : ''}"><div class="speed-age-label">${a.label}</div><div class="speed-age-n">${plural(a.n, 'unit')}</div><div class="speed-age-cost">${fmtCents(a.cost)} at cost</div></div>`).join('')}</div>
         ${noDateStock ? `<p class="speed-note" style="margin:-6px 0 12px">${plural(noDateStock, 'unit')} without a purchase date ${noDateStock === 1 ? 'isn’t' : 'aren’t'} counted here.</p>` : ''}
         ${oldest.length ? `<div class="table-scroll" tabindex="0" aria-label="Oldest stock"><table class="mini-table speed-old">
-          <thead><tr><th>Oldest stock</th><th class="num">Age</th><th class="num">Cost</th><th class="num">List price</th><th class="speed-step">Next step</th><th><span class="sr-only">Edit</span></th></tr></thead>
+          <thead><tr><th>Oldest stock</th><th class="num">Age</th><th class="num speed-opt">Cost</th><th class="num">List price</th><th class="speed-step">Next step</th><th><span class="sr-only">Edit</span></th></tr></thead>
           <tbody>${oldest.map(e => `<tr>
             <td><div class="speed-item">${itemThumb(e.item)}<div class="speed-item-text"><span title="${esc(e.item.item_name)}">${esc(e.item.item_name)}${e.units.length > 1 ? ` ×${e.units.length}` : ''}</span><small class="speed-step-sub">${nextStep(e)}</small></div></div></td>
             <td class="num">${plural(e.age, 'day')}</td>
-            <td class="num">${e.units.every(u => u.purchase_cost_cents !== null && u.purchase_cost_cents !== undefined) ? fmtCents(e.units.reduce((t, u) => t + u.purchase_cost_cents, 0)) : '&mdash;'}</td>
+            <td class="num speed-opt">${e.units.every(u => u.purchase_cost_cents !== null && u.purchase_cost_cents !== undefined) ? fmtCents(e.units.reduce((t, u) => t + u.purchase_cost_cents, 0)) : '&mdash;'}</td>
             <td class="num">${fmtCents(e.item.listing_price_cents)}</td>
             <td class="speed-tip-cell speed-step">${nextStep(e)}</td>
             <td><button type="button" class="btn btn-sm" data-speed-edit="${e.item.id}">Edit</button></td></tr>`).join('')}</tbody>
@@ -7443,6 +7578,9 @@ function renderSpeed() {
     rateEl.innerHTML = daysEl.innerHTML = '<div class="empty-note">No sales in the last 12 months yet.</div>';
   }
   renderSpeedGroups();
+  renderSpeedBatches();
+  const input = document.getElementById('speed-target-input');
+  if (input) input.focus();
 }
 
 function renderSpeedGroups() {
@@ -7461,13 +7599,13 @@ function renderSpeedGroups() {
   sortRows(rows, (r, key) => (key === 'name' && speedGroupBy === 'price' ? r.order : r[key]), speedSort);
   const isPlatform = speedGroupBy === 'platform';
   el.innerHTML = `<div class="table-scroll" tabindex="0" aria-label="Sell-through by ${SPEED_GROUPS[speedGroupBy].toLowerCase()}"><table class="mini-table" id="speed-table">
-    <thead><tr><th data-sort="name">${SPEED_GROUPS[speedGroupBy]}</th><th class="num" data-sort="n">Units sold</th>${isPlatform ? '' : '<th class="num" data-sort="rate">Sell-through</th>'}<th class="num" data-sort="median">Typical days</th><th class="num" data-sort="avg">Avg days</th><th class="num" data-sort="profit">Avg profit</th></tr></thead>
+    <thead><tr><th data-sort="name">${SPEED_GROUPS[speedGroupBy]}</th><th class="num" data-sort="n">Units sold</th>${isPlatform ? '' : '<th class="num" data-sort="rate">Sell-through</th>'}<th class="num" data-sort="median">Typical days</th><th class="num speed-opt" data-sort="avg">Avg days</th><th class="num" data-sort="profit">Avg profit</th></tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td>${isPlatform ? platformChip(r.name, true) : esc(r.name)}${r.n < 3 ? `<span class="speed-few" title="Under 3 sales: read with care">few sales</span>` : ''}</td>
       <td class="num">${r.n}${isPlatform ? '' : `<span style="color:var(--ink-faint)"> of ${r.n + r.open}</span>`}</td>
       ${isPlatform ? '' : `<td class="num">${fmtPct(r.rate)}</td>`}
       <td class="num">${r.median === null ? '&mdash;' : Math.round(r.median)}</td>
-      <td class="num">${r.avg === null ? '&mdash;' : Math.round(r.avg)}</td>
+      <td class="num speed-opt">${r.avg === null ? '&mdash;' : Math.round(r.avg)}</td>
       <td class="num">${r.profit === null ? '&mdash;' : moneyCell(r.profit)}</td></tr>`).join('')}</tbody>
   </table></div>
   ${isPlatform ? '<p class="speed-note">Unsold items aren’t tied to a platform, so sell-through isn’t split by platform.</p>' : ''}`;
@@ -7475,6 +7613,78 @@ function renderSpeedGroups() {
   wireSortHeaders('speed-table', speedSort, renderSpeedGroups);
 }
 
+// Purchases by month (or by purchase): the share that sold within 30, 60 and 90 days of buying.
+function speedBatchRows(by, soldMap) {
+  const dated = items.filter(u => u.purchase_date);
+  let groups;
+  if (by === 'month') {
+    const m = new Map();
+    dated.forEach(u => { const k = u.purchase_date.slice(0, 7); (m.get(k) || m.set(k, []).get(k)).push(u); });
+    groups = [...m.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12)
+      .map(([k, units]) => ({ label: new Date(k + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), units }));
+  } else {
+    groups = lotsOf(dated).sort((a, b) => b[0].purchase_date.localeCompare(a[0].purchase_date) || b[0].id - a[0].id).slice(0, 15)
+      .map(units => {
+        const same = units.every(u => u.item_name === units[0].item_name);
+        return { label: esc(units[0].item_name) + (units.length > 1 ? (same ? ` &times;${units.length}` : ` + ${units.length - 1} more`) : ''), sub: fmtDate(units[0].purchase_date), units };
+      });
+  }
+  return groups.map(g => {
+    const youngest = Math.min(...g.units.map(u => daysSince(u.purchase_date)));
+    const d = g.units.map(u => { const s = soldMap.get(u.id); return s ? daysBetween(u.purchase_date, s.sale_date) : null; });
+    const share = n => Math.round((n * 10000) / g.units.length);
+    const win = w => ({ bps: share(d.filter(x => x !== null && x <= w).length), partial: youngest < w, w });
+    const costs = g.units.filter(u => u.purchase_cost_cents !== null && u.purchase_cost_cents !== undefined);
+    return {
+      ...g, n: g.units.length, cost: costs.length ? costs.reduce((t, u) => t + u.purchase_cost_cents, 0) : null,
+      cells: [win(30), win(60), win(90), { bps: share(g.units.filter((u, i) => d[i] !== null || u.status === 'sold').length), partial: false }],
+    };
+  });
+}
+function renderSpeedBatches() {
+  const el = document.getElementById('speed-batches');
+  if (!el || !speedCache) return;
+  document.querySelectorAll('#speed-batch-by [data-speed-batch]').forEach(b => {
+    const on = b.dataset.speedBatch === speedBatchBy;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on);
+  });
+  const rows = speedBatchRows(speedBatchBy, speedCache.soldMap);
+  if (!rows.length) { el.innerHTML = '<div class="empty-note">Add purchase dates to your items to see how each buy sells.</div>'; return; }
+  // Light-to-strong accent behind each share; the number stays in ink.
+  const cell = c => `<td class="num speed-heat${c.partial ? ' partial' : ''}" style="--heat:${Math.round((c.bps / 100) * 0.3)}%"${c.partial ? ` title="Still counting: some were bought less than ${c.w} days ago"` : ''}>${fmtPct(c.bps)}</td>`;
+  el.innerHTML = `<div class="table-scroll" tabindex="0" aria-label="Share of purchases sold within 30, 60 and 90 days"><table class="mini-table speed-batch-table">
+    <thead><tr><th>${speedBatchBy === 'month' ? 'Bought in' : 'Purchase'}</th><th class="num speed-opt">Units</th><th class="num speed-opt">Cost</th><th class="num">In 30<span class="speed-long"> days</span></th><th class="num">In 60<span class="speed-long"> days</span></th><th class="num">In 90<span class="speed-long"> days</span></th><th class="num"><span class="speed-long">Sold </span>so far</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${r.label}${r.sub ? `<div class="field-hint">${r.sub}</div>` : ''}</td><td class="num speed-opt">${r.n}</td><td class="num speed-opt">${fmtCents(r.cost)}</td>${r.cells.map(cell).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function saveSpeedTarget() {
+  const input = document.getElementById('speed-target-input');
+  if (!input) return;
+  const v = parseInt(input.value, 10);
+  saveSellTarget(v);
+  speedEditingTarget = false;
+  queueCloudSave();
+  renderSpeed();
+}
+document.getElementById('view-speed').addEventListener('click', e => {
+  const count = e.target.closest('[data-speed-count]');
+  if (count) {
+    speedCountBy = count.dataset.speedCount;
+    try { localStorage.setItem(SPEED_COUNT_KEY, speedCountBy); } catch (err) {}
+    renderSpeed();
+    return;
+  }
+  const batch = e.target.closest('[data-speed-batch]');
+  if (batch) { speedBatchBy = batch.dataset.speedBatch; renderSpeedBatches(); return; }
+  if (e.target.closest('[data-speed-target-edit]')) { speedEditingTarget = true; renderSpeed(); return; }
+  if (e.target.closest('[data-speed-target-save]')) saveSpeedTarget();
+});
+document.getElementById('view-speed').addEventListener('keydown', e => {
+  if (e.target.id !== 'speed-target-input') return;
+  if (e.key === 'Enter') { e.preventDefault(); saveSpeedTarget(); }
+  if (e.key === 'Escape') { e.stopPropagation(); speedEditingTarget = false; renderSpeed(); }
+});
 document.querySelectorAll('#speed-period [data-speed-period]').forEach(btn => btn.addEventListener('click', () => {
   speedPeriod = btn.dataset.speedPeriod;
   try { localStorage.setItem(SPEED_PERIOD_KEY, speedPeriod); } catch (e) {}
@@ -7497,6 +7707,7 @@ function speedSnapshotLines() {
     '', 'SELL-THROUGH (unit = one item; sold = completed sale; days to sell = sale date − purchase date)',
     `All time: ${st.sold.length} of ${st.total} units sold (${st.rateBps === null ? 'n/a' : (st.rateBps / 100).toFixed(0) + '%'}); typical ${st.median === null ? 'n/a' : Math.round(st.median)} days, average ${st.avg === null ? 'n/a' : Math.round(st.avg)} days; ${st.days.length ? Math.round((st.within30 * 100) / st.days.length) + '% sold within 30 days' : 'no dated sales'}.`,
     `Last 90 days: ${r90.sold.length} of ${r90.total} units sold (${r90.rateBps === null ? 'n/a' : (r90.rateBps / 100).toFixed(0) + '%'}); typical ${r90.median === null ? 'n/a' : Math.round(r90.median)} days.`,
+    loadSellTarget() ? `Sell-through target: ${loadSellTarget()}%.` : 'Sell-through target: not set (can be set on the Sell-through page).',
     slow.length ? `Slowest categories (typical days): ${slow.map(r => `${r.name} ${Math.round(r.median)}`).join(', ')}.` : 'Not enough sales per category to compare speed yet.',
   ];
 }
@@ -7788,7 +7999,8 @@ const accountsConfigured = () => !!(LEDGERY_SUPABASE.url && LEDGERY_SUPABASE.ano
 
 // What syncs: the ledger itself plus the settings that change its numbers.
 function syncPayload() {
-  return { items, sales, feeRates: getFeeRates(), goalCents: loadGoalCents(), moneyPrefs };
+  const sellTarget = loadSellTarget();
+  return { items, sales, feeRates: getFeeRates(), goalCents: loadGoalCents(), moneyPrefs, ...(sellTarget ? { sellTarget } : {}) };
 }
 function hashString(str) { // FNV-1a: cheap "has anything changed?" check
   let h = 0x811c9dc5;
@@ -7901,6 +8113,7 @@ function applyCloud(cloud) {
   if (d.feeRates) { saveFeeRates(d.feeRates); renderFeeRates(); }
   if (d.moneyPrefs) setMoneyPrefs(d.moneyPrefs, true);
   try { if (d.goalCents > 0) localStorage.setItem(GOAL_KEY, String(d.goalCents)); else localStorage.removeItem(GOAL_KEY); } catch (e) {}
+  saveSellTarget(d.sellTarget);
   const g = loadGoalCents(); document.getElementById('goal-input').value = g ? (g / 100).toFixed(0) : '';
   saveSyncMeta({ userId: Account.user.id, version: cloud.version, hash: localHash() });
   renderAll(); // saves locally; the cloud push is skipped because nothing differs
@@ -8148,6 +8361,7 @@ async function signOutAccount() {
   saveSyncMeta(null);
   resetData();
   try { localStorage.removeItem(GOAL_KEY); } catch (e) {}
+  saveSellTarget(null);
   document.getElementById('goal-input').value = '';
   renderAll();
   hideToast();
@@ -8211,6 +8425,7 @@ document.getElementById('delete-account-form').addEventListener('submit', async 
   saveSyncMeta(null);
   resetData();
   try { localStorage.removeItem(GOAL_KEY); } catch (e2) {}
+  saveSellTarget(null);
   document.getElementById('goal-input').value = '';
   btn.textContent = 'Delete account';
   closeOverlay('overlay-delete-account');
